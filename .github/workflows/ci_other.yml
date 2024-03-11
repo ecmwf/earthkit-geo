@@ -116,7 +116,7 @@ jobs:
     if: always() && ${{ !github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci' }}
     needs:
     - pre-commit
-    - unit-tests-no
+    - unit-tests
     - documentation
     runs-on: ubuntu-latest
     steps:
