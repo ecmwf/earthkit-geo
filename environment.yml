@@ -1,0 +1,17 @@
+name: earthkit-geo
+channels:
+- conda-forge
+- nodefaults
+dependencies:
+- scipy
+- make
+- mypy
+- myst-parser
+- pre-commit
+- pytest
+- pytest-cov
+- sphinx>=7.2.6
+- pip:
+  - sphinx-autoapi>=3.0.0
+- sphinx_rtd_theme
+- sphinxcontrib-apidoc
