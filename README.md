@@ -21,6 +21,7 @@ Install via `pip` with:
 $ pip install earthkit-geo
 ```
 
+<!--
 More details, such as how to install any necessary binaries, can be found  at https://earthkit-geo.readthedocs.io/en/latest/install.html.
 
 Alternatively, install via `conda` with:
@@ -29,12 +30,12 @@ Alternatively, install via `conda` with:
 $ conda install earthkit-geo -c conda-forge
 ```
 
-This will bring in some necessary binary dependencies for you.
+This will bring in some necessary binary dependencies for you. -->
 
 ## License
 
 ```
-Copyright 2022, European Centre for Medium Range Weather Forecasts.
+Copyright 2024, European Centre for Medium Range Weather Forecasts.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
