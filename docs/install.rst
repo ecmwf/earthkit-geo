@@ -10,8 +10,8 @@ Install **earthkit-geo** with python3 (>= 3.8) and ``pip`` as follows:
 
     python3 -m pip install earthkit-geo
 
-Alternatively, install via ``conda`` with:
+.. Alternatively, install via ``conda`` with:
 
-.. code-block:: bash
+.. .. code-block:: bash
 
-    conda install earthkit-geo -c conda-forge
+..     conda install earthkit-geo -c conda-forge
