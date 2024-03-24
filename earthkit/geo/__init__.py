@@ -22,9 +22,11 @@ from earthkit.geo.distance import (
     nearest_point_haversine,
     nearest_point_kdtree,
 )
+from earthkit.geo.latlon import generate_latlon
 
 __all__ = [
     "GeoKDTree",
+    "generate_latlon",
     "haversine_distance",
     "nearest_point_haversine",
     "nearest_point_kdtree",
