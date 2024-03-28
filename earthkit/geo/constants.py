@@ -18,6 +18,12 @@ r"""Average radius of the Earth [:math:`m`]. See [IFS-CY47R3-PhysicalProcesses]_
 full_circle = 360
 r"""Full circle in degrees"""
 
+half_circle = 180
+r"""Half circle in degrees"""
+
+quarter_circle = 90
+r"""Quarter circle in degrees"""
+
 north = 90
 r"""Latitude of the north pole in degrees"""
 
