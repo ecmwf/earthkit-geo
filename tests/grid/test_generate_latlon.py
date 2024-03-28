@@ -16,7 +16,7 @@ import pytest
 
 from earthkit.geo.grid import to_latlon
 
-DATA_PATH = os.path.join(os.path.dirname(__file__), "data")
+DATA_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
 
 
 def file_in_testdir(filename):
@@ -26,9 +26,7 @@ def file_in_testdir(filename):
 def _global_grids():
     import json
 
-    from earthkit.data.utils.paths import earthkit_conf_file
-
-    with open(earthkit_conf_file("global_grids.json"), "r") as f:
+    with open(file_in_testdir("global_ll_ref.json"), "r") as f:
         d = json.load(f)
 
     for _, v in d.items():
