@@ -103,6 +103,15 @@ def test_haversine_distance(dlon_ref, dlon_p, p_ref, d_ref):
     ), f"p_ref={p_ref},dlon_ref={dlon_ref},dlon_p={dlon_p}"
 
 
+def test_haversine_distance_with_radius():
+    p = (0, 90)
+    p_ref = (48.0, 20)
+    d_ref = 1.33989384590445
+
+    d = haversine_distance(p_ref, p, radius=1)
+    assert np.allclose(d, d_ref)
+
+
 # lat is out of range
 @pytest.mark.parametrize("p_ref", [((90.00001, 0)), (((-90.00001, 0)))])
 def test_haversine_distance_invalid(p_ref):
@@ -130,6 +139,25 @@ def test_nearest_single_ref(mode, p_ref, index_ref, dist_ref):
 
     meth = get_nearest_method(mode)
     index, distance = meth(p_ref, (lats, lons))
+    assert np.allclose(index_ref, index)
+    assert np.allclose(distance, dist_ref)
+
+
+@pytest.mark.parametrize("mode", ["haversine", "kdtree"])
+@pytest.mark.parametrize(
+    "p_ref,index_ref,dist_ref",
+    [
+        ((0, 0), 0, 0),
+        ((15, 22), 0, 0.46103882),
+        ((-50, -18), 8, 0.04174471),
+    ],
+)
+def test_nearest_single_ref_with_radius(mode, p_ref, index_ref, dist_ref):
+    lats = np.array([0.0, 0, 0, 0, 90, -90, 48, 48, -48, -48, np.nan])
+    lons = np.array([0, 90, -90, 180, 0, 0, 20, -20, -20, 20, 1.0])
+
+    meth = get_nearest_method(mode)
+    index, distance = meth(p_ref, (lats, lons), radius=1)
     assert np.allclose(index_ref, index)
     assert np.allclose(distance, dist_ref)
 
@@ -167,7 +195,7 @@ def test_nearest_multi_ref_multi_points(mode):
 
 
 @pytest.mark.parametrize("mode", ["haversine", "kdtree"])
-def test_haversine_nearest_invalid(mode):
+def test_nearest_invalid(mode):
     # checks: p_ref must have a (2,) shape
     p_ref = ([15, 21], [22, 7], [44, 12])
     p = ([0.0, 0], [0, 90])
