@@ -8,7 +8,6 @@
 #
 
 import numpy as np
-from scipy.spatial import KDTree
 
 from . import constants
 
@@ -198,6 +197,8 @@ def _arclength_to_cordlength(arc_length, radius=constants.R_earth):
 
 class GeoKDTree:
     def __init__(self, lats, lons):
+        from scipy.spatial import KDTree
+
         lats = np.asarray(lats).flatten()
         lons = np.asarray(lons).flatten()
 
