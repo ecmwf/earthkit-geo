@@ -10,14 +10,15 @@
 import numpy as np
 
 from . import constants
+from .figure import IFS_SPHERE, UNIT_SPHERE
 
 
 def _regulate_lat(lat):
     return np.where(np.abs(lat) > constants.north, np.nan, lat)
 
 
-def haversine_distance(p1, p2, radius=constants.R_earth):
-    """Compute haversine distance between two (sets of) points on a sphere.
+def haversine_distance(p1, p2, figure=IFS_SPHERE):
+    """Compute haversine distance between two (sets of) points on a spheroid.
 
     Parameters
     ----------
@@ -27,13 +28,13 @@ def haversine_distance(p1, p2, radius=constants.R_earth):
     p2: pair of array-like
         Locations of the second points. The first item specifies the latitudes,
         the second the longitudes (degrees)
-    radius: float, optional
-        Radius of the sphere (default: Earth's radius in meters)
+    figure: :class:`geo.figure.Figure`, optional
+        Figure of the spheroid (default: :obj:`geo.figure.IFS_SPHERE`)
 
     Returns
     -------
     number or ndarray
-        Spherical distance on the surface of the sphere (m)
+        Distance (m) on the surface of the spheroid defined by ``figure``.
 
 
     Either ``p1`` or ``p2`` must be a single point.
@@ -88,13 +89,10 @@ def haversine_distance(p1, p2, radius=constants.R_earth):
     )
     distance = 2 * np.arcsin(a)
 
-    if radius == 1:
-        return distance
-    else:
-        return radius * distance
+    return figure.scale(distance)
 
 
-def nearest_point_haversine(ref_points, points, radius=constants.R_earth):
+def nearest_point_haversine(ref_points, points, figure=IFS_SPHERE):
     """Find the index of the nearest point to all ``ref_points`` in a set of
       ``points`` using the haversine distance formula.
 
@@ -106,9 +104,9 @@ def nearest_point_haversine(ref_points, points, radius=constants.R_earth):
         Locations of the set of points from which the nearest to
         ``ref_points`` is to be found. The first item specifies the latitudes,
         the second the longitudes (degrees)
-    radius: float, optional
-        Radius of the sphere (default: Earth's radius in meters) the returned
-        distances are computed on
+    figure: :class:`geo.figure.Figure`, optional
+        Figure of the spheroid the returned
+        distances are computed on (default: :obj:`geo.figure.IFS_SPHERE`)
 
     Returns
     -------
@@ -116,7 +114,7 @@ def nearest_point_haversine(ref_points, points, radius=constants.R_earth):
         Indices of the nearest points to ``ref_points``.
     ndarray
         The distance (m) between the ``ref_points`` and the corresponding nearest
-        point in ``points``.
+        point in ``points`` on the surface of the spheroid defined by ``figure``.
 
     Examples
     --------
@@ -146,15 +144,16 @@ def nearest_point_haversine(ref_points, points, radius=constants.R_earth):
     res_index = []
     res_distance = []
     for lat, lon in ref_points.T:
-        distance = haversine_distance((lat, lon), points, radius=1).flatten()
+        distance = haversine_distance((lat, lon), points, figure=UNIT_SPHERE).flatten()
         index = np.nanargmin(distance)
         index = index[0] if isinstance(index, np.ndarray) else index
         res_index.append(index)
         res_distance.append(distance[index])
-    return (np.array(res_index), np.array(res_distance) * radius)
+    return (np.array(res_index), figure.scale(np.array(res_distance)))
 
 
-def _ll_to_xyz(lat, lon, radius=constants.R_earth):
+def _latlon_to_xyz(lat, lon):
+    """Works on the unit sphere."""
     lat = np.asarray(lat)
     lon = np.asarray(lon)
     lat = np.radians(lat)
@@ -163,40 +162,32 @@ def _ll_to_xyz(lat, lon, radius=constants.R_earth):
     y = np.cos(lat) * np.sin(lon)
     z = np.sin(lat)
 
-    if radius == 1:
-        return x, y, z
-    else:
-        return radius * x, radius * y, radius * z
+    return x, y, z
 
 
-def _cordlength_to_arclength(chord_length, radius=constants.R_earth):
+def _cordlength_to_arclength(chord_length):
     """
     Convert 3D (Euclidean) distance to great circle arc length
     https://en.wikipedia.org/wiki/Great-circle_distance
+    Works on the unit sphere.
     """
-    if radius == 1:
-        central_angle = 2.0 * np.arcsin(chord_length / 2.0)
-        return central_angle
-    else:
-        central_angle = 2.0 * np.arcsin(chord_length / (2.0 * radius))
-        return radius * central_angle
+    central_angle = 2.0 * np.arcsin(chord_length / 2.0)
+    return central_angle
 
 
-def _arclength_to_cordlength(arc_length, radius=constants.R_earth):
+def _arclength_to_cordlength(arc_length):
     """
     Convert great circle arc length to 3D (Euclidean) distance
     https://en.wikipedia.org/wiki/Great-circle_distance
+    Works on the unit sphere.
     """
-    if radius == 1:
-        central_angle = arc_length
-        return np.sin(central_angle / 2) * 2.0
-    else:
-        central_angle = arc_length / radius
-        return np.sin(central_angle / 2) * 2.0 * radius
+    central_angle = arc_length
+    return np.sin(central_angle / 2) * 2.0
 
 
 class GeoKDTree:
     def __init__(self, lats, lons):
+        """KDTree built from ``lats`` and ``lons``."""
         from scipy.spatial import KDTree
 
         lats = np.asarray(lats).flatten()
@@ -208,22 +199,40 @@ class GeoKDTree:
             lats = lats[mask]
             lons = lons[mask]
 
-        x, y, z = _ll_to_xyz(lats, lons, radius=1)
+        x, y, z = _latlon_to_xyz(lats, lons)
         v = np.column_stack((x, y, z))
         self.tree = KDTree(v)
 
         # TODO: allow user to specify max distance
         self.max_distance_arc = np.pi / 4
         if self.max_distance_arc <= np.pi:
-            self.max_distance_cord = _arclength_to_cordlength(
-                self.max_distance_arc, radius=1
-            )
+            self.max_distance_cord = _arclength_to_cordlength(self.max_distance_arc)
         else:
             self.max_distance_cord = np.inf
 
-    def nearest_point(self, points, radius=constants.R_earth):
-        lat, lon = points
-        x, y, z = _ll_to_xyz(lat, lon, radius=1)
+    def nearest_point(self, ref_points, figure=IFS_SPHERE):
+        """Find the index of the nearest point to all ``ref_points``.
+
+        Parameters
+        ----------
+        ref_points: pair of array-like
+            Latitude and longitude coordinates of the reference point (degrees)
+        figure: :class:`geo.figure.Figure`, optional
+            Figure of the spheroid the returned
+            distances are computed on (default: :obj:`geo.figure.IFS_SPHERE`)
+
+        Returns
+        -------
+        ndarray
+            Indices of the nearest points to ``ref_points``.
+        ndarray
+            The distance (m) between the ``ref_points`` and the corresponding nearest
+            point in ``points``. Computed on the surface of the spheroid defined
+            by ``figure``.
+
+        """
+        lat, lon = ref_points
+        x, y, z = _latlon_to_xyz(lat, lon)
         points = np.column_stack((x, y, z))
 
         # find the nearest point
@@ -231,10 +240,10 @@ class GeoKDTree:
             points, distance_upper_bound=self.max_distance_arc
         )
 
-        return index, _cordlength_to_arclength(distance, radius=1) * radius
+        return index, figure.scale(_cordlength_to_arclength(distance))
 
 
-def nearest_point_kdtree(ref_points, points, radius=constants.R_earth):
+def nearest_point_kdtree(ref_points, points, figure=IFS_SPHERE):
     """Find the index of the nearest point to all ``ref_points`` in a set of ``points`` using a KDTree.
 
     Parameters
@@ -245,9 +254,9 @@ def nearest_point_kdtree(ref_points, points, radius=constants.R_earth):
         Locations of the set of points from which the nearest to
         ``ref_points`` is to be found. The first item specifies the latitudes,
         the second the longitudes (degrees)
-    radius: float, optional
-        Radius of the sphere (default: Earth's radius in meters) the returned
-        distances are computed on
+    figure: :class:`geo.figure.Figure`, optional
+        Figure of the spheroid the returned
+        distances are computed on (default: :obj:`geo.figure.IFS_SPHERE`)
 
     Returns
     -------
@@ -255,7 +264,8 @@ def nearest_point_kdtree(ref_points, points, radius=constants.R_earth):
         Indices of the nearest points to ``ref_points``.
     ndarray
         The distance (m) between the ``ref_points`` and the corresponding nearest
-        point in ``points``.
+        point in ``points``. Computed on the surface of the spheroid defined
+        by ``figure``.
 
     Examples
     --------
@@ -276,5 +286,5 @@ def nearest_point_kdtree(ref_points, points, radius=constants.R_earth):
     """
     lats, lons = points
     tree = GeoKDTree(lats, lons)
-    index, distance = tree.nearest_point(ref_points, radius=radius)
+    index, distance = tree.nearest_point(ref_points, figure=figure)
     return index, distance

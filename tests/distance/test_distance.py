@@ -13,6 +13,7 @@ import numpy as np
 import pytest
 
 from earthkit.geo import (
+    UNIT_SPHERE,
     haversine_distance,
     nearest_point_haversine,
     nearest_point_kdtree,
@@ -108,7 +109,7 @@ def test_haversine_distance_with_radius():
     p_ref = (48.0, 20)
     d_ref = 1.33989384590445
 
-    d = haversine_distance(p_ref, p, radius=1)
+    d = haversine_distance(p_ref, p, figure=UNIT_SPHERE)
     assert np.allclose(d, d_ref)
 
 
@@ -157,7 +158,7 @@ def test_nearest_single_ref_with_radius(mode, p_ref, index_ref, dist_ref):
     lons = np.array([0, 90, -90, 180, 0, 0, 20, -20, -20, 20, 1.0])
 
     meth = get_nearest_method(mode)
-    index, distance = meth(p_ref, (lats, lons), radius=1)
+    index, distance = meth(p_ref, (lats, lons), figure=UNIT_SPHERE)
     assert np.allclose(index_ref, index)
     assert np.allclose(distance, dist_ref)
 

@@ -11,9 +11,5 @@
 Collection of constants in SI units.
 """
 
-R_earth = 6371229
-r"""Average radius of the Earth [:math:`m`]. See [IFS-CY47R3-PhysicalProcesses]_
- (Chapter 12)."""
-
 north = 90
 r"""Latitude of the north pole in degrees"""
