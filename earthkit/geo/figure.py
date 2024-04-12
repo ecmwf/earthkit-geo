@@ -17,14 +17,10 @@ class Figure:
 class Sphere(Figure):
     """Base class for a sphere. The radius is in metres."""
 
-    _radius = None
-
-    def __init__(self):
-        if self._radius is None:
-            raise NotImplementedError("Use a subclass of Sphere")
-
-    def __init_subclass__(self):
-        pass
+    def __init__(self, radius):
+        self._radius = radius
+        if self._radius <= 0.0:
+            raise ValueError(f"Radius={self._radius} must be positive")
 
     @property
     def radius(self):
@@ -42,13 +38,15 @@ class IFSSphere(Sphere):
     See [IFS-CY47R3-PhysicalProcesses]_ (Chapter 12).
     """
 
-    _radius = 6371229
+    def __init__(self):
+        super().__init__(6371229)
 
 
 class UnitSphere(Sphere):
     """Unit sphere (with the radius of 1 m)."""
 
-    _radius = 1.0
+    def __init__(self):
+        super().__init__(1)
 
     def scale(self, *args):
         if len(args) > 1:
