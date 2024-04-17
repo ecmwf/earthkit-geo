@@ -46,7 +46,7 @@ class UnitSphere(Sphere):
             return args[0]
 
 
-IFS_SPHERE = Sphere(6371229)
+IFS_SPHERE = Sphere(6371229.0)
 r"""Object of spherical Earth with radius=6371229 m as used in the IFS.
 See [IFS-CY47R3-PhysicalProcesses]_ (Chapter 12)."""
 
