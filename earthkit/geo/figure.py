@@ -33,20 +33,11 @@ class Sphere(Figure):
             return args[0] * self.radius
 
 
-class IFSSphere(Sphere):
-    r"""Spherical Earth with radius=6371229 m as used in the IFS.
-    See [IFS-CY47R3-PhysicalProcesses]_ (Chapter 12).
-    """
-
-    def __init__(self):
-        super().__init__(6371229)
-
-
 class UnitSphere(Sphere):
     """Unit sphere (with the radius of 1 m)."""
 
     def __init__(self):
-        super().__init__(1)
+        super().__init__(1.0)
 
     def scale(self, *args):
         if len(args) > 1:
@@ -55,7 +46,7 @@ class UnitSphere(Sphere):
             return args[0]
 
 
-IFS_SPHERE = IFSSphere()
+IFS_SPHERE = Sphere(6371229)
 r"""Object of spherical Earth with radius=6371229 m as used in the IFS.
 See [IFS-CY47R3-PhysicalProcesses]_ (Chapter 12)."""
 
