@@ -165,7 +165,7 @@ def _latlon_to_xyz(lat, lon):
     return x, y, z
 
 
-def _cordlength_to_arclength(chord_length):
+def _chordlength_to_arclength(chord_length):
     """
     Convert 3D (Euclidean) distance to great circle arc length
     https://en.wikipedia.org/wiki/Great-circle_distance
@@ -175,7 +175,7 @@ def _cordlength_to_arclength(chord_length):
     return central_angle
 
 
-def _arclength_to_cordlength(arc_length):
+def _arclength_to_chordlength(arc_length):
     """
     Convert great circle arc length to 3D (Euclidean) distance
     https://en.wikipedia.org/wiki/Great-circle_distance
@@ -206,9 +206,9 @@ class GeoKDTree:
         # TODO: allow user to specify max distance
         self.max_distance_arc = np.pi / 4
         if self.max_distance_arc <= np.pi:
-            self.max_distance_cord = _arclength_to_cordlength(self.max_distance_arc)
+            self.max_distance_chord = _arclength_to_chordlength(self.max_distance_arc)
         else:
-            self.max_distance_cord = np.inf
+            self.max_distance_chord = np.inf
 
     def nearest_point(self, ref_points, figure=IFS_SPHERE):
         """Find the index of the nearest point to all ``ref_points``.
@@ -240,7 +240,7 @@ class GeoKDTree:
             points, distance_upper_bound=self.max_distance_arc
         )
 
-        return index, figure.scale(_cordlength_to_arclength(distance))
+        return index, figure.scale(_chordlength_to_arclength(distance))
 
 
 def nearest_point_kdtree(ref_points, points, figure=IFS_SPHERE):
