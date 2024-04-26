@@ -28,8 +28,16 @@ Welcome to earthkit-geo's documentation
    :caption: Installation
 
    install
+   release_notes/index
    development
    licence
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Projects
+
+   earthkit <https://earthkit.readthedocs.io/en/latest>
+
 
 
 Indices and tables
