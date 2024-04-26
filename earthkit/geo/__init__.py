@@ -22,11 +22,14 @@ from earthkit.geo.distance import (
     nearest_point_haversine,
     nearest_point_kdtree,
 )
+from earthkit.geo.figure import IFS_SPHERE, UNIT_SPHERE
 
 __all__ = [
     "GeoKDTree",
     "haversine_distance",
+    IFS_SPHERE,
     "nearest_point_haversine",
     "nearest_point_kdtree",
+    UNIT_SPHERE,
     "__version__",
 ]
