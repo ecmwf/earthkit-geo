@@ -26,7 +26,7 @@ jobs:
     if: ${{ !github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci' }}
     uses: ecmwf-actions/downstream-ci/.github/workflows/downstream-ci.yml@add-earthkit-geo
     with:
-      earthkit-regrid: ecmwf/earthkit-regrid@${{ github.event.pull_request.head.sha || github.sha }}
+      earthkit-geo: ecmwf/earthkit-geo@${{ github.event.pull_request.head.sha || github.sha }}
       codecov_upload: true
       python_qa: true
     secrets: inherit
@@ -38,5 +38,5 @@ jobs:
     if: ${{ !github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci' }}
     uses: ecmwf-actions/downstream-ci/.github/workflows/downstream-ci-hpc.yml@add-earthkit-geo
     with:
-      earthkit-regrid: ecmwf/earthkit-regrid@${{ github.event.pull_request.head.sha || github.sha }}
+      earthkit-geo: ecmwf/earthkit-geo@${{ github.event.pull_request.head.sha || github.sha }}
     secrets: inherit
