@@ -187,7 +187,7 @@ def _arclength_to_chordlength(arc_length):
 
 class GeoKDTree:
     def __init__(self, lats, lons):
-        """KDTree built from ``lats`` and ``lons``."""
+        """Build a KDTree from ``lats`` and ``lons``."""
         from scipy.spatial import KDTree
 
         lats = np.asarray(lats).flatten()
