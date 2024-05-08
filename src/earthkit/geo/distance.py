@@ -14,7 +14,7 @@ from .figure import IFS_SPHERE, UNIT_SPHERE
 
 
 def _regulate_lat(lat):
-    return np.where(np.abs(lat) > constants.north, np.nan, lat)
+    return np.where(np.abs(lat) > constants.NORTH, np.nan, lat)
 
 
 def haversine_distance(p1, p2, figure=IFS_SPHERE):
