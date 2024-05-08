@@ -11,21 +11,14 @@
 Collection of constants in SI units.
 """
 
-R_earth = 6371229
-r"""Average radius of the Earth [:math:`m`]. See [IFS-CY47R3-PhysicalProcesses]_
- (Chapter 12)."""
-
-full_circle = 360
-r"""Full circle in degrees"""
-
-half_circle = 180
-r"""Half circle in degrees"""
-
-quarter_circle = 90
-r"""Quarter circle in degrees"""
-
-north = 90
+NORTH = 90.0
 r"""Latitude of the north pole in degrees"""
 
-south = -90
+SOUTH = -90.0
 r"""Latitude of the south pole in degrees"""
+
+FULL_ANGLE = 360.0
+r"""Full angle in degrees"""
+
+RIGHT_ANGLE = 90.0
+r"""Right angle in degrees"""

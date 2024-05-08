@@ -73,25 +73,25 @@ def to_latlon(grid):
     eps_lat = dlat / 1e2
     eps_lon = dlon / 1e2
 
-    north = constants.north
-    south = constants.south
+    north = constants.NORTH
+    south = constants.SOUTH
     west = 0.0
-    east = constants.full_circle
+    east = constants.FULL_ANGLE
 
     # north-south
-    ny2 = round(constants.quarter_circle / dlat)
+    ny2 = round(constants.RIGHT_ANGLE / dlat)
     half_lat_range = ny2 * dlat
-    delta = constants.quarter_circle - half_lat_range
+    delta = constants.RIGHT_ANGLE - half_lat_range
     if delta < -eps_lat:
         ny2 -= 1
         half_lat_range = ny2 * dlat
-        delta = constants.quarter_circle - half_lat_range
+        delta = constants.RIGHT_ANGLE - half_lat_range
 
     ny = ny2 * 2 + 1
 
     if abs(delta) < eps_lat:
-        north = constants.north
-        south = constants.south
+        north = constants.NORTH
+        south = constants.SOUTH
     else:
         north = half_lat_range
         south = -north
@@ -102,11 +102,11 @@ def to_latlon(grid):
 
     # west-east
     west = 0.0
-    east = constants.full_circle
+    east = constants.FULL_ANGLE
 
-    nx = round(constants.full_circle / dlon)
+    nx = round(constants.FULL_ANGLE / dlon)
     lon_range = nx * dlon
-    delta = constants.full_circle - lon_range
+    delta = constants.FULL_ANGLE - lon_range
     if abs(delta) < eps_lon or delta < 0:
         nx = nx - 1
     nx = nx + 1
