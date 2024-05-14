@@ -22,7 +22,7 @@ def _normalise_longitude(lon, minimum):
     return lon
 
 
-def rotate_winds(lats, lons, x_wind, y_wind, source_projection, target_projection):
+def rotate_wind(lats, lons, x_wind, y_wind, source_projection, target_projection):
     """Code provided by MetNO"""
     import numpy as np
     import pyproj
@@ -78,7 +78,7 @@ def rotate_winds(lats, lons, x_wind, y_wind, source_projection, target_projectio
     return new_x_wind, new_y_wind
 
 
-def unrotate_winds(
+def unrotate_wind(
     lats,
     lons,
     raw_lats,
