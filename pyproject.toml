@@ -29,10 +29,14 @@ readme = "README.md"
 requires-python = ">= 3.8"
 
 [project.optional-dependencies]
+all = [
+  "earthkit-geo[wind]"
+]
 test = [
   "pytest",
   "pytest-cov"
 ]
+wind = ["pyproj"]
 
 [project.urls]
 Documentation = "https://earthkit-geo.readthedocs.io/"
