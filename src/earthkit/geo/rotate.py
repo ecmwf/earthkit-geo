@@ -8,7 +8,7 @@
 #
 
 
-def unrotate(lat, lon, south_pole_lat, south_pole_lon):
+def rotate(lat, lon, south_pole_lat, south_pole_lon):
     import numpy as np
 
     def from_xyz(x, y, z):
@@ -28,8 +28,8 @@ def unrotate(lat, lon, south_pole_lat, south_pole_lon):
 
         return (cp * cl, cp * sl, sp)
 
-    theta = -np.deg2rad(south_pole_lat + 90.0)
-    phi = -np.deg2rad(south_pole_lon)
+    theta = np.deg2rad(south_pole_lat + 90.0)
+    phi = np.deg2rad(south_pole_lon)
 
     ct = np.cos(theta)
     st = np.sin(theta)
@@ -42,3 +42,6 @@ def unrotate(lat, lon, south_pole_lat, south_pole_lon):
 
     return from_xyz(*np.dot(matrix, to_xyz(lat, lon)))
 
+
+def unrotate(lat, lon, south_pole_lat, south_pole_lon):
+    return rotate(lat, lon, -south_pole_lat, -south_pole_lon)
