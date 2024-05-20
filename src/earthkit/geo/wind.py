@@ -112,6 +112,7 @@ def unrotate_wind(
     y_wind,
     south_pole_latitude,
     south_pole_longitude,
+    south_pole_rotation_angle=0,
 ):
     """
     Rotate wind components defined on a rotated grid back into "longlat" projection.
@@ -152,6 +153,8 @@ def unrotate_wind(
     components to their original direction at each rotated grid point.
     """
     import numpy as np
+
+    assert south_pole_rotation_angle == 0
 
     C = np.deg2rad(constants.NORTH - south_pole_latitude)
     cos_C = np.cos(C)
