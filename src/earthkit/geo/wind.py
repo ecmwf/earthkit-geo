@@ -7,6 +7,8 @@
 # nor does it submit to any jurisdiction.
 #
 
+from . import constants
+
 
 def _normalise(x):
     return max(min(x, 1.0), -1.0)
@@ -14,16 +16,39 @@ def _normalise(x):
 
 def _normalise_longitude(lon, minimum):
     while lon < minimum:
-        lon += 360
+        lon += constants.FULL_ANGLE
 
-    while lon >= minimum + 360:
-        lon -= 360
+    while lon >= minimum + constants.FULL_ANGLE:
+        lon -= constants.FULL_ANGLE
 
     return lon
 
 
 def rotate_wind(lats, lons, x_wind, y_wind, source_projection, target_projection):
-    """Code provided by MetNO"""
+    """Rotate wind components from one projection to another.
+
+    Parameters
+    ----------
+    lats: ndarray
+        Latitude coordinates of the points (degrees).
+    lons: ndarray
+        Longitude coordinates of the points (degrees).
+    x_wind: ndarray
+        x-component of the wind in the source projection (m/s).
+    y_wind: ndarray
+        y-component of the wind in the source projection (m/s).
+    source_projection: str
+        Projection that the wind components are defined in.
+    target_projection: str
+        Projection that the wind components should be transformed to.
+
+    Returns
+    -------
+    ndarray
+        x-component of the wind in the target projection (m/s).
+    ndarray
+        y-component of the wind in the target projection (m/s).
+    """
     import numpy as np
     import pyproj
 
@@ -69,8 +94,8 @@ def rotate_wind(lats, lons, x_wind, y_wind, source_projection, target_projection
         new_x_wind *= np.cos(np.deg2rad(lats))
 
     if target_projection.name == "longlat" or source_projection.name == "longlat":
-        # Ensure the wind speed is not changed (which might not the case since the units in longlat
-        # is degrees, not meters)
+        # Ensure the wind speed is not changed (which might not be the case since the
+        # units in longlat is degrees, not meters)
         curr_speed = np.sqrt(new_x_wind**2 + new_y_wind**2)
         new_x_wind *= orig_speed / curr_speed
         new_y_wind *= orig_speed / curr_speed
@@ -87,13 +112,48 @@ def unrotate_wind(
     y_wind,
     south_pole_latitude,
     south_pole_longitude,
-    south_pole_rotation_angle=0,
 ):
+    """
+    Rotate wind components defined on a rotated grid back into "longlat" projection.
+
+    Parameters
+    ----------
+    lats: ndarray
+        Latitude coordinates of the rotated points (degrees).
+    lons: ndarray
+        Longitude coordinates of the rotated points (degrees).
+    raw_lats: ndarray
+        Latitude coordinates of the points before rotation (degrees).
+    raw_lons: ndarray
+        Longitude coordinates of the points before rotation (degrees).
+    x_wind: ndarray
+        x-component of the wind in the rotated
+        coordinate system at the rotated points (m/s).
+    y_wind: ndarray
+        y-component of the wind in the rotated
+        coordinate system at the rotated points (m/s).
+    south_pole_latitude: float
+        Latitude of the south pole defining the rotation (degrees).
+    south_pole_longitude: float
+        Longitude of the south pole defining the rotation (degrees).
+
+    Returns
+    -------
+    ndarray
+        x-component of the wind at the rotated points rotated back to "longlat" projection (m/s).
+    ndarray
+        y-component of the wind at the rotated points rotated back to "longlat" projection (m/s).
+
+
+    When a grid is rotated around a new south pole
+    (``south_pole_latitude``, ``south_pole_longitude``), the wind components are locally rotated
+    at each target grid point to be interpreted in the new local (rotated) coordinate
+    system. :func:`unrotate_wind` performs the inverse operation, and rotates back the wind
+    components to their original direction at each rotated grid point.
+    """
     import numpy as np
 
-    # Code from MIR
-    assert south_pole_rotation_angle == 0
-    C = np.deg2rad(90 - south_pole_latitude)
+    C = np.deg2rad(constants.NORTH - south_pole_latitude)
     cos_C = np.cos(C)
     sin_C = np.sin(C)
 
@@ -104,7 +164,7 @@ def unrotate_wind(
         zip(x_wind, y_wind, lats, lons, raw_lats, raw_lons)
     ):
         lonRotated = south_pole_longitude - lon
-        lon_rotated = _normalise_longitude(lonRotated, -180)
+        lon_rotated = _normalise_longitude(lonRotated, -constants.STRAIGHT_ANGLE)
         lon_unrotated = raw_lon
 
         a = np.deg2rad(lon_rotated)
