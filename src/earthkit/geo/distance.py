@@ -10,6 +10,7 @@
 import numpy as np
 
 from . import constants
+from .coord import _latlon_to_xyz
 from .figure import IFS_SPHERE, UNIT_SPHERE
 
 
@@ -150,19 +151,6 @@ def nearest_point_haversine(ref_points, points, figure=IFS_SPHERE):
         res_index.append(index)
         res_distance.append(distance[index])
     return (np.array(res_index), figure.scale(np.array(res_distance)))
-
-
-def _latlon_to_xyz(lat, lon):
-    """Works on the unit sphere."""
-    lat = np.asarray(lat)
-    lon = np.asarray(lon)
-    lat = np.radians(lat)
-    lon = np.radians(lon)
-    x = np.cos(lat) * np.cos(lon)
-    y = np.cos(lat) * np.sin(lon)
-    z = np.sin(lat)
-
-    return x, y, z
 
 
 def _chordlength_to_arclength(chord_length):

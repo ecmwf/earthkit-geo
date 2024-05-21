@@ -7,10 +7,29 @@
 # nor does it submit to any jurisdiction.
 #
 
+from .coord import _latlon_to_xyz, _xyz_to_latlon
+
+
+def _rotation_matrix(south_pole_lat, south_pole_lon):
+    """
+    Define matrix for spherical rotation.
+    """
+    import numpy as np
+
+    theta = -np.deg2rad(south_pole_lat + 90.0)
+    phi = -np.deg2rad(south_pole_lon)
+
+    ct = np.cos(theta)
+    st = np.sin(theta)
+    cp = np.cos(phi)
+    sp = np.sin(phi)
+
+    return np.array([[cp * ct, sp, cp * st], [-ct * sp, cp, -sp * st], [-st, 0.0, ct]])
+
 
 def rotate(lat, lon, south_pole_lat, south_pole_lon):
     """
-    Rotate geographical coordinates with respect to a south pole.
+    Rotate geographical coordinates on a sphere.
 
     Parameters
     ----------
@@ -19,9 +38,9 @@ def rotate(lat, lon, south_pole_lat, south_pole_lon):
     lon: ndarray
         Longitudes (degrees).
     south_pole_lat: float
-        Latitude of the south pole defining the rotation (degrees).
+        Latitude of the rotated south pole (degrees).
     south_pole_lon: float
-        Longitude of the south pole defining the rotation (degrees).
+        Longitude of the rotated south pole (degrees).
 
     Returns
     -------
@@ -30,55 +49,45 @@ def rotate(lat, lon, south_pole_lat, south_pole_lon):
     ndarray
         Rotated longitudes (degrees).
 
+
+    The rotation is specified by the position
+    where the south pole is rotated to, i.e. by (``south_pole_lat``, ``south_pole_lon``).
+
+
+    See Also
+    --------
+    :obj:`unrotate`
+
+    Examples
+    --------
+    >>> from earthkit.geo.rotate import rotate
+    >>> lat = [-90]
+    >>> lon = [0]
+    >>> south_pole_lat = -20
+    >>> south_pole_lon = -40
+    >>> rotate(lat, lon, south_pole_lat, south_pole_lon)
+    (array([-20.]), array([-40.]))
     """
     import numpy as np
 
-    def from_xyz(x, y, z):
-        return (
-            np.rad2deg(np.arcsin(np.minimum(1.0, np.maximum(-1.0, z)))),
-            np.rad2deg(np.arctan2(y, x)),
-        )
-
-    def to_xyz(lat, lon):
-        lam = np.deg2rad(lon)
-        phi = np.deg2rad(lat)
-
-        sp = np.sin(phi)
-        cp = np.cos(phi)
-        sl = np.sin(lam)
-        cl = np.cos(lam)
-
-        return (cp * cl, cp * sl, sp)
-
-    theta = -np.deg2rad(south_pole_lat + 90.0)
-    phi = -np.deg2rad(south_pole_lon)
-
-    ct = np.cos(theta)
-    st = np.sin(theta)
-    cp = np.cos(phi)
-    sp = np.sin(phi)
-
-    matrix = np.array(
-        [[cp * ct, sp, cp * st], [-ct * sp, cp, -sp * st], [-st, 0.0, ct]]
-    )
-
-    return from_xyz(*np.dot(matrix, to_xyz(lat, lon)))
+    matrix = _rotation_matrix(south_pole_lat, south_pole_lon)
+    return _xyz_to_latlon(*np.dot(matrix, _latlon_to_xyz(lat, lon)))
 
 
 def unrotate(lat, lon, south_pole_lat, south_pole_lon):
     """
-    Unrotate geographical coordinates with respect to a south pole.
+    Unrotate geographical coordinates on a sphere.
 
     Parameters
     ----------
     lat: ndarray
-        Latitudes (degrees).
+        Latitudes of the rotated points (degrees).
     lon: ndarray
-        Longitudes (degrees).
+        Longitudes of the rotated points (degrees).
     south_pole_lat: float
-        Latitude of the south pole defining the rotation (degrees).
+        Latitude of the rotated south pole (degrees).
     south_pole_lon: float
-        Longitude of the south pole defining the rotation (degrees).
+        Longitude of the rotated south pole (degrees).
 
     Returns
     -------
@@ -87,37 +96,27 @@ def unrotate(lat, lon, south_pole_lat, south_pole_lon):
     ndarray
         Unrotated longitudes (degrees).
 
+
+    :func:`unrotate` operates on points already rotated with a rotation specified
+    by (``south_pole_lat``, ``south_pole_lon``). The function rotates the points
+    back to the original geographical coordinates.
+
+    See Also
+    --------
+    :obj:`rotate`
+
+    Examples
+    --------
+    >>> from earthkit.geo.rotate import unrotate
+    >>> lat = [-18]
+    >>> lon = [-41]
+    >>> south_pole_lat = -20
+    >>> south_pole_lon = -40
+    >>> unrotate(lat, lon, south_pole_lat, south_pole_lon)
+    (array([-87.78778846]), array([-25.4673765]))
     """
     import numpy as np
 
-    def from_xyz(x, y, z):
-        return (
-            np.rad2deg(np.arcsin(np.minimum(1.0, np.maximum(-1.0, z)))),
-            np.rad2deg(np.arctan2(y, x)),
-        )
-
-    def to_xyz(lat, lon):
-        lam = np.deg2rad(lon)
-        phi = np.deg2rad(lat)
-
-        sp = np.sin(phi)
-        cp = np.cos(phi)
-        sl = np.sin(lam)
-        cl = np.cos(lam)
-
-        return (cp * cl, cp * sl, sp)
-
-    theta = -np.deg2rad(south_pole_lat + 90.0)
-    phi = -np.deg2rad(south_pole_lon)
-
-    ct = np.cos(theta)
-    st = np.sin(theta)
-    cp = np.cos(phi)
-    sp = np.sin(phi)
-
-    matrix = np.array(
-        [[cp * ct, sp, cp * st], [-ct * sp, cp, -sp * st], [-st, 0.0, ct]]
-    )
-
+    matrix = _rotation_matrix(south_pole_lat, south_pole_lon)
     matrix = matrix.T
-    return from_xyz(*np.dot(matrix, to_xyz(lat, lon)))
+    return _xyz_to_latlon(*np.dot(matrix, _latlon_to_xyz(lat, lon)))
