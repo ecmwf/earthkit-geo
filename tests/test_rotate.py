@@ -13,11 +13,7 @@ import numpy as np
 import pytest
 
 from earthkit.geo.rotate import rotate, unrotate
-from earthkit.geo.wind import _normalise_longitude
-
-
-def normalise_lon(x):
-    return np.array([_normalise_longitude(lon, -180) for lon in x])
+from earthkit.geo.testing import normalise_lon
 
 
 @pytest.mark.parametrize(
