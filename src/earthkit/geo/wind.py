@@ -25,7 +25,7 @@ def _normalise_longitude(lon, minimum):
 
 
 def rotate_wind(lats, lons, x_wind, y_wind, source_projection, target_projection):
-    """Rotate wind components from one projection to another.
+    """Rotate wind vectors from source to target projection coordinates.
 
     Parameters
     ----------
@@ -48,6 +48,10 @@ def rotate_wind(lats, lons, x_wind, y_wind, source_projection, target_projection
         x-component of the wind in the target projection (m/s).
     ndarray
         y-component of the wind in the target projection (m/s).
+
+
+    The wind vector is returned at the same locations (``lats``, ``lons``), but rotated
+    into ``target_projection`` coordinates. The magnitude of the wind is preserved.
     """
     import numpy as np
     import pyproj
@@ -115,7 +119,7 @@ def unrotate_wind(
     south_pole_rotation_angle=0,
 ):
     """
-    Rotate wind components defined on a rotated grid back into "longlat" projection.
+    Rotate wind vectors on a rotated grid back into eastward and northward components.
 
     Parameters
     ----------
@@ -137,20 +141,25 @@ def unrotate_wind(
         Latitude of the south pole defining the rotation (degrees).
     south_pole_longitude: float
         Longitude of the south pole defining the rotation (degrees).
+    south_pole_rotation_angle: float, optional
+        Rotation angle around the south pole (degrees). Currently not supported.
 
     Returns
     -------
     ndarray
-        x-component of the wind at the rotated points rotated back to "longlat" projection (m/s).
+        x-component of the wind vector rotated back to
+        eastward and northward components (m/s).
     ndarray
-        y-component of the wind at the rotated points rotated back to "longlat" projection (m/s).
+        y-component of the wind vector rotated back to
+        eastward and northward components (m/s).
 
 
-    When a grid is rotated around a new south pole
-    (``south_pole_latitude``, ``south_pole_longitude``), the wind components are locally rotated
-    at each target grid point to be interpreted in the new local (rotated) coordinate
+    When a grid is rotated spherically the wind components are locally rotated
+    at each target grid point into the new local (rotated) coordinate
     system. :func:`unrotate_wind` performs the inverse operation, and rotates back the wind
-    components to their original direction at each rotated grid point.
+    vectors to their original directions at each point. The wind vector is returned at
+    the same locations (``lats``, ``lons``) and its magnitude is preserved.
+
     """
     import numpy as np
 

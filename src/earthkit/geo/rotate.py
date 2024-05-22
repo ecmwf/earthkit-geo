@@ -99,7 +99,7 @@ def unrotate(lat, lon, south_pole_lat, south_pole_lon):
 
     :func:`unrotate` operates on points already rotated with a rotation specified
     by (``south_pole_lat``, ``south_pole_lon``). The function rotates the points
-    back to the original geographical coordinates.
+    back to the original locations.
 
     See Also
     --------
