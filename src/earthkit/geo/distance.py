@@ -10,7 +10,7 @@
 import numpy as np
 
 from . import constants
-from .coord import _latlon_to_xyz
+from .coord import latlon_to_xyz
 from .figure import IFS_SPHERE, UNIT_SPHERE
 
 
@@ -187,7 +187,7 @@ class GeoKDTree:
             lats = lats[mask]
             lons = lons[mask]
 
-        x, y, z = _latlon_to_xyz(lats, lons)
+        x, y, z = latlon_to_xyz(lats, lons)
         v = np.column_stack((x, y, z))
         self.tree = KDTree(v)
 
@@ -220,7 +220,7 @@ class GeoKDTree:
 
         """
         lat, lon = ref_points
-        x, y, z = _latlon_to_xyz(lat, lon)
+        x, y, z = latlon_to_xyz(lat, lon)
         points = np.column_stack((x, y, z))
 
         # find the nearest point

@@ -7,7 +7,7 @@
 # nor does it submit to any jurisdiction.
 #
 
-from .coord import _latlon_to_xyz, _xyz_to_latlon
+from .coord import latlon_to_xyz, xyz_to_latlon
 
 
 def _rotation_matrix(south_pole_lat, south_pole_lon):
@@ -71,7 +71,7 @@ def rotate(lat, lon, south_pole_lat, south_pole_lon):
     import numpy as np
 
     matrix = _rotation_matrix(south_pole_lat, south_pole_lon)
-    return _xyz_to_latlon(*np.dot(matrix, _latlon_to_xyz(lat, lon)))
+    return xyz_to_latlon(*np.dot(matrix, latlon_to_xyz(lat, lon)))
 
 
 def unrotate(lat, lon, south_pole_lat, south_pole_lon):
@@ -119,4 +119,4 @@ def unrotate(lat, lon, south_pole_lat, south_pole_lon):
 
     matrix = _rotation_matrix(south_pole_lat, south_pole_lon)
     matrix = matrix.T
-    return _xyz_to_latlon(*np.dot(matrix, _latlon_to_xyz(lat, lon)))
+    return xyz_to_latlon(*np.dot(matrix, latlon_to_xyz(lat, lon)))
