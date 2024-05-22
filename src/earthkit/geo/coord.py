@@ -21,8 +21,7 @@ def xyz_to_latlon(x, y, z):
     ndarray
         Longitude (degrees).
 
-    It is assumed that the Earth is a sphere of radius 1. It is also assumed the
-    geodetic coordinate h = 0.
+    It is assumed that the Earth is a sphere of radius 1.
     """
     return (
         np.rad2deg(np.arcsin(np.minimum(1.0, np.maximum(-1.0, z)))),
