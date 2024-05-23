@@ -1,4 +1,25 @@
+# (C) Copyright 2024 ECMWF.
+#
+# This software is licensed under the terms of the Apache Licence Version 2.0
+# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+# In applying this licence, ECMWF does not waive the privileges and immunities
+# granted to it by virtue of its status as an intergovernmental organisation
+# nor does it submit to any jurisdiction.
+#
+
 import numpy as np
+
+from . import constants
+
+
+def _normalise_longitude(lon, minimum):
+    while lon < minimum:
+        lon += constants.FULL_ANGLE
+
+    while lon >= minimum + constants.FULL_ANGLE:
+        lon -= constants.FULL_ANGLE
+
+    return lon
 
 
 def xyz_to_latlon(x, y, z):
@@ -20,6 +41,7 @@ def xyz_to_latlon(x, y, z):
         Latitude (degrees).
     ndarray
         Longitude (degrees).
+
 
     It is assumed that the Earth is a sphere of radius 1.
     """

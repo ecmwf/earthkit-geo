@@ -10,19 +10,18 @@
 import logging
 import os
 
-from earthkit.geo.wind import _normalise_longitude
+from earthkit.geo.coord import _normalise_longitude
 
 LOG = logging.getLogger(__name__)
 
-_ROOT_DIR = top = os.path.dirname(
-    os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-)
-if not os.path.exists(os.path.join(_ROOT_DIR, "tests", "data")):
+_ROOT_DIR = os.path.dirname(__file__)
+
+if not os.path.exists(os.path.join(_ROOT_DIR, "data")):
     _ROOT_DIR = "./"
 
 
 def earthkit_test_data_file(*args):
-    return os.path.join(_ROOT_DIR, "tests", "data", *args)
+    return os.path.join(_ROOT_DIR, "data", *args)
 
 
 def normalise_lon(lon):

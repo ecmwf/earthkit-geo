@@ -13,7 +13,8 @@ import numpy as np
 import pytest
 
 from earthkit.geo.coord import latlon_to_xyz, xyz_to_latlon
-from earthkit.geo.testing import normalise_lon
+
+from .testing import normalise_lon
 
 R = 1.0
 L = R * np.sqrt(2.0) / 2

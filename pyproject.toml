@@ -19,6 +19,7 @@ classifiers = [
   "Operating System :: OS Independent"
 ]
 dependencies = [
+  "pyproj",
   "scipy"
 ]
 description = "Geospatial computations"
@@ -29,19 +30,15 @@ readme = "README.md"
 requires-python = ">= 3.8"
 
 [project.optional-dependencies]
-all = [
-  "earthkit-geo[wind]"
-]
 test = [
   "pytest",
   "pytest-cov"
 ]
-wind = ["pyproj"]
 
 [project.urls]
 Documentation = "https://earthkit-geo.readthedocs.io/"
 Homepage = "https://github.com/ecmwf/earthkit-geo/"
-Issues = "https://github.com/ecmwf/earthkit-geo.issues"
+Issues = "https://github.com/ecmwf/earthkit-geo/issues"
 Repository = "https://github.com/ecmwf/earthkit-geo/"
 
 [tool.coverage.run]
