@@ -72,6 +72,10 @@ def rotate(lat, lon, south_pole_lat, south_pole_lon):
     >>> south_pole_lon = -40
     >>> rotate(lat, lon, south_pole_lat, south_pole_lon)
     (array([-20.]), array([-40.]))
+
+    For more examples, see:
+        - :ref:`/examples/rotate.ipynb`
+
     """
     import numpy as np
 
@@ -127,8 +131,10 @@ def unrotate(lat, lon, south_pole_lat, south_pole_lon):
     return xyz_to_latlon(*np.dot(matrix, latlon_to_xyz(lat, lon)))
 
 
-def rotate_wind(lat, lon, x_wind, y_wind, source_projection, target_projection):
-    """Rotate wind vectors from source to target projection coordinates.
+def rotate_vector(
+    lat, lon, x_component, y_component, source_projection, target_projection
+):
+    """Rotate vectors from source to target projection coordinates.
 
     Parameters
     ----------
@@ -136,33 +142,35 @@ def rotate_wind(lat, lon, x_wind, y_wind, source_projection, target_projection):
         Latitude coordinates of the points (degrees).
     lon: ndarray
         Longitude coordinates of the points (degrees).
-    x_wind: ndarray
-        x-component of the wind in the source projection (m/s).
-    y_wind: ndarray
-        y-component of the wind in the source projection (m/s).
+    x_component: ndarray
+        x_component of the vector in the source projection.
+    y_component: ndarray
+        y-component of the vector in the source projection.
     source_projection: str, dict
-        Projection that the wind components are defined in. It is either a proj string
+        Projection that the vector components are defined in. It is either a proj string
         or a dict of map projection control parameter key/value pairs.
     target_projection: str, dict
-        Projection that the wind components should be transformed to. It is either a proj string
+        Projection that the vector components should be transformed to. It is either a proj string
         or a dict of map projection control parameter key/value pairs.
 
     Returns
     -------
     ndarray
-        x-component of the wind in the target projection (m/s).
+        x-component of the vector in the target projection.
     ndarray
-        y-component of the wind in the target projection (m/s).
+        y-component of the vector in the target projection).
 
 
-    The wind vector is returned at the same locations (``lat``, ``lon``), but rotated
-    into ``target_projection`` coordinates. The magnitude of the wind is preserved.
+    The vector is returned at the same locations (``lat``, ``lon``), but rotated
+    into ``target_projection`` coordinates. The magnitude of the vector is preserved.
+
+    Based on code from MET Norway.
     """
     import numpy as np
     import pyproj
 
     if source_projection == target_projection:
-        return x_wind, x_wind
+        return x_component, y_component
 
     source_projection = pyproj.Proj(source_projection)
     target_projection = pyproj.Proj(target_projection)
@@ -172,59 +180,59 @@ def rotate_wind(lat, lon, x_wind, y_wind, source_projection, target_projection):
     )
 
     # To compute the new vector components:
-    # 1) perturb each position in the direction of the winds
+    # 1) perturb each position in the direction of the vectors
     # 2) convert the perturbed positions into the new coordinate system
     # 3) measure the new x/y components.
     #
     # A complication occurs when using the longlat "projections", since this is not a cartesian grid
     # (i.e. distances in each direction is not consistent), we need to deal with the fact that the
     # width of a longitude varies with latitude
-    orig_speed = np.sqrt(x_wind**2 + y_wind**2)
+    orig_magn = np.sqrt(x_component**2 + y_component**2)
 
     x0, y0 = source_projection(lon, lat)
 
     if source_projection.name != "longlat":
-        x1 = x0 + x_wind
-        y1 = y0 + y_wind
+        x1 = x0 + x_component
+        y1 = y0 + y_component
     else:
-        # Reduce the perturbation, since x_wind and y_wind are in meters, which would create
-        # large perturbations in lat, lon. Also, deal with the fact that the width of longitude
-        # varies with latitude.
+        # Reduce the perturbation, since x_component and y_component are in meters, which
+        # would create large perturbations in lat, lon. Also, deal with the fact that the
+        # width of longitude varies with latitude.
         factor = 3600000.0
-        x1 = x0 + x_wind / factor / np.cos(np.deg2rad(lat))
-        y1 = y0 + y_wind / factor
+        x1 = x0 + x_component / factor / np.cos(np.deg2rad(lat))
+        y1 = y0 + y_component / factor
 
     X0, Y0 = transformer.transform(x0, y0)
     X1, Y1 = transformer.transform(x1, y1)
 
-    new_x_wind = X1 - X0
-    new_y_wind = Y1 - Y0
+    new_x_component = X1 - X0
+    new_y_component = Y1 - Y0
     if target_projection.name == "longlat":
-        new_x_wind *= np.cos(np.deg2rad(lat))
+        new_x_component *= np.cos(np.deg2rad(lat))
 
     if target_projection.name == "longlat" or source_projection.name == "longlat":
-        # Ensure the wind speed is not changed (which might not be the case since the
+        # Ensure the vector magnitude not changed (which might not be the case since the
         # units in longlat is degrees, not meters)
-        curr_speed = np.sqrt(new_x_wind**2 + new_y_wind**2)
-        new_x_wind *= orig_speed / curr_speed
-        new_y_wind *= orig_speed / curr_speed
+        curr_magn = np.sqrt(new_x_component**2 + new_y_component**2)
+        new_x_component *= orig_magn / curr_magn
+        new_y_component *= orig_magn / curr_magn
 
-    return new_x_wind, new_y_wind
+    return new_x_component, new_y_component
 
 
-def unrotate_wind(
+def unrotate_vector(
     lat,
     lon,
-    lat_unrotated,
-    lon_unrotated,
-    x_wind,
-    y_wind,
+    x_component,
+    y_component,
     south_pole_latitude,
     south_pole_longitude,
     south_pole_rotation_angle=0,
+    lat_unrotated=None,
+    lon_unrotated=None,
 ):
     """
-    Rotate wind vectors on a rotated grid back into eastward and northward components.
+    Rotate vectors on a rotated grid back into eastward and northward components.
 
     Parameters
     ----------
@@ -232,37 +240,37 @@ def unrotate_wind(
         Latitude coordinates of the rotated points (degrees).
     lon: ndarray
         Longitude coordinates of the rotated points (degrees).
-    lat_unrotated: ndarray
-        Latitude coordinates of the points before rotation (degrees).
-    lon_unrotated: ndarray
-        Longitude coordinates of the points before rotation (degrees).
-    x_wind: ndarray
-        x-component of the wind in the rotated
-        coordinate system at the rotated points (m/s).
-    y_wind: ndarray
-        y-component of the wind in the rotated
-        coordinate system at the rotated points (m/s).
+    x_component: ndarray
+        x vector component in the rotated
+        coordinate system at the rotated points.
+    y_component: ndarray
+        y vector component in the rotated
+        coordinate system at the rotated points.
     south_pole_latitude: float
         Latitude of the south pole defining the rotation (degrees).
     south_pole_longitude: float
         Longitude of the south pole defining the rotation (degrees).
     south_pole_rotation_angle: float, optional
         Rotation angle around the south pole (degrees). Currently not supported.
+    lat_unrotated: ndarray
+        Latitude coordinates of the points before rotation (degrees).
+    lon_unrotated: ndarray
+        Longitude coordinates of the points before rotation (degrees).
 
     Returns
     -------
     ndarray
-        x-component of the wind vector rotated back to
-        eastward and northward components (m/s).
+        x component of the vector rotated back to
+        eastward and northward components.
     ndarray
-        y-component of the wind vector rotated back to
-        eastward and northward components (m/s).
+        y-component of the vector rotated back to
+        eastward and northward components.
 
 
-    When a grid is rotated spherically the wind components are locally rotated
-    at each target grid point into the new local (rotated) coordinate
-    system. :func:`unrotate_wind` performs the inverse operation, and rotates back the wind
-    vectors to their original directions at each point. The wind vector is returned at
+    Use this method when a grid is rotated spherically and the vector components are
+    locally rotated at each target grid point into the new local (rotated) coordinate
+    system. :func:`unrotate_vector` performs the inverse operation, and rotates back the
+    vectors to their original directions at each point. The vector is returned at
     the same locations (``lat``, ``lon``) and its magnitude is preserved.
 
     """
@@ -274,11 +282,14 @@ def unrotate_wind(
     cos_C = np.cos(C)
     sin_C = np.sin(C)
 
-    new_x = np.zeros_like(x_wind)
-    new_y = np.zeros_like(y_wind)
+    new_x = np.zeros_like(x_component)
+    new_y = np.zeros_like(y_component)
+
+    if lon_unrotated is None:
+        _, lon_unrotated = unrotate(lat, lon, south_pole_latitude, south_pole_longitude)
 
     for i, (vx, vy, lon_r, lon_ur) in enumerate(
-        zip(x_wind, y_wind, lon, lon_unrotated)
+        zip(x_component, y_component, lon, lon_unrotated)
     ):
         lon_r = south_pole_longitude - lon_r
         lon_r = _normalise_longitude(lon_r, -constants.STRAIGHT_ANGLE)
