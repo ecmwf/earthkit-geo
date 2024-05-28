@@ -8,7 +8,7 @@
 #
 
 from . import constants
-from .coord import _normalise_longitude, latlon_to_xyz, xyz_to_latlon
+from .coord import _normalise_lon, latlon_to_xyz, xyz_to_latlon
 
 
 def _normalise(x):
@@ -21,7 +21,7 @@ def _rotation_matrix(south_pole_lat, south_pole_lon):
     """
     import numpy as np
 
-    theta = -np.deg2rad(south_pole_lat + 90.0)
+    theta = -np.deg2rad(south_pole_lat - constants.SOUTH_POLE_LAT)
     phi = -np.deg2rad(south_pole_lon)
 
     ct = np.cos(theta)
@@ -131,9 +131,7 @@ def unrotate(lat, lon, south_pole_lat, south_pole_lon):
     return xyz_to_latlon(*np.dot(matrix, latlon_to_xyz(lat, lon)))
 
 
-def rotate_vector(
-    lat, lon, x_component, y_component, source_projection, target_projection
-):
+def rotate_vector(lat, lon, vector_x, vector_y, source_projection, target_projection):
     """Rotate vectors from source to target projection coordinates.
 
     Parameters
@@ -142,9 +140,9 @@ def rotate_vector(
         Latitude coordinates of the points (degrees).
     lon: ndarray
         Longitude coordinates of the points (degrees).
-    x_component: ndarray
-        x_component of the vector in the source projection.
-    y_component: ndarray
+    vector_x: ndarray
+        vector_x of the vector in the source projection.
+    vector_y: ndarray
         y-component of the vector in the source projection.
     source_projection: str, dict
         Projection that the vector components are defined in. It is either a proj string
@@ -170,7 +168,7 @@ def rotate_vector(
     import pyproj
 
     if source_projection == target_projection:
-        return x_component, y_component
+        return vector_x, vector_y
 
     source_projection = pyproj.Proj(source_projection)
     target_projection = pyproj.Proj(target_projection)
@@ -187,46 +185,46 @@ def rotate_vector(
     # A complication occurs when using the longlat "projections", since this is not a cartesian grid
     # (i.e. distances in each direction is not consistent), we need to deal with the fact that the
     # width of a longitude varies with latitude
-    orig_magn = np.sqrt(x_component**2 + y_component**2)
+    orig_magn = np.sqrt(vector_x**2 + vector_y**2)
 
     x0, y0 = source_projection(lon, lat)
 
     if source_projection.name != "longlat":
-        x1 = x0 + x_component
-        y1 = y0 + y_component
+        x1 = x0 + vector_x
+        y1 = y0 + vector_y
     else:
-        # Reduce the perturbation, since x_component and y_component are in meters, which
+        # Reduce the perturbation, since vector_x and vector_y are in meters, which
         # would create large perturbations in lat, lon. Also, deal with the fact that the
         # width of longitude varies with latitude.
         factor = 3600000.0
-        x1 = x0 + x_component / factor / np.cos(np.deg2rad(lat))
-        y1 = y0 + y_component / factor
+        x1 = x0 + vector_x / factor / np.cos(np.deg2rad(lat))
+        y1 = y0 + vector_y / factor
 
     X0, Y0 = transformer.transform(x0, y0)
     X1, Y1 = transformer.transform(x1, y1)
 
-    new_x_component = X1 - X0
-    new_y_component = Y1 - Y0
+    new_vector_x = X1 - X0
+    new_vector_y = Y1 - Y0
     if target_projection.name == "longlat":
-        new_x_component *= np.cos(np.deg2rad(lat))
+        new_vector_x *= np.cos(np.deg2rad(lat))
 
     if target_projection.name == "longlat" or source_projection.name == "longlat":
         # Ensure the vector magnitude not changed (which might not be the case since the
         # units in longlat is degrees, not meters)
-        curr_magn = np.sqrt(new_x_component**2 + new_y_component**2)
-        new_x_component *= orig_magn / curr_magn
-        new_y_component *= orig_magn / curr_magn
+        curr_magn = np.sqrt(new_vector_x**2 + new_vector_y**2)
+        new_vector_x *= orig_magn / curr_magn
+        new_vector_y *= orig_magn / curr_magn
 
-    return new_x_component, new_y_component
+    return new_vector_x, new_vector_y
 
 
 def unrotate_vector(
     lat,
     lon,
-    x_component,
-    y_component,
-    south_pole_latitude,
-    south_pole_longitude,
+    vector_x,
+    vector_y,
+    south_pole_lat,
+    south_pole_lon,
     south_pole_rotation_angle=0,
     lat_unrotated=None,
     lon_unrotated=None,
@@ -240,15 +238,15 @@ def unrotate_vector(
         Latitude coordinates of the rotated points (degrees).
     lon: ndarray
         Longitude coordinates of the rotated points (degrees).
-    x_component: ndarray
+    vector_x: ndarray
         x vector component in the rotated
         coordinate system at the rotated points.
-    y_component: ndarray
+    vector_y: ndarray
         y vector component in the rotated
         coordinate system at the rotated points.
-    south_pole_latitude: float
+    south_pole_lat: float
         Latitude of the south pole defining the rotation (degrees).
-    south_pole_longitude: float
+    south_pole_lon: float
         Longitude of the south pole defining the rotation (degrees).
     south_pole_rotation_angle: float, optional
         Rotation angle around the south pole (degrees). Currently not supported.
@@ -278,21 +276,21 @@ def unrotate_vector(
 
     assert south_pole_rotation_angle == 0
 
-    C = np.deg2rad(constants.NORTH - south_pole_latitude)
+    C = np.deg2rad(constants.NORTH_POLE_LAT - south_pole_lat)
     cos_C = np.cos(C)
     sin_C = np.sin(C)
 
-    new_x = np.zeros_like(x_component)
-    new_y = np.zeros_like(y_component)
+    new_x = np.zeros_like(vector_x)
+    new_y = np.zeros_like(vector_y)
 
     if lon_unrotated is None:
-        _, lon_unrotated = unrotate(lat, lon, south_pole_latitude, south_pole_longitude)
+        _, lon_unrotated = unrotate(lat, lon, south_pole_lat, south_pole_lon)
 
     for i, (vx, vy, lon_r, lon_ur) in enumerate(
-        zip(x_component, y_component, lon, lon_unrotated)
+        zip(vector_x, vector_y, lon, lon_unrotated)
     ):
-        lon_r = south_pole_longitude - lon_r
-        lon_r = _normalise_longitude(lon_r, -constants.STRAIGHT_ANGLE)
+        lon_r = south_pole_lon - lon_r
+        lon_r = _normalise_lon(lon_r, -constants.STRAIGHT_ANGLE)
 
         a = np.deg2rad(lon_r)
         b = np.deg2rad(lon_ur)

@@ -12,7 +12,7 @@ import numpy as np
 from . import constants
 
 
-def _normalise_longitude(lon, minimum):
+def _normalise_lon(lon, minimum):
     while lon < minimum:
         lon += constants.FULL_ANGLE
 

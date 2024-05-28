@@ -105,8 +105,8 @@ def test_rotate_points(data, expected_result):
             {
                 "lats": np.array([63.3] * 5),
                 "lons": np.array([15.0] * 5),
-                "x_component": np.array([0, 0, 1, -1, 1]),
-                "y_component": np.array([1, -1, 0, 0, 1]),
+                "vector_x": np.array([0, 0, 1, -1, 1]),
+                "vector_y": np.array([1, -1, 0, 0, 1]),
                 "source_projection": _make_proj("lambert_conformal_conic"),
                 "target_projection": "+proj=longlat",
             },
@@ -120,8 +120,8 @@ def test_rotate_points(data, expected_result):
             {
                 "lats": np.array([50.31961636316951] * 5),
                 "lons": np.array([0.2782806572089653] * 5),
-                "x_component": np.array([0, 0, 1, -1, 1]),
-                "y_component": np.array([1, -1, 0, 0, 1]),
+                "vector_x": np.array([0, 0, 1, -1, 1]),
+                "vector_y": np.array([1, -1, 0, 0, 1]),
                 "source_projection": _make_proj("lambert_conformal_conic"),
                 "target_projection": "+proj=longlat",
             },
@@ -145,8 +145,8 @@ def test_rotate_vector(data, expected_result):
             {
                 "lats": [70] * 3,
                 "lons": [0] * 3,
-                "x_component": [1, -1, 0],
-                "y_component": [0, 0, 1],
+                "vector_x": [1, -1, 0],
+                "vector_y": [0, 0, 1],
                 "south_pole_latitude": -80,
                 "south_pole_longitude": 0,
             },
@@ -160,8 +160,8 @@ def test_rotate_vector(data, expected_result):
             {
                 "lats": [70] * 3,
                 "lons": [0] * 3,
-                "x_component": [1, -1, 0],
-                "y_component": [0, 0, 1],
+                "vector_x": [1, -1, 0],
+                "vector_y": [0, 0, 1],
                 "south_pole_latitude": -80,
                 "south_pole_longitude": 0,
             },

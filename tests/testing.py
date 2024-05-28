@@ -10,7 +10,7 @@
 import logging
 import os
 
-from earthkit.geo.coord import _normalise_longitude
+from earthkit.geo.coord import _normalise_lon
 
 LOG = logging.getLogger(__name__)
 
@@ -26,9 +26,9 @@ def earthkit_test_data_file(*args):
 
 def normalise_lon(lon):
     if isinstance(lon, (int, float)):
-        return _normalise_longitude(lon, -180)
+        return _normalise_lon(lon, -180)
     else:
         import numpy as np
 
         lon = np.asarray(lon)
-        return np.array([_normalise_longitude(x, -180) for x in lon])
+        return np.array([_normalise_lon(x, -180) for x in lon])
