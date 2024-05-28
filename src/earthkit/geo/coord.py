@@ -23,7 +23,7 @@ def _normalise_longitude(lon, minimum):
 
 
 def xyz_to_latlon(x, y, z):
-    """Convert from earth-centered, earth-fixed ([ECEF]_) to geodetic coordinates.
+    """Convert from earth-centred, earth-fixed ([ECEF]_) to geodetic coordinates.
     See [From_ECEF_to_geodetic_coordinates]_.
 
     Parameters
@@ -52,7 +52,7 @@ def xyz_to_latlon(x, y, z):
 
 
 def latlon_to_xyz(lat, lon):
-    """Convert from geodetic to earth-centered, earth-fixed ([ECEF]_) coordinates.
+    """Convert from geodetic to earth-centred, earth-fixed ([ECEF]_) coordinates.
     See [From_geodetic_to_ECEF_coordinates]_.
 
     Parameters

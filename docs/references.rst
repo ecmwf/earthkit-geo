@@ -9,7 +9,7 @@ IFS Documentation CY47R3 - Part IV Physical processes, (2021). URL: https://www.
 
 .. [ECEF]
 
-Earth-centered, Earth-fixed coordinate system. URL: https://en.wikipedia.org/wiki/Earth-centered,_Earth-fixed_coordinate_system
+Earth-centred, Earth-fixed coordinate system. URL: https://en.wikipedia.org/wiki/Earth-centered,_Earth-fixed_coordinate_system
 
 
 .. [From_ECEF_to_geodetic_coordinates]
