@@ -148,10 +148,10 @@ def rotate_vector(
         y-component of the vector in the source projection.
     source_projection: str, dict
         Projection that the vector components are defined in. It is either a proj string
-        or a dict of map projection control parameter key/value pairs.
+        or a dict of map projection control parameter key/value pairs. Passed to pyproj.Proj().
     target_projection: str, dict
         Projection that the vector components should be transformed to. It is either a proj string
-        or a dict of map projection control parameter key/value pairs.
+        or a dict of map projection control parameter key/value pairs. Passed to pyproj.Proj().
 
     Returns
     -------
@@ -252,9 +252,9 @@ def unrotate_vector(
         Longitude of the south pole defining the rotation (degrees).
     south_pole_rotation_angle: float, optional
         Rotation angle around the south pole (degrees). Currently not supported.
-    lat_unrotated: ndarray
+    lat_unrotated: ndarray, optional
         Latitude coordinates of the points before rotation (degrees).
-    lon_unrotated: ndarray
+    lon_unrotated: ndarray, optional
         Longitude coordinates of the points before rotation (degrees).
 
     Returns
