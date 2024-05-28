@@ -19,6 +19,7 @@ classifiers = [
   "Operating System :: OS Independent"
 ]
 dependencies = [
+  "pyproj",
   "scipy"
 ]
 description = "Geospatial computations"
@@ -37,7 +38,7 @@ test = [
 [project.urls]
 Documentation = "https://earthkit-geo.readthedocs.io/"
 Homepage = "https://github.com/ecmwf/earthkit-geo/"
-Issues = "https://github.com/ecmwf/earthkit-geo.issues"
+Issues = "https://github.com/ecmwf/earthkit-geo/issues"
 Repository = "https://github.com/ecmwf/earthkit-geo/"
 
 [tool.coverage.run]

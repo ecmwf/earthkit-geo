@@ -1,3 +1,4 @@
+pyproj
 scipy
 # for testing
 pytest

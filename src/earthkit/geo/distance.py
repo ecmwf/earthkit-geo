@@ -10,11 +10,12 @@
 import numpy as np
 
 from . import constants
+from .coord import latlon_to_xyz
 from .figure import IFS_SPHERE, UNIT_SPHERE
 
 
 def _regulate_lat(lat):
-    return np.where(np.abs(lat) > constants.north, np.nan, lat)
+    return np.where(np.abs(lat) > constants.NORTH_POLE_LAT, np.nan, lat)
 
 
 def haversine_distance(p1, p2, figure=IFS_SPHERE):
@@ -152,19 +153,6 @@ def nearest_point_haversine(ref_points, points, figure=IFS_SPHERE):
     return (np.array(res_index), figure.scale(np.array(res_distance)))
 
 
-def _latlon_to_xyz(lat, lon):
-    """Works on the unit sphere."""
-    lat = np.asarray(lat)
-    lon = np.asarray(lon)
-    lat = np.radians(lat)
-    lon = np.radians(lon)
-    x = np.cos(lat) * np.cos(lon)
-    y = np.cos(lat) * np.sin(lon)
-    z = np.sin(lat)
-
-    return x, y, z
-
-
 def _chordlength_to_arclength(chord_length):
     """
     Convert 3D (Euclidean) distance to great circle arc length
@@ -199,7 +187,7 @@ class GeoKDTree:
             lats = lats[mask]
             lons = lons[mask]
 
-        x, y, z = _latlon_to_xyz(lats, lons)
+        x, y, z = latlon_to_xyz(lats, lons)
         v = np.column_stack((x, y, z))
         self.tree = KDTree(v)
 
@@ -232,7 +220,7 @@ class GeoKDTree:
 
         """
         lat, lon = ref_points
-        x, y, z = _latlon_to_xyz(lat, lon)
+        x, y, z = latlon_to_xyz(lat, lon)
         points = np.column_stack((x, y, z))
 
         # find the nearest point
