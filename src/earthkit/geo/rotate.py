@@ -141,9 +141,9 @@ def rotate_vector(lat, lon, vector_x, vector_y, source_projection, target_projec
     lon: ndarray
         Longitude coordinates of the points (degrees).
     vector_x: ndarray
-        vector_x of the vector in the source projection.
+        x component of the vector in the source projection.
     vector_y: ndarray
-        y-component of the vector in the source projection.
+        y component of the vector in the source projection.
     source_projection: str, dict
         Projection that the vector components are defined in. It is either a proj string
         or a dict of map projection control parameter key/value pairs. Passed to pyproj.Proj().
@@ -154,9 +154,9 @@ def rotate_vector(lat, lon, vector_x, vector_y, source_projection, target_projec
     Returns
     -------
     ndarray
-        x-component of the vector in the target projection.
+        x component of the vector in the target projection.
     ndarray
-        y-component of the vector in the target projection).
+        y component of the vector in the target projection).
 
 
     The vector is returned at the same locations (``lat``, ``lon``), but rotated
@@ -261,7 +261,7 @@ def unrotate_vector(
         x component of the vector rotated back to
         eastward and northward components.
     ndarray
-        y-component of the vector rotated back to
+        y component of the vector rotated back to
         eastward and northward components.
 
 
