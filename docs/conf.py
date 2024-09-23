@@ -29,6 +29,7 @@ copyright = "%s, European Centre for Medium-Range Weather Forecasts (ECMWF)" % (
 # ones.
 extensions = [
     "sphinx_rtd_theme",
+    "nbsphinx",
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
     "autoapi.extension",
@@ -45,7 +46,6 @@ autoapi_options = [
     "undoc-members",
     "show-inheritance",
     "show-module-summary",
-    "imported-members",
     "inherited-members",
 ]
 autoapi_root = "_api"

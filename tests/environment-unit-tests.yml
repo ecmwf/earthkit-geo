@@ -3,6 +3,7 @@ channels:
 - conda-forge
 - nodefaults
 dependencies:
+- pyproj
 - scipy
 - make
 - myst-parser
@@ -12,7 +13,8 @@ dependencies:
 - pytest-cov
 - pytest-forked
 - pytest-timeout
-- sphinx
+- sphinx>=7.3.7
 - sphinx-autoapi
 - sphinx_rtd_theme
 - sphinxcontrib-apidoc
+- nbsphinx

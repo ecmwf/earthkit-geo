@@ -73,8 +73,8 @@ def to_latlon(grid):
     eps_lat = dlat / 1e2
     eps_lon = dlon / 1e2
 
-    north = constants.NORTH
-    south = constants.SOUTH
+    north = constants.NORTH_POLE_LAT
+    south = constants.SOUTH_POLE_LAT
     west = 0.0
     east = constants.FULL_ANGLE
 
@@ -90,8 +90,8 @@ def to_latlon(grid):
     ny = ny2 * 2 + 1
 
     if abs(delta) < eps_lat:
-        north = constants.NORTH
-        south = constants.SOUTH
+        north = constants.NORTH_POLE_LAT
+        south = constants.SOUTH_POLE_LAT
     else:
         north = half_lat_range
         south = -north

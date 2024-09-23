@@ -11,14 +11,17 @@
 Collection of constants in SI units.
 """
 
-NORTH = 90.0
+NORTH_POLE_LAT = 90
 r"""Latitude of the north pole in degrees"""
 
-SOUTH = -90.0
+SOUTH_POLE_LAT = -90
 r"""Latitude of the south pole in degrees"""
 
 FULL_ANGLE = 360.0
 r"""Full angle in degrees"""
 
+STRAIGHT_ANGLE = 180.0
+r"""Half angle in degrees"""
+
 RIGHT_ANGLE = 90.0
-r"""Right angle in degrees"""
+r"""Quarter angle in degrees"""
