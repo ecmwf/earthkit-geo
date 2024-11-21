@@ -70,14 +70,9 @@ def country_polygons(country_names, resolution=110e6):
         A list of lists of coordinates, where each sublist represents a polygon
         in the combined geometry of the specified countries.
     """
-    try:
-        import cartopy.io.shapereader as shpreader
-        from shapely.geometry import MultiPolygon
-        from shapely.ops import unary_union
-    except ImportError:
-        raise ImportError(
-            "The 'cartopy' and 'shapely' packages are required to use this function"
-        )
+    import cartopy.io.shapereader as shpreader
+    from shapely.geometry import MultiPolygon
+    from shapely.ops import unary_union
 
     ne_resolution = _closest_resolution(resolution)
 
