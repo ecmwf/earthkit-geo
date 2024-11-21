@@ -4,6 +4,8 @@ channels:
 - nodefaults
 dependencies:
 - pyproj
+- cartopy
+- shapely
 - scipy
 - make
 - mypy
