@@ -22,3 +22,6 @@ r"""Full angle in degrees"""
 
 STRAIGHT_ANGLE = 180.0
 r"""Half angle in degrees"""
+
+RIGHT_ANGLE = 90.0
+r"""Quarter angle in degrees"""
