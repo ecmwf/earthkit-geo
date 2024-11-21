@@ -45,6 +45,16 @@ def multipolygon_to_coordinates(multipolygon):
 
 
 def _closest_resolution(resolution):
+    """
+    Get the closest available resolution from Natural Earth to the specified
+    resolution in metres.
+
+    Parameters
+    ----------
+    resolution : float
+        The desired resolution, in metres, to find the closest available
+        resolution to.
+    """
     return min(
         _NE_RESOLUTIONS,
         key=lambda res: (abs(_NE_RESOLUTIONS[res] - resolution), -_NE_RESOLUTIONS[res]),
