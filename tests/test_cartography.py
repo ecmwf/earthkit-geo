@@ -11,7 +11,7 @@
 import pytest
 from shapely.geometry import MultiPolygon, Polygon
 
-from earthkit.geo.polygons import (
+from earthkit.geo.cartography import (
     _closest_resolution,
     country_polygons,
     multipolygon_to_coordinates,
