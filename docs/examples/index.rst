@@ -9,3 +9,4 @@ Here is a list of example notebooks to illustrate how to use earthkit-geo.
     :maxdepth: 1
 
     rotate.ipynb
+    country-polygons.ipynb
