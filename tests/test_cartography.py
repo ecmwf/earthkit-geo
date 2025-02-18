@@ -9,13 +9,12 @@
 
 
 import pytest
-from shapely.geometry import MultiPolygon, Polygon
+from shapely.geometry import MultiPolygon
+from shapely.geometry import Polygon
 
-from earthkit.geo.cartography import (
-    _closest_resolution,
-    country_polygons,
-    multipolygon_to_coordinates,
-)
+from earthkit.geo.cartography import _closest_resolution
+from earthkit.geo.cartography import country_polygons
+from earthkit.geo.cartography import multipolygon_to_coordinates
 
 
 @pytest.mark.parametrize(
@@ -59,11 +58,7 @@ def test_country_polygons_single_country():
     # Verify the output format
     assert isinstance(coordinates, list)
     assert all(isinstance(polygon, list) for polygon in coordinates)
-    assert all(
-        isinstance(coord, list) and len(coord) == 2
-        for polygon in coordinates
-        for coord in polygon
-    )
+    assert all(isinstance(coord, list) and len(coord) == 2 for polygon in coordinates for coord in polygon)
 
 
 def test_country_polygons_multiple_countries():
@@ -72,11 +67,7 @@ def test_country_polygons_multiple_countries():
     # Verify the output format
     assert isinstance(coordinates, list)
     assert all(isinstance(polygon, list) for polygon in coordinates)
-    assert all(
-        isinstance(coord, list) and len(coord) == 2
-        for polygon in coordinates
-        for coord in polygon
-    )
+    assert all(isinstance(coord, list) and len(coord) == 2 for polygon in coordinates for coord in polygon)
 
 
 def test_country_polygons_output_format():
@@ -88,8 +79,4 @@ def test_country_polygons_output_format():
     # Verify the output format
     assert isinstance(coordinates, list)
     assert all(isinstance(polygon, list) for polygon in coordinates)
-    assert all(
-        isinstance(coord, list) and len(coord) == 2
-        for polygon in coordinates
-        for coord in polygon
-    )
+    assert all(isinstance(coord, list) and len(coord) == 2 for polygon in coordinates for coord in polygon)
