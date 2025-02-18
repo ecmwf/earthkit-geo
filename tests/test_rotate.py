@@ -12,9 +12,13 @@
 import numpy as np
 import pytest
 
-from earthkit.geo.rotate import rotate, rotate_vector, unrotate, unrotate_vector
+from earthkit.geo.rotate import rotate
+from earthkit.geo.rotate import rotate_vector
+from earthkit.geo.rotate import unrotate
+from earthkit.geo.rotate import unrotate_vector
 
-from .testing import earthkit_test_data_file, normalise_lon
+from .testing import earthkit_test_data_file
+from .testing import normalise_lon
 
 
 def _make_proj(name):
@@ -86,13 +90,9 @@ def _make_proj(name):
 def test_rotate_points(data, expected_result):
     lat_r, lon_r = rotate(*data.values())
     assert np.allclose(lat_r, expected_result[0], atol=1e-5)
-    assert np.allclose(
-        normalise_lon(lon_r), normalise_lon(expected_result[1]), atol=1e-5
-    )
+    assert np.allclose(normalise_lon(lon_r), normalise_lon(expected_result[1]), atol=1e-5)
 
-    lat_ur, lon_ur = unrotate(
-        lat_r, lon_r, data["south_pole_lat"], data["south_pole_lon"]
-    )
+    lat_ur, lon_ur = unrotate(lat_r, lon_r, data["south_pole_lat"], data["south_pole_lon"])
     assert np.allclose(lat_ur, data["lat"], atol=1e-5)
     assert np.allclose(normalise_lon(lon_ur), normalise_lon(data["lon"]), atol=1e-5)
 

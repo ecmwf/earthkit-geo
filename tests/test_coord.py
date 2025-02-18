@@ -12,7 +12,8 @@
 import numpy as np
 import pytest
 
-from earthkit.geo.coord import latlon_to_xyz, xyz_to_latlon
+from earthkit.geo.coord import latlon_to_xyz
+from earthkit.geo.coord import xyz_to_latlon
 
 from .testing import normalise_lon
 
@@ -62,6 +63,4 @@ def test_latlon_to_xyz(latlon, expected_result):
 def test_xyz_to_latlon(xyz, expected_result):
     res = xyz_to_latlon(*xyz)
     assert np.allclose(res[0], expected_result[0]), f"xyz={xyz}"
-    assert np.allclose(
-        normalise_lon(res[1]), normalise_lon(expected_result[1])
-    ), f"xyz={xyz}"
+    assert np.allclose(normalise_lon(res[1]), normalise_lon(expected_result[1])), f"xyz={xyz}"
