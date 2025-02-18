@@ -16,13 +16,12 @@ except ImportError:  # pragma: no cover
     __version__ = "999"
 
 
-from earthkit.geo.distance import (
-    GeoKDTree,
-    haversine_distance,
-    nearest_point_haversine,
-    nearest_point_kdtree,
-)
-from earthkit.geo.figure import IFS_SPHERE, UNIT_SPHERE
+from earthkit.geo.distance import GeoKDTree
+from earthkit.geo.distance import haversine_distance
+from earthkit.geo.distance import nearest_point_haversine
+from earthkit.geo.distance import nearest_point_kdtree
+from earthkit.geo.figure import IFS_SPHERE
+from earthkit.geo.figure import UNIT_SPHERE
 
 __all__ = [
     "GeoKDTree",

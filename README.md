@@ -1,5 +1,7 @@
 # earthkit-geo
 
+<img src="https://github.com/ecmwf/logos/raw/refs/heads/main/logos/earthkit/earthkit-geo-light.svg" width="160">
+
 [![PyPI version fury.io](https://badge.fury.io/py/earthkit-geo.svg)](https://pypi.python.org/pypi/earthkit-geo/)
 [![PyPI pyversions](https://img.shields.io/pypi/pyversions/earthkit-geo.svg)](https://pypi.python.org/pypi/earthkit-geo/)
 
