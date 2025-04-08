@@ -1,19 +1,46 @@
-# earthkit-geo
+<p align="center">
+  <picture>
+    <source srcset="https://github.com/ecmwf/logos/raw/refs/heads/main/logos/earthkit/earthkit-geo-dark.svg" media="(prefers-color-scheme: dark)">
+    <img src="https://github.com/ecmwf/logos/raw/refs/heads/main/logos/earthkit/earthkit-geo-light.svg" height="120">
+  </picture>
+</p>
 
-[![PyPI version fury.io](https://badge.fury.io/py/earthkit-geo.svg)](https://pypi.python.org/pypi/earthkit-geo/)
-[![PyPI pyversions](https://img.shields.io/pypi/pyversions/earthkit-geo.svg)](https://pypi.python.org/pypi/earthkit-geo/)
+<p align="center">
+  <a href="https://github.com/ecmwf/codex/raw/refs/heads/main/ESEE">
+    <img src="https://github.com/ecmwf/codex/raw/refs/heads/main/ESEE/foundation_badge.svg" alt="ECMWF Software EnginE">
+  </a>
+  <a href="https://github.com/ecmwf/codex/raw/refs/heads/main/Project Maturity">
+    <img src="https://github.com/ecmwf/codex/raw/refs/heads/main/Project Maturity/emerging_badge.svg" alt="Maturity Level">
+  </a>
+  <!-- <a href="https://codecov.io/gh/ecmwf/earthkit-hydro">
+    <img src="https://codecov.io/gh/ecmwf/earthkit-hydro/branch/develop/graph/badge.svg" alt="Code Coverage">
+  </a> -->
+  <a href="https://opensource.org/licenses/apache-2-0">
+    <img src="https://img.shields.io/badge/Licence-Apache 2.0-blue.svg" alt="Licence">
+  </a>
+  <a href="https://github.com/ecmwf/earthkit-geo/releases">
+    <img src="https://img.shields.io/github/v/release/ecmwf/earthkit-geo?color=purple&label=Release" alt="Latest Release">
+  </a>
+</p>
 
-**DISCLAIMER**
+<p align="center">
+  <!-- <a href="#quick-start">Quick Start</a>
+  • -->
+  <a href="#installation">Installation</a>
+  •
+  <a href="https://earthkit-geo.readthedocs.io/en/latest/">Documentation</a>
+</p>
 
-> This project is in the **BETA** stage of development. Please be aware that interfaces and functionality may change as the project develops. If this software is to be used in operational systems you are **strongly advised to use a released tag in your system configuration**, and you should be willing to accept incoming changes and bug fixes that require adaptations on your part. ECMWF **does use** this software in operations and abides by the same caveats.
+> \[!IMPORTANT\]
+> This software is **Emerging** and subject to ECMWF's guidelines on [Software Maturity](https://github.com/ecmwf/codex/raw/refs/heads/main/Project%20Maturity).
 
-Geo-spatial methods.
+**earthkit-geo** is a package for geospatial computations. It is a component of [earthkit](https://github.com/ecmwf/earthkit).
 
 ## Documentation
 
 The documentation can be found at https://earthkit-geo.readthedocs.io/.
 
-## Install
+## Installation
 
 Install via `pip` with:
 
@@ -32,7 +59,7 @@ $ conda install earthkit-geo -c conda-forge
 
 This will bring in some necessary binary dependencies for you. -->
 
-## License
+## Licence
 
 ```
 Copyright 2024, European Centre for Medium Range Weather Forecasts.
