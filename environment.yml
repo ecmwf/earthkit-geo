@@ -7,6 +7,7 @@ dependencies:
 - cartopy
 - shapely
 - scipy
+- requests
 - make
 - mypy
 - myst-parser

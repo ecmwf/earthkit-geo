@@ -21,7 +21,8 @@ classifiers = [
 dependencies = [
   "pyproj",
   "cartopy",
-  "scipy"
+  "scipy",
+  "requests"
 ]
 description = "Geospatial computations"
 dynamic = ["version"]

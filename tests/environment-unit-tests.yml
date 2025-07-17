@@ -5,6 +5,7 @@ channels:
 dependencies:
 - pyproj
 - scipy
+- requests
 - make
 - myst-parser
 - pre-commit
