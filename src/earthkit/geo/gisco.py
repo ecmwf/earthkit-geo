@@ -32,11 +32,8 @@ AVAILABLE_YEARS = {
 }
 
 
-_writable_dir = Path.home() / ".local" / "share"
-_default_data_dir = (
-    Path(os.environ.get("XDG_DATA_HOME", _writable_dir)) / "earthkit-geo"
-)
-DATA_DIR = Path(os.environ.get("EARTHKIT_GEO_DATA_DIR", _default_data_dir))
+_DEFAULT_DATA_DIR = Path.home() / ".cache" / "earthkit-geo"
+DATA_DIR = Path(os.environ.get("EARTHKIT_GEO_DATA_DIR", _DEFAULT_DATA_DIR))
 
 
 def _get_gisco_cache_dir():
