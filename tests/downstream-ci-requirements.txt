@@ -1,5 +1,6 @@
 pyproj
 scipy
+requests
 # for testing
 pytest
 pytest-cov
