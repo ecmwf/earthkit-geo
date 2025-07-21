@@ -107,15 +107,21 @@ def _download_and_cache_gisco(
 
     # Download and extract if needed
     if not shp_path.exists():
-        if not zip_path.exists():
-            url = f"{GISCO_URL_TEMPLATE.format(category=category)}/{filename}"
-            warnings.warn(f"Downloading: {url}", DownloadWarning)
-            resp = requests.get(url)
-            resp.raise_for_status()
-            zip_path.write_bytes(resp.content)
-        extract_dir.mkdir(parents=True, exist_ok=True)
-        with ZipFile(zip_path, "r") as zf:
-            zf.extractall(extract_dir)
+        from filelock import FileLock
+
+        lock = str(zip_path) + ".lock"
+        with FileLock(lock):
+            # Check again, another thread/process may have created the file
+            if not shp_path.exists():
+                if not zip_path.exists():
+                    url = f"{GISCO_URL_TEMPLATE.format(category=category)}/{filename}"
+                    warnings.warn(f"Downloading: {url}", DownloadWarning)
+                    resp = requests.get(url)
+                    resp.raise_for_status()
+                    zip_path.write_bytes(resp.content)
+                extract_dir.mkdir(parents=True, exist_ok=True)
+                with ZipFile(zip_path, "r") as zf:
+                    zf.extractall(extract_dir)
 
     return str(shp_path)
 
