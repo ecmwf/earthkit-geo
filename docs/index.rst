@@ -19,7 +19,7 @@ Welcome to earthkit-geo's documentation
     This software is **Emerging** and subject to ECMWF's guidelines on `Software Maturity <https://github.com/ecmwf/codex/raw/refs/heads/main/Project%20Maturity>`_.
 
 
-**earthkit-geo** is a Python package providing geospatial computations. It is one of the components of :xref:`earthkit`.
+**earthkit-geo** is a Python package providing geospatial computations. It is part of the :xref:`earthkit` ecosystem.
 
 
 .. toctree::
