@@ -113,13 +113,11 @@ def country_polygons(country_names, resolution=110e6):
     missing_countries = [
         name
         for name in country_names
-        if name
-        not in [record.attributes.get(attribute).lower() for record in reader.records()]
+        if name not in [record.attributes.get(attribute).lower() for record in reader.records()]
     ]
     if missing_countries:
         raise ValueError(
-            f"No countries or states named {missing_countries} found in Natural "
-            "Earth's shapefiles"
+            f"No countries or states named {missing_countries} found in Natural " "Earth's shapefiles"
         )
 
     combined_geometry = unary_union(geometries)

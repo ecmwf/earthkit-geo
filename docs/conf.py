@@ -12,6 +12,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath("./"))
 sys.path.insert(0, os.path.abspath("../"))
+sys.path.append(os.path.abspath("./_ext"))
 
 # -- Project information -----------------------------------------------------
 
@@ -33,29 +34,38 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
     "autoapi.extension",
+    "sphinx_issues",
+    "sphinx_copybutton",
+    "xref",
 ]
 
 # autodoc configuration
 autodoc_typehints = "none"
 
 # autoapi configuration
-autoapi_dirs = ["../src/earthkit/geo"]
+autoapi_dirs = ["../src/earthkit"]
 autoapi_ignore = ["*/version.py", "sphinxext/*"]
 autoapi_options = [
     "members",
     "undoc-members",
     "show-inheritance",
     "show-module-summary",
+    "imported-members",
     "inherited-members",
 ]
-autoapi_root = "_api"
+autoapi_root = "autoapi"
 autoapi_member_order = "alphabetical"
 autoapi_add_toctree_entry = False
+autoapi_own_page_level = "function"
+autoapi_python_use_implicit_namespaces = True
 
 # napoleon configuration
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True
 napoleon_preprocess_types = True
+
+# Path to GitHub repo {group}/{project}  (note that `group` is the GitHub user or organization)
+issues_github_path = "ecmwf/earthkit-geo"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -81,4 +91,18 @@ html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
 html_css_files = ["style.css"]
 
-# html_logo = "_static/earthkit-geo.png"
+
+html_logo = "https://github.com/ecmwf/logos/raw/refs/heads/main/logos/earthkit/earthkit-geo-dark.svg"
+
+
+xref_links = {
+    "earthkit": ("earthkit", "https://earthkit.readthedocs.io/en/latest/"),
+    "earthkit-data": (
+        "earthkit-data",
+        "https://earthkit-data.readthedocs.io/en/latest/",
+    ),
+    "earthkit-plots": (
+        "earthkit-plots",
+        "https://earthkit-plots.readthedocs.io/en/latest/",
+    ),
+}
