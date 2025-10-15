@@ -8,7 +8,9 @@
 #
 
 from . import constants
-from .coord import _normalise_lon, latlon_to_xyz, xyz_to_latlon
+from .coord import _normalise_lon
+from .coord import latlon_to_xyz
+from .coord import xyz_to_latlon
 
 
 def _normalise(x):
@@ -173,9 +175,7 @@ def rotate_vector(lat, lon, vector_x, vector_y, source_projection, target_projec
     source_projection = pyproj.Proj(source_projection)
     target_projection = pyproj.Proj(target_projection)
 
-    transformer = pyproj.transformer.Transformer.from_proj(
-        source_projection, target_projection
-    )
+    transformer = pyproj.transformer.Transformer.from_proj(source_projection, target_projection)
 
     # To compute the new vector components:
     # 1) perturb each position in the direction of the vectors
@@ -286,9 +286,7 @@ def unrotate_vector(
     if lon_unrotated is None:
         _, lon_unrotated = unrotate(lat, lon, south_pole_lat, south_pole_lon)
 
-    for i, (vx, vy, lon_r, lon_ur) in enumerate(
-        zip(vector_x, vector_y, lon, lon_unrotated)
-    ):
+    for i, (vx, vy, lon_r, lon_ur) in enumerate(zip(vector_x, vector_y, lon, lon_unrotated)):
         lon_r = south_pole_lon - lon_r
         lon_r = _normalise_lon(lon_r, -constants.STRAIGHT_ANGLE)
 

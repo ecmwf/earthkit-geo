@@ -11,7 +11,8 @@ import numpy as np
 
 from . import constants
 from .coord import latlon_to_xyz
-from .figure import IFS_SPHERE, UNIT_SPHERE
+from .figure import IFS_SPHERE
+from .figure import UNIT_SPHERE
 
 
 def _regulate_lat(lat):
@@ -85,9 +86,7 @@ def haversine_distance(p1, p2, figure=IFS_SPHERE):
     d_lon = lon2 - lon1
     d_lat = lat2 - lat1
 
-    a = np.sqrt(
-        np.sin(d_lat / 2) ** 2 + np.cos(lat1) * np.cos(lat2) * np.sin(d_lon / 2) ** 2
-    )
+    a = np.sqrt(np.sin(d_lat / 2) ** 2 + np.cos(lat1) * np.cos(lat2) * np.sin(d_lon / 2) ** 2)
     distance = 2 * np.arcsin(a)
 
     return figure.scale(distance)
@@ -138,9 +137,7 @@ def nearest_point_haversine(ref_points, points, figure=IFS_SPHERE):
     if ref_points.shape == (2,):
         ref_points = np.array([[ref_points[0]], [ref_points[1]]])
     elif len(ref_points.shape) != 2 or ref_points.shape[0] != 2:
-        raise ValueError(
-            f"nearest_point_haversine: ref_point expected shape of (2,), got {ref_points.shape}"
-        )
+        raise ValueError(f"nearest_point_haversine: ref_point expected shape of (2,), got {ref_points.shape}")
 
     res_index = []
     res_distance = []
@@ -224,9 +221,7 @@ class GeoKDTree:
         points = np.column_stack((x, y, z))
 
         # find the nearest point
-        distance, index = self.tree.query(
-            points, distance_upper_bound=self.max_distance_arc
-        )
+        distance, index = self.tree.query(points, distance_upper_bound=self.max_distance_arc)
 
         return index, figure.scale(_chordlength_to_arclength(distance))
 
