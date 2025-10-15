@@ -10,6 +10,13 @@ Welcome to earthkit-geo's documentation
    :target: https://github.com/ecmwf/codex/raw/refs/heads/main/Project%20Maturity
 .. |License: Apache 2.0| image:: https://img.shields.io/badge/License-Apache%202.0-blue.svg
    :target: https://opensource.org/licenses/apache-2-0
+.. |Latest Release| image:: https://img.shields.io/github/v/release/ecmwf/earthkit-geo?color=blue&label=Release&style=flat-square
+   :target: https://github.com/ecmwf/earthkit-geo/releases
+
+
+.. important::
+
+    This software is **Emerging** and subject to ECMWF's guidelines on `Software Maturity <https://github.com/ecmwf/codex/raw/refs/heads/main/Project%20Maturity>`_.
 
 
 **earthkit-geo** is a Python package providing geospatial computations. It is one of the components of :xref:`earthkit`.
@@ -26,7 +33,8 @@ Welcome to earthkit-geo's documentation
    :maxdepth: 1
    :caption: Documentation
 
-   _api/geo/index
+   API Reference <autoapi/earthkit/geo/index.rst>
+   references.rst
 
 .. toctree::
    :maxdepth: 1
