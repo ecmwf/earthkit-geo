@@ -4,6 +4,7 @@ channels:
 - nodefaults
 dependencies:
 - pyproj
+- eckit
 - cartopy
 - shapely
 - scipy

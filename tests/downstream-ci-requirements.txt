@@ -2,6 +2,7 @@ pyproj
 scipy
 requests
 cartopy
+eckit
 # for testing
 pytest
 pytest-cov
