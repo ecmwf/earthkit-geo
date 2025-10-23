@@ -37,7 +37,14 @@ extensions = [
     "sphinx_issues",
     "sphinx_copybutton",
     "xref",
+    "matplotlib.sphinxext.plot_directive",
 ]
+
+# Plot directive configuration
+plot_include_source = True
+plot_html_show_source_link = False
+plot_formats = [("png", 150)]
+plot_html_show_formats = False
 
 # autodoc configuration
 autodoc_typehints = "none"

@@ -33,6 +33,7 @@ Welcome to earthkit-geo's documentation
    :maxdepth: 1
    :caption: Documentation
 
+   grids
    API Reference <autoapi/earthkit/geo/index.rst>
    references.rst
 

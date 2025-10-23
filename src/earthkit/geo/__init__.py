@@ -16,6 +16,7 @@ except ImportError:  # pragma: no cover
     __version__ = "999"
 
 
+from earthkit.geo import grids
 from earthkit.geo.distance import GeoKDTree
 from earthkit.geo.distance import haversine_distance
 from earthkit.geo.distance import nearest_point_haversine
@@ -30,5 +31,6 @@ __all__ = [
     "nearest_point_haversine",
     "nearest_point_kdtree",
     UNIT_SPHERE,
+    "grids",
     "__version__",
 ]
