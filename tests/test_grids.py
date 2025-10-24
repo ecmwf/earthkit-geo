@@ -19,6 +19,9 @@ from earthkit.geo.grids import HEALPix
 from earthkit.geo.grids import Octahedral
 from earthkit.geo.grids import ReducedGaussian
 
+# Skip all tests in this module if eckit is not installed
+pytest.importorskip("eckit.geo")
+
 
 class TestEquirectangular:
     """Tests for Equirectangular grid."""

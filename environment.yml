@@ -17,7 +17,6 @@ dependencies:
 - sphinx>=7.2.6
 - pip:
   - sphinx-autoapi>=3.0.0
-  - eckit
 - sphinx_rtd_theme
 - sphinxcontrib-apidoc
 - nbsphinx

@@ -8,9 +8,6 @@
 #
 
 
-from eckit.geo import Grid as ECKIT_Grid
-
-
 class Grid:
     """
     Geographical grid representation with support for various grid types.
@@ -78,6 +75,12 @@ class Grid:
     NAME = None
 
     def __init__(self, **kwargs):
+        try:
+            from eckit.geo import Grid as ECKIT_Grid
+        except ImportError:
+            raise ImportError(
+                "eckit.geo is required to create grids. Please install it with `pip install eckit`."
+            )
         self._grid_spec = kwargs
         self._grid = ECKIT_Grid(self.grid_spec)
 

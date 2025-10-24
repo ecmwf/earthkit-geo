@@ -28,13 +28,13 @@ classifiers = [
 ]
 dynamic = [ "version" ]
 dependencies = [
-  "eckit",
   "pyproj",
   "requests",
   "scipy",
 ]
-optional-dependencies.all = [ "cartopy", "earthkit-plots" ]
+optional-dependencies.all = [ "cartopy", "earthkit-plots", "eckit" ]
 optional-dependencies.cartography = [ "cartopy" ]
+optional-dependencies.grids = [ "eckit" ]
 optional-dependencies.plots = [ "earthkit-plots" ]
 optional-dependencies.test = [
   "pytest",
