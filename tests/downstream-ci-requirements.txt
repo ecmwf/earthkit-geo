@@ -1,5 +1,7 @@
 pyproj
 scipy
+requests
+cartopy
 # for testing
 pytest
 pytest-cov

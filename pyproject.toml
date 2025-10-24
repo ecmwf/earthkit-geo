@@ -28,10 +28,12 @@ classifiers = [
 ]
 dynamic = [ "version" ]
 dependencies = [
-  "cartopy",
   "pyproj",
+  "requests",
   "scipy",
 ]
+optional-dependencies.all = [ "cartopy" ]
+optional-dependencies.cartography = [ "cartopy" ]
 optional-dependencies.test = [
   "pytest",
   "pytest-cov",
