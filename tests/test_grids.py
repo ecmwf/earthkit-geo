@@ -280,12 +280,6 @@ class TestGridProperties:
         assert hasattr(grid, "bounding_box")
         assert callable(grid.bounding_box)
 
-    def test_plot_method_exists(self):
-        # Test that plot method exists
-        grid = HEALPix(nside=8)
-        assert hasattr(grid, "plot")
-        assert callable(grid.plot)
-
 
 class TestTypeConsistency:
     """Tests to ensure type consistency across different creation methods."""
