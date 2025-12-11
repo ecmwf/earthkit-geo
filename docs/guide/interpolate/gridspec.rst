@@ -65,6 +65,7 @@ The ``grid`` format is::
     HXXX
 
 The ``order`` must be set to ``"nested"``. For details about this grid, see `here  <https://en.wikipedia.org/wiki/HEALPix>`_.
+For backward compatibility the ``ordering`` key is still accepted as an alias for ``order``.
 
 Example:
 
@@ -81,6 +82,7 @@ The ``grid`` format is::
     HXXX
 
 The ``order`` can be omitted or set to ``"ring"``.  For details about this grid, see `here  <https://en.wikipedia.org/wiki/HEALPix>`_.
+For backward compatibility the ``ordering`` key is still accepted as an alias for ``order``.
 
 Example:
 
