@@ -73,7 +73,7 @@ H_NESTED_REFS = [
 ]
 
 ORCA_REFS = [
-    ("eORCA025_T", (1740494,)),
+    ("eORCA025_T", (1442, 1207)),
 ]
 
 
@@ -325,7 +325,7 @@ def test_regrid_orca_to_ogg(interpolation):
         ({"grid": "F48"}, (96, 192)),
         ({"grid": "H8", "order": "ring"}, (768,)),
         ({"grid": "H8", "order": "nested"}, (768,)),
-        ({"grid": "eORCA025_T"}, (1740494,)),
+        ({"grid": "eORCA025_T"}, (1442, 1207)),
     ],
 )
 @pytest.mark.parametrize("out_grid,res_shape", REFS)
