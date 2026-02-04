@@ -99,6 +99,11 @@ class MirBackend(Backend):
             "nclosest": nclosest,
         }
 
+        # no 'automatic' necessary
+        kremove = [k for k, v in kwargs.items() if v == "automatic"]
+        for k in kremove:
+            del kwargs[k]
+
         out_grid, kwargs = self.adjust_options(grid, kwargs)
 
         in_data = mir.GribMemoryInput(message)
