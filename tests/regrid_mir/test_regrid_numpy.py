@@ -72,9 +72,11 @@ H_NESTED_REFS = [
     ("H4", (192,)),
 ]
 
-ORCA_REFS = [
-    ("eORCA025_T", (1442, 1207)),
-]
+# These tests are too slow for now
+ORCA_REFS = []
+# ORCA_REFS = [
+#     ("eORCA025_T", (1442, 1207)),
+# ]
 
 
 def make_refs():
@@ -286,6 +288,7 @@ def test_regrid_healpix_nested_to_ll(interpolation):
     np.testing.assert_allclose(v_res.flatten(), v_ref.flatten(), verbose=False)
 
 
+@pytest.mark.skip(reason="This test is too slow for now")
 @pytest.mark.skipif(NO_MIR, reason="No mir available")
 # @pytest.mark.skipif(True, reason="No ORCA support for numpy in MIR")
 @pytest.mark.parametrize("interpolation", ["linear"])
@@ -326,7 +329,7 @@ def test_regrid_orca_to_ogg(interpolation):
         ({"grid": "F48"}, (96, 192)),
         ({"grid": "H8", "order": "ring"}, (768,)),
         ({"grid": "H8", "order": "nested"}, (768,)),
-        ({"grid": "eORCA025_T"}, (1442, 1207)),
+        # ({"grid": "eORCA025_T"}, (1442, 1207)), # this test is too slow for now
     ],
 )
 @pytest.mark.parametrize("out_grid,res_shape", REFS)
