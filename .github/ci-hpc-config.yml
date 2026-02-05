@@ -5,6 +5,7 @@ build:
   - MathisRosenhauer/libaec@refs/tags/v1.1.3
   - ecmwf/eccodes@develop
   - ecmwf/eckit@develop
+  - ecmwf/atlas@develop
   - ecmwf/mir@develop
   parallel: 1
   pytest_cmd: |
