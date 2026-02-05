@@ -9,5 +9,5 @@ build:
   - ecmwf/mir@develop
   parallel: 1
   pytest_cmd: |
-    FINDLIBS_DISABLE_PACKAGE=no pytest --cov=./ --cov-report=xml
-    FINDLIBS_DISABLE_PACKAGE=no python -m coverage report
+    pytest --cov=./ --cov-report=xml
+    python -m coverage report
