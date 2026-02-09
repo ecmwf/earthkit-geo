@@ -7,7 +7,7 @@ build:
   - ecmwf/eckit@develop
   - ecmwf/atlas@develop
   - ecmwf/mir@develop
-  parallel: 1
+  parallel: 64
   pytest_cmd: |
     pytest --cov=./ --cov-report=xml
     python -m coverage report
