@@ -7,6 +7,9 @@ build:
   - ecmwf/eckit@develop
   - ecmwf/atlas@develop
   - ecmwf/mir@develop
+  python_dependencies:
+  - ecmwf/eccodes-python@develop
+  - ecmwf/earthkit-data@develop
   parallel: 64
   pytest_cmd: |
     pytest --cov=./ --cov-report=xml
