@@ -6,7 +6,7 @@ build:
   - ecmwf/eccodes@develop
   - ecmwf/eckit@feature/eckit-geo
   - ecmwf/atlas@develop
-  - ecmwf/mir@@feature/eckit-geo
+  - ecmwf/mir@feature/eckit-geo
   python_dependencies:
   - ecmwf/eccodes-python@develop
   - ecmwf/earthkit-data@develop
