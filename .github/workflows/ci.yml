@@ -36,8 +36,6 @@ jobs:
     uses: ecmwf/downstream-ci/.github/workflows/downstream-ci.yml@mir-as-shallow-dep-of-ek-regrid
     with:
       earthkit-regrid: ecmwf/earthkit-regrid@${{ github.event.pull_request.head.sha || github.sha }}
-      eckit: ecmwf/eckit@feature/eckit-geo
-      mir: ecmwf/mir@feature/eckit-geo
       codecov_upload: true
       python_qa: false
     secrets: inherit
@@ -49,8 +47,6 @@ jobs:
     uses: ecmwf/downstream-ci/.github/workflows/downstream-ci-hpc.yml@mir-as-shallow-dep-of-ek-regrid
     with:
       earthkit-regrid: ecmwf/earthkit-regrid@${{ github.event.pull_request.head.sha || github.sha }}
-      eckit: ecmwf/eckit@feature/eckit-geo
-      mir: ecmwf/mir@feature/eckit-geo
       skip_matrix_jobs: |
         intel-2021.4.0
         nvidia-22.11
