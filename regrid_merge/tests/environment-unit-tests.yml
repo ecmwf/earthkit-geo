@@ -1,0 +1,30 @@
+name: earthkit-regrid
+channels:
+- conda-forge
+- nodefaults
+dependencies:
+- pip
+- deprecation
+- multiurl
+- filelock
+- scipy
+- pyyaml
+- requests
+- make
+- mypy
+- myst-parser
+- pre-commit
+- pydata-sphinx-theme
+- pytest
+- pytest-cov
+- sphinx>=7.2.6
+- sphinx-autoapi
+- sphinx_rtd_theme
+- sphinxcontrib-apidoc
+- nbformat
+- nbconvert
+- nbsphinx
+- ipykernel
+- sphinx-issues
+- pip:
+  - mir-python>=1.27.2.dev20250723

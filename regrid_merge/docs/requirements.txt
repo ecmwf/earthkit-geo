@@ -1,0 +1,12 @@
+# These are the requirements for readthedoc
+multiurl
+filelock
+scipy
+ipykernel
+docutils
+Pygments>=2.6.1
+Sphinx>=7.2.6
+sphinx-rtd-theme
+setuptools
+nbsphinx
+sphinx-issues
