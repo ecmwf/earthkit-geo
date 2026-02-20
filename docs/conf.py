@@ -12,7 +12,6 @@ import sys
 
 sys.path.insert(0, os.path.abspath("./"))
 sys.path.insert(0, os.path.abspath("../"))
-sys.path.append(os.path.abspath("./_ext"))
 
 # -- Project information -----------------------------------------------------
 
@@ -36,7 +35,8 @@ extensions = [
     "autoapi.extension",
     "sphinx_issues",
     "sphinx_copybutton",
-    "xref",
+    "earthkit.geo.sphinxext.xref",
+    "earthkit.geo.sphinxext.module_output",
 ]
 
 # autodoc configuration
@@ -104,5 +104,13 @@ xref_links = {
     "earthkit-plots": (
         "earthkit-plots",
         "https://earthkit-plots.readthedocs.io/en/latest/",
+    ),
+    "fieldlist": (
+        "fieldlist",
+        "https://earthkit-data.readthedocs.io/en/latest/guide/data_format/grib.html",
+    ),
+    "field": (
+        "field",
+        "https://earthkit-data.readthedocs.io/en/latest/guide/data_format/grib.html",
     ),
 }

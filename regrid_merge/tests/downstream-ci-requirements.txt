@@ -1,4 +1,0 @@
-earthkit-data
-pytest
-pytest-cov
-requests
