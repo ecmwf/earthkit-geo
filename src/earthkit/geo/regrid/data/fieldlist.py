@@ -16,7 +16,7 @@ LOG = logging.getLogger(__name__)
 
 class FieldListDataHandler(DataHandler):
     @staticmethod
-    def match(values):
+    def match(data):
         from earthkit.geo.utils import is_module_loaded
 
         if not is_module_loaded("earthkit.data"):
@@ -25,7 +25,7 @@ class FieldListDataHandler(DataHandler):
         try:
             import earthkit.data
 
-            return isinstance(values, earthkit.data.FieldList)
+            return isinstance(data, earthkit.data.FieldList) and hasattr(data, "get")
         except Exception:
             return False
 
@@ -34,14 +34,14 @@ class FieldListDataHandler(DataHandler):
         try:
             in_grid = field.geography.grid_spec()
         except Exception as e:
-            LOG.exception(f"Cannot get input gridspec from metadata for field[{index}]: {e}")
+            LOG.exception(f"Cannot get input grid_spec from metadata for field[{index}]: {e}")
             raise
         if in_grid is None:
-            raise ValueError(f"Cannot get input gridspec from metadata for field[{index}]")
+            raise ValueError(f"Cannot get input grid_spec from metadata for field[{index}]")
 
         return in_grid
 
-    def regrid(self, values, **kwargs):
+    def regrid(self, data, **kwargs):
         backend = self.backend_from_kwargs(kwargs)
 
         grid = kwargs.pop("grid", None)
@@ -50,14 +50,14 @@ class FieldListDataHandler(DataHandler):
 
         if hasattr(backend, "regrid_grib"):
             # TODO: remove this when ecCodes supports setting the gridSpec on a GRIB handle
-            return self._regrid_grib(values, backend, grid, **kwargs)
+            return self._regrid_grib(data, backend, grid, **kwargs)
         else:
-            return self._regrid_array(values, backend, grid, **kwargs)
+            return self._regrid_array(data, backend, grid, **kwargs)
 
-    def _regrid_array(self, values, backend, grid, **kwargs):
+    def _regrid_array(self, data, backend, grid, **kwargs):
         import earthkit.data
 
-        ds = values
+        ds = data
         assert grid is not None
 
         # TODO: refactor this when this limitation is removed
@@ -91,7 +91,7 @@ class FieldListDataHandler(DataHandler):
     def _regrid_grib(self, values, backend, grid, **kwargs):
         # TODO: remove this when ecCodes supports setting the gridSpec on a GRIB handle
         from earthkit.data.encoders.grib import GribEncoder
-        from earthkit.data.field.grib.create import new_grib_field_from_buffer
+        from earthkit.data.field.grib.create import create_grib_field_from_buffer
 
         assert hasattr(backend, "regrid_grib")
 
@@ -109,14 +109,14 @@ class FieldListDataHandler(DataHandler):
                     raise ValueError(f"field at index={i} type={type(f)} is not supported in regrid!")
 
             v_res = backend.regrid_grib(message, grid, **kwargs)
-            r.append(new_grib_field_from_buffer(v_res))
+            r.append(create_grib_field_from_buffer(v_res))
 
         return ds.from_fields(r)
 
 
 class FieldDataHandler(DataHandler):
     @staticmethod
-    def match(values):
+    def match(data):
         from earthkit.geo.utils import is_module_loaded
 
         if not is_module_loaded("earthkit.data"):
@@ -125,14 +125,14 @@ class FieldDataHandler(DataHandler):
         try:
             import earthkit.data
 
-            return isinstance(values, earthkit.data.Field)
+            return isinstance(data, earthkit.data.Field) and hasattr(data, "get")
         except Exception:
             return False
 
-    def regrid(self, values, **kwargs):
+    def regrid(self, data, **kwargs):
         from earthkit.data import FieldList
 
-        ds = FieldList.from_fields([values])
+        ds = FieldList.from_fields([data])
         return FieldListDataHandler().regrid(ds, **kwargs)[0]
 
 

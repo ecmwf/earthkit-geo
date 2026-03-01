@@ -3,18 +3,18 @@
 Configuration
 =============
 
-*New in version 0.5.0.*
+*New in version 1.0.0.*
 
 
 .. note::
 
-    The configuration is only related to the :ref:`precomputed <precomputed-regrid>`
-    and :ref:`precomputed-local <precomputed-local-regrid>` backends in :func:`regrid`.
+    At the moment this configuration is only related to the :ref:`precomputed <precomputed-regrid>`
+    backends in :func:`regrid`.
 
 
-*earthkit-regrid* maintains a global configuration.
+*earthkit-geo* maintains a global configuration.
 
-The configuration is automatically loaded from and saved into a yaml file located at ``~/.config/earthkit/regrid/config.yaml``. An alternative path can be specified via the ``EARTHKIT_REGRID_CONFIG_FILE`` environmental variable (it is only read at startup).
+The configuration is automatically loaded from and saved into a yaml file located at ``~/.config/earthkit/geo/config.yaml``. An alternative path can be specified via the ``EARTHKIT_GEO_CONFIG_FILE`` environmental variable (it is only read at startup).
 
 The configuration can be accessed and modified from Python. The configuration options can also be defined as :ref:`environment variables <config_env>`, which take precedence over the config file.
 
@@ -29,7 +29,7 @@ See the following notebooks for examples:
 Accessing configuration options
 --------------------------------
 
-The earthkit-regrid configuration can be accessed using the python API:
+The earthkit-geo configuration can be accessed using the python API:
 
 .. literalinclude:: include/config-get.py
 
@@ -47,7 +47,7 @@ Changing configuration
     It is recommended to restart your Jupyter kernels after changing
     or resetting config options.
 
-The earthkit-regrid configuration can be modified using the python API:
+The earthkit-geo configuration can be modified using the python API:
 
 .. literalinclude:: include/config-set.py
 
@@ -86,7 +86,7 @@ Resetting configuration
     It is recommended to restart your Jupyter kernels after changing
     or resetting the configuration.
 
-The earthkit-regrid configuration can be reset using the python API:
+The earthkit-geo configuration can be reset using the python API:
 
 .. literalinclude:: include/config-reset.py
 
@@ -106,27 +106,27 @@ First, let us assume that the value of  ``url-download-timeout`` is 30 in the co
 
 .. code-block:: python
 
-    >>> from earthkit.regrid import config
+    >>> from earthkit.geo import config
     >>> config.get("url-download-timeout")
     30
 
-Then, set the environment variable ``EARTHKIT_REGRID_URL_DOWNLOAD_TIMEOUT``.
+Then, set the environment variable ``EARTHKIT_GEO_URL_DOWNLOAD_TIMEOUT``.
 
 .. code-block:: bash
 
-    export EARTHKIT_REGRID_URL_DOWNLOAD_TIMEOUT=5
+    export EARTHKIT_GEO_URL_DOWNLOAD_TIMEOUT=5
 
 
 .. code-block:: python
 
-    >>> from earthkit.regrid import config
+    >>> from earthkit.geo import config
     >>> config.get("url-download-timeout")
     5
     >>> config.env()
-    {'url-download-timeout': ('EARTHKIT_REGRID_URL_DOWNLOAD_TIMEOUT', '5')}
+    {'url-download-timeout': ('EARTHKIT_GEO_URL_DOWNLOAD_TIMEOUT', '5')}
     >>> config.set("url-download-timeout", 10)
     UserWarning: Config option 'url-download-timeout' is also set by environment variable
-    'EARTHKIT_REGRID_URL_DOWNLOAD_TIMEOUT'.The environment variable takes precedence and
+    'EARTHKIT_GEO_URL_DOWNLOAD_TIMEOUT'.The environment variable takes precedence and
     its value is returned when calling get(). Still, the value set here will be
     saved to the config file.
     >>> config.get("url-download-timeout")
@@ -136,12 +136,12 @@ Finally, unset the environment variable and check the config value again, which 
 
 .. code-block:: bash
 
-    unset EARTHKIT_REGRID_URL_DOWNLOAD_TIMEOUT
+    unset EARTHKIT_GEO_URL_DOWNLOAD_TIMEOUT
 
 
 .. code-block:: python
 
-    >>> from earthkit.regrid import config
+    >>> from earthkit.geo import config
     >>> config.get("url-download-timeout")
     10
 

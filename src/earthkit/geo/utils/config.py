@@ -44,25 +44,6 @@ class Validator(metaclass=ABCMeta):
     def explain(self):
         pass
 
-    # @staticmethod
-    # def make(value):
-    #     v = _validators.get(type(value), None)
-    #     if v is not None:
-    #         return v(value)
-    #     else:
-    #         raise TypeError(f"Cannot create Validator for type={type(value)}")
-
-
-# class ValueValidator(Validator):
-#     def __init__(self, value):
-#         self.value = value
-
-#     def check(self, value):
-#         return value == self.value
-
-#     def explain(self):
-#         return f"Valid when = {self.value}."
-
 
 class ValuesValidator(Validator):
     """Check if value is in a list of valid values"""
@@ -88,9 +69,6 @@ class ListValidator(Validator):
 
     def explain(self):
         return f"Valid values: {list_to_human(self.values)}."
-
-
-# _validators = {bool: ValueValidator, list: ValuesValidator}
 
 
 class ConfigOption:
@@ -197,27 +175,6 @@ CONFIG_AND_HELP = {
     "download-out-of-date-urls": _(
         False,
         "Re-download URLs when the remote version of a cached file as been changed",
-    ),
-    "maximum-weights-memory-cache-size": _(
-        "500MB",
-        """The maximum memory size of the in-memory precomputed weight cache in bytes.
-        Only used when ``weights-memory-cache-policy`` is ``"largest"`` or ``"lru"``. Can be
-        set to None.
-        See :ref:`mem_cache` for more information.""",
-        getter="_as_bytes",
-        none_ok=True,
-    ),
-    "weights-memory-cache-policy": _(
-        "largest",
-        """The in-memory precomputed weights cache policy. {validator}
-        See :ref:`mem_cache` for more information.""",
-        validator=ValuesValidator(["off", "unlimited", "largest", "lru"]),
-    ),
-    "weights-memory-cache-strict-mode": _(
-        False,
-        """Raise exception if the weights cannot be fitted into the in-memory cache.
-        Only used when ``weights-memory-cache-policy`` is ``"largest"`` or ``"lru"``.
-        See :ref:`mem_cache` for more information.""",
     ),
 }
 

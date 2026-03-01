@@ -5,16 +5,16 @@ regrid (array-level) with precomputed weights
 
 *New in version 0.5.0.*
 
-.. py:function:: regrid(values, in_grid=None, out_grid=None, *, interpolation='linear', backend="precomputed", inventory="ecmwf")
+.. py:function:: regrid(date, in_grid=None, out_grid=None, *, interpolation='linear', backend="precomputed", inventory="ecmwf")
     :noindex:
 
-    Regrid array ``values`` using precomputed weights.
+    Regrid array ``data`` using precomputed weights.
 
-    :param values: array representing a single field defined on the ``in_grid``.
-    :type values: ndarray
-    :param in_grid: the :ref:`gridspec <gridspec-precomputed>` describing the grid that ``values`` are defined on.
+    :param data: array representing a single field defined on the ``in_grid``.
+    :type data: ndarray
+    :param in_grid: the :ref:`gridspec <gridspec-precomputed>` describing the grid that ``data`` are defined on.
     :type in_grid: dict
-    :param out_grid: the :ref:`gridspec <gridspec-precomputed>` describing the target grid that ``values`` will be interpolated onto
+    :param out_grid: the :ref:`gridspec <gridspec-precomputed>` describing the target grid that ``data`` will be interpolated onto
     :type out_grid: dict
     :param interpolation: the interpolation method. Possible values are ``linear`` and ``nearest-neighbour``. For ``nearest-neighbour`` the following aliases are also supported: ``nn``, ``nearest-neighbor``.
     :type interpolation: str

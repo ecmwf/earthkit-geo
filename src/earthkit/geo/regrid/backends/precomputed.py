@@ -19,33 +19,19 @@ class MatrixBackend(Backend):
         self.path_or_url = inventory
         self.db = self.get_db(inventory)
 
-    def regrid(self, values, in_grid, out_grid, interpolation):
+    def regrid(self, data, in_grid, out_grid, interpolation):
         z, shape = self.db.find(in_grid, out_grid, interpolation)
 
         if z is None:
             raise ValueError(f"No precomputed weights found! {in_grid=} {out_grid=} {interpolation=}")
 
         # This should check for 1D (GG) and 2D (LL) matrices
-        values = values.reshape(-1, 1)
+        data = data.reshape(-1, 1)
 
-        values = z @ values
-        values = values.reshape(shape)
+        data = z @ data
+        data = data.reshape(shape)
 
-        return values, out_grid
-
-    # TODO: will be removed
-    def interpolate(self, values, in_grid, out_grid, method, **kwargs):
-        z, shape = self.db.find(in_grid, out_grid, method, **kwargs)
-
-        if z is None:
-            raise ValueError(f"No matrix found! {in_grid=} {out_grid=} {method=}")
-
-        # This should check for 1D (GG) and 2D (LL) matrices
-        values = values.reshape(-1, 1)
-
-        values = z @ values
-
-        return values.reshape(shape)
+        return data, out_grid
 
     def get_db(self, path_or_url):
         if path_or_url is None or path_or_url == self.system_inventory_id:

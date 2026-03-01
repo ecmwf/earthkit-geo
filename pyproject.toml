@@ -26,7 +26,8 @@ classifiers = [
 ]
 dynamic = [ "version" ]
 dependencies = [
-  "mir-python",
+  "eckit>=1.33.1.dev24",
+  "mir-python>=1.28.0.13",
   "multiurl",
   "pyproj",
   "pyyaml",

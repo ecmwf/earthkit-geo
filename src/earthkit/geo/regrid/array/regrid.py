@@ -9,7 +9,7 @@
 #
 
 
-def regrid(values, in_grid=None, out_grid=None, *, interpolation="linear", backend="mir", **kwargs):
+def regrid(data, in_grid=None, out_grid=None, *, interpolation="linear", backend="mir", **kwargs):
     r"""
     Array interface.
 
@@ -19,5 +19,5 @@ def regrid(values, in_grid=None, out_grid=None, *, interpolation="linear", backe
     h = handler()
     kwargs = kwargs.copy()
     return h.regrid(
-        values, in_grid=in_grid, out_grid=out_grid, interpolation=interpolation, backend=backend, **kwargs
+        data, in_grid=in_grid, out_grid=out_grid, interpolation=interpolation, backend=backend, **kwargs
     )

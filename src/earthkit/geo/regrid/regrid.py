@@ -14,16 +14,16 @@ def _is_array(values):  # IGNORE
     return isinstance(values, np.ndarray)  # IGNORE
 
 
-def regrid(values, grid=None, *, interpolation="linear", backend="mir", **kwargs):
+def regrid(data, grid=None, *, interpolation="linear", backend="mir", **kwargs):
     from earthkit.geo.regrid.data import get_data_handler
 
-    h = get_data_handler(values)
+    h = get_data_handler(data)
     if h is None:
-        if _is_array(values):
-            txt = f"Unsupported data type={type(values)}. Use earthkit.geo.regrid.array.regrid.regrid() for arrays"
+        if _is_array(data):
+            txt = f"Unsupported data type={type(data)}. Use earthkit.geo.regrid.array.regrid.regrid() for arrays"
         else:
-            txt = f"Unsupported type={type(values)}"
+            txt = f"Unsupported type={type(data)}"
         raise ValueError(txt)
 
     kwargs = kwargs.copy()
-    return h.regrid(values, grid=grid, interpolation=interpolation, backend=backend, **kwargs)
+    return h.regrid(data, grid=grid, interpolation=interpolation, backend=backend, **kwargs)
