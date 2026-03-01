@@ -23,7 +23,7 @@ INTERPOLATIONS = ["linear", "nearest-neighbour", "grid-box-average"]
 def test_regrid_grib_message(input_format, interpolation):
     from io import BytesIO
 
-    from earthkit.data.field.grib.create import new_grib_field_from_buffer
+    from earthkit.data.field.grib.create import create_grib_field_from_buffer
 
     def check_header(contents):
         assert contents.startswith(b"GRIB") and contents.endswith(b"7777")
@@ -36,6 +36,6 @@ def test_regrid_grib_message(input_format, interpolation):
 
     out = regrid(in_grib, grid={"grid": [30, 30]}, interpolation=interpolation)
 
-    field = new_grib_field_from_buffer(out)
+    field = create_grib_field_from_buffer(out)
     assert field.metadata("gridType") == "regular_ll"
     assert field.shape == (7, 12)

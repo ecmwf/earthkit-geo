@@ -41,7 +41,7 @@ Regridding with precomputed weights
 
 
 
-Configuration for precomputed
+Miscellaneous
 ++++++++++++++++++++++++++++++
 
 .. toctree::
@@ -50,4 +50,3 @@ Configuration for precomputed
     config.ipynb
     config_env_vars.ipynb
     cache.ipynb
-    memory_cache.ipynb

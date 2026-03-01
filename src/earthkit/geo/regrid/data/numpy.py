@@ -16,16 +16,16 @@ LOG = logging.getLogger(__name__)
 
 class NumpyDataHandler(DataHandler):
     @staticmethod
-    def match(values):
+    def match(data):
         import numpy as np
 
-        return isinstance(values, np.ndarray)
+        return isinstance(data, np.ndarray)
 
-    def regrid(self, values, **kwargs):
+    def regrid(self, data, **kwargs):
         in_grid = kwargs.pop("in_grid")
         out_grid = kwargs.pop("out_grid")
         backend = self.backend_from_kwargs(kwargs)
-        return backend.regrid(values, in_grid, out_grid, **kwargs)
+        return backend.regrid(data, in_grid, out_grid, **kwargs)
 
 
 handler = NumpyDataHandler

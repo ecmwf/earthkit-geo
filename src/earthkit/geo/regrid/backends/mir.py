@@ -42,28 +42,20 @@ class MirBackend(Backend):
 
     def regrid(
         self,
-        values,
+        data,
         in_grid,
         out_grid,
         interpolation="linear",
-        nearest_method="automatic",
-        distance=1,
-        distance_tolerance=1,
-        nclosest=4,
     ):
         import mir
 
         kwargs = {
             "interpolation": interpolation,
-            "nearest_method": nearest_method,
-            "distance": distance,
-            "distance_tolerance": distance_tolerance,
-            "nclosest": nclosest,
         }
 
         out_grid, kwargs = self.adjust_options(out_grid, {})
 
-        input = mir.ArrayInput(values, in_grid)
+        input = mir.ArrayInput(data, in_grid)
         out = mir.ArrayOutput()
 
         job = mir.Job()
@@ -82,10 +74,6 @@ class MirBackend(Backend):
         message,
         grid,
         interpolation="linear",
-        nearest_method="automatic",
-        distance=1,
-        distance_tolerance=1,
-        nclosest=4,
     ):
         from io import BytesIO
 
@@ -93,10 +81,6 @@ class MirBackend(Backend):
 
         kwargs = {
             "interpolation": interpolation,
-            "nearest_method": nearest_method,
-            "distance": distance,
-            "distance_tolerance": distance_tolerance,
-            "nclosest": nclosest,
         }
 
         # no 'automatic' necessary

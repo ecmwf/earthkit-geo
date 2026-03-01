@@ -4,4 +4,3 @@
 
     config.rst
     caching.rst
-    memory_cache.rst

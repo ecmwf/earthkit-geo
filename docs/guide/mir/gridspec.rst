@@ -3,7 +3,7 @@
 Gridspecs (for MIR)
 ====================================
 
-A gridspec describes spatial grids in the form a dict.
+A grid_spec describes spatial grids in the form a dict.
 
 .. warning::
 
