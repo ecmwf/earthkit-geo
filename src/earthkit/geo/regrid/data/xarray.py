@@ -20,7 +20,7 @@ LOG = logging.getLogger(__name__)
 # TODO: This is a temporary wrapper to use the grid interface
 class GridWrapper:
     def __init__(self, grid_spec):
-        from mir import Grid
+        from eckit.geo import Grid
 
         self._grid = Grid(**grid_spec)
         self._grid_spec = grid_spec
@@ -36,7 +36,9 @@ class GridWrapper:
 
     @property
     def grid_spec(self):
-        return self.spec
+        # TODO: for grid specs like {'grid': 'O32', 'area': [87.863799, 0.0, -87.863799, 357.5]}
+        # The Grid.spec is not correct so we cannot return self.spec
+        return self._grid_spec
 
     def is_spectral(self):
         return False
