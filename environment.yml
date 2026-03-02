@@ -25,4 +25,4 @@ dependencies:
 - sphinxcontrib-apidoc
 - nbsphinx
 - pip:
-  - mir-python>=1.27.2.dev20250723
+  - mir-python>=1.28.0.13
