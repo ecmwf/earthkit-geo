@@ -12,3 +12,4 @@ sphinx-autoapi
 sphinx-issues
 sphinx-copybutton
 scipy
+furo
