@@ -45,7 +45,7 @@ REFS_SUBAREA = [
 @pytest.mark.parametrize("out_grid,dims", REFS)
 def test_regrid_xarray_from_ogg(out_grid, dims):
 
-    ds_in = from_source("sample", "O32_t2.grib2")
+    ds_in = from_source("sample", "O32_t2.grib2").to_fieldlist()
     assert len(ds_in) == 2
     ds = ds_in.to_xarray()
 
@@ -60,7 +60,7 @@ def test_regrid_xarray_from_ogg(out_grid, dims):
 @pytest.mark.parametrize("out_grid,dims,area_ref", REFS_SUBAREA)
 def test_regrid_xarray_from_ogg_to_subarea(out_grid, dims, area_ref):
 
-    ds_in = from_source("sample", "O32_t2.grib2")
+    ds_in = from_source("sample", "O32_t2.grib2").to_fieldlist()
     assert len(ds_in) == 2
     ds = ds_in.to_xarray()
 
@@ -89,7 +89,7 @@ def test_regrid_xarray_from_ogg_to_subarea(out_grid, dims, area_ref):
 )
 def test_regrid_xarray_from_h_nested(out_grid, dims):
 
-    ds_in = from_source("sample", "H8_nested_t2.grib2")
+    ds_in = from_source("sample", "H8_nested_t2.grib2").to_fieldlist()
     assert len(ds_in) == 2
     ds = ds_in.to_xarray()
 
@@ -106,7 +106,7 @@ def test_regrid_xarray_from_h_nested(out_grid, dims):
 )
 def test_regrid_xarray_dataset_from_h_nested(out_grid, dims):
 
-    ds_in = from_source("sample", "H8_nested_t2.grib2")
+    ds_in = from_source("sample", "H8_nested_t2.grib2").to_fieldlist()
     assert len(ds_in) == 2
     ds = ds_in.to_xarray()
 
