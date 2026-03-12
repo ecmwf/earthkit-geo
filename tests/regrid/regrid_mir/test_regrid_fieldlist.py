@@ -22,7 +22,7 @@ if not NO_EKD:
 
 
 def _create_fieldlist(filename, field_type):
-    ds = from_source("url", get_test_data_path(filename))
+    ds = from_source("url", get_test_data_path(filename)).to_fieldlist()
     if field_type == "array":
         return ds.to_fieldlist()
     elif field_type == "grib":

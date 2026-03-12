@@ -88,17 +88,6 @@ def test_cache_1():
         check_cache_files(config.get("user-cache-directory"))
 
 
-# # 1GB ram disk on MacOS (blocks of 512 bytes)
-# # diskutil erasevolume HFS+ "RAMDisk" `hdiutil attach -nomount ram://2097152`
-# @pytest.mark.skipif(not os.path.exists("/Volumes/RAMDisk"), reason="No RAM disk")
-# def test_cache_4():
-#     with config.temporary():
-#         config.set("cache-directory", "/Volumes/RAMDisk/earthkit_data")
-#         config.set("maximum-cache-disk-usage", "90%")
-#         for n in range(10):
-#             from_source("dummy-source", "zeros", size=100 * 1024 * 1024, n=n)
-
-
 def test_cache_policy():
     with temp_directory() as user_dir:
         # cache = user dir

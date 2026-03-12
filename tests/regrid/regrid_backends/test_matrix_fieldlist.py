@@ -21,7 +21,7 @@ if not NO_EKD:
 
 
 def _create_fieldlist(filename, field_type):
-    ds = from_source("url", get_test_data_path(filename))
+    ds = from_source("url", get_test_data_path(filename)).to_fieldlist()
     if field_type == "array":
         return ds.to_fieldlist()
     elif field_type == "grib":
@@ -110,7 +110,7 @@ def test_regrid_matrix_fieldlist_gg(_kwarg, interpolation, field_type):
     ],
 )
 def test_regrid_matrix_grib_fieldlist(_kwarg):
-    ds = from_source("url", get_test_data_path("O32.grib"))
+    ds = from_source("url", get_test_data_path("O32.grib")).to_fieldlist()
 
     r = regrid(ds, grid={"grid": [10, 10]}, backend=SYSTEM_MATRIX_BACKEND_NAME, **_kwarg)
     assert len(r) == 1
