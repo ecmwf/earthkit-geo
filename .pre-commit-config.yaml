@@ -14,14 +14,6 @@ repos:
       - id: no-commit-to-branch # Prevent committing to main / master
       - id: check-merge-conflict # Check for files that contain merge conflict
         exclude: /README\.rst$|^docs/.*\.rst$
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.13.2
-    hooks:
-      - id: isort
-        args:
-          - -l 110
-          - --force-single-line-imports
-          - --profile black
   - repo: https://github.com/psf/black
     rev: 24.8.0
     hooks:
