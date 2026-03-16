@@ -1,22 +1,22 @@
 name: earthkit-geo
 channels:
-- conda-forge
-- nodefaults
+  - conda-forge
+  - nodefaults
 dependencies:
-- pyproj
-- cartopy
-- shapely
-- scipy
-- requests
-- make
-- mypy
-- myst-parser
-- pre-commit
-- pytest
-- pytest-cov
-- sphinx>=7.2.6
-- pip:
-  - sphinx-autoapi>=3.0.0
-- sphinx_rtd_theme
-- sphinxcontrib-apidoc
-- nbsphinx
+  - pyproj
+  - cartopy
+  - shapely
+  - scipy
+  - requests
+  - make
+  - mypy
+  - myst-parser
+  - pre-commit
+  - pytest
+  - pytest-cov
+  - sphinx>=7.2.6
+  - pip:
+      - sphinx-autoapi>=3.0.0
+  - sphinx_rtd_theme
+  - sphinxcontrib-apidoc
+  - nbsphinx
