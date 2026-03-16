@@ -14,6 +14,7 @@ import os
 import sys
 
 import yaml
+
 from earthkit.regrid.db import SYS_DB as DB
 
 LOG = logging.getLogger(__name__)

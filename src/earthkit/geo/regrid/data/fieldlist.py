@@ -66,7 +66,10 @@ class FieldListDataHandler(DataHandler):
         out_grid = GridSpec.from_dict(grid)
         if not out_grid.is_regular_ll():
             raise ValueError(
-                "Fieldlists can only be regridded to global regular lat-lon target grids. Target grid is {out_grid}"
+                (
+                    "Fieldlists can only be regridded to global regular lat-lon target grids. Target"
+                    f" grid is {out_grid}"
+                )
             )
 
         fields = []

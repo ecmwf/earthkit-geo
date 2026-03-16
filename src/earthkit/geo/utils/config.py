@@ -404,8 +404,10 @@ class Config:
             if name in DEFAULTS:
                 if self._has_env(name):
                     msg = (
-                        f"Config option '{name}' is also set by environment variable '{env_var_name(name)}'."
-                        "The environment variable takes precedence and its value is returned when calling get()."
+                        f"Config option '{name}' is also set by environment variable"
+                        f" '{env_var_name(name)}'."
+                        "The environment variable takes precedence and its value is returned"
+                        " when calling get()."
                     )
                     if self._auto_save_config:
                         msg += " Still, the value reset here will be saved to the config file."

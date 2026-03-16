@@ -313,7 +313,8 @@ def test_regrid_orca_to_ogg(interpolation):
     assert grid_res == out_grid
 
     # Compare only the valid values (FIXME inaccurate reference results)
-    # assert not np.any(np.isnan(v_res) ^ np.isnan(v_ref)), "Mismatch of missing values between result and reference"
+    # assert not np.any(np.isnan(v_res) ^ np.isnan(v_ref)),
+    # "Mismatch of missing values between result and reference"
     mask = ~np.isnan(v_res) & ~np.isnan(v_ref)
     np.testing.assert_allclose(v_res[mask], v_ref[mask], atol=5e-1, rtol=5e-3, verbose=False)
 
