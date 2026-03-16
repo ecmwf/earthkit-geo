@@ -1,23 +1,23 @@
 name: earthkit-data
 channels:
-  - conda-forge
-  - nodefaults
+- conda-forge
+- nodefaults
 dependencies:
-  - pyproj
-  - scipy
-  - requests
-  - make
-  - myst-parser
-  - pre-commit
-  - pydata-sphinx-theme
-  - pytest
-  - pytest-cov
-  - pytest-forked
-  - pytest-timeout
-  - sphinx>=7.3.7
-  - sphinx-autoapi
-  - sphinx_rtd_theme
-  - sphinxcontrib-apidoc
-  - nbsphinx
-  - sphinx-issues
-  - sphinx-copybutton
+- pyproj
+- scipy
+- requests
+- make
+- myst-parser
+- pre-commit
+- pydata-sphinx-theme
+- pytest
+- pytest-cov
+- pytest-forked
+- pytest-timeout
+- sphinx>=7.3.7
+- sphinx-autoapi
+- sphinx_rtd_theme
+- sphinxcontrib-apidoc
+- nbsphinx
+- sphinx-issues
+- sphinx-copybutton
