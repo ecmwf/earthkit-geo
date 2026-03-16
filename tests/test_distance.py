@@ -110,7 +110,7 @@ def test_haversine_distance_with_radius():
 
 
 # lat is out of range
-@pytest.mark.parametrize("p_ref", [((90.00001, 0)), (((-90.00001, 0)))])
+@pytest.mark.parametrize("p_ref", [((90.00001, 0)), ((-90.00001, 0))])
 def test_haversine_distance_invalid(p_ref):
     p = (-48, 12)
     d = haversine_distance(p_ref, p)

@@ -53,10 +53,16 @@ version_file = "src/earthkit/geo/_version.py"
 [tool.ruff]
 line-length = 120
 
-[tool.ruff.lint]
-ignore = [
-  "D1",  # pydocstyle: Missing Docstrings
-  "D107",  # pydocstyle: numpy convention
+lint.select = [
+  "D", # pydocstyle
+  "E", # pycodestyle
+  "F", # pyflakes
+  "I", # isort
+  "W", # pycodestyle warnings
+]
+lint.ignore = [
+  "D1",   # pydocstyle: Missing Docstrings
+  "D107", # pydocstyle: numpy convention
   "D203",
   "D205",
   "D212",
@@ -66,18 +72,9 @@ ignore = [
   "D413",
   "D415",
   "D416",
-  "D417"
+  "D417",
 ]
-select = [
-  "F",  # pyflakes
-  "E",  # pycodestyle
-  "W",  # pycodestyle warnings
-  "I",  # isort
-  "D",  # pydocstyle
-]
-
-[tool.ruff.lint.isort]
-force-single-line = true
+lint.isort.force-single-line = true
 
 [tool.coverage.run]
 branch = "true"
