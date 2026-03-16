@@ -67,8 +67,7 @@ def _download_and_cache_gisco(name, category, geometry_type, resolution, suffix=
             geometry_type = GISCO_GEOMETRY_TYPES[geometry_type]
         except KeyError:
             raise ValueError(
-                f"Invalid geometry type '{geometry_type}'. "
-                f"Valid types are: {list(GISCO_GEOMETRY_TYPES.keys())}"
+                f"Invalid geometry type '{geometry_type}'. " f"Valid types are: {list(GISCO_GEOMETRY_TYPES.keys())}"
             )
 
     # Validate year
