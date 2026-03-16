@@ -8,9 +8,7 @@
 #
 
 from . import constants
-from .coord import _normalise_lon
-from .coord import latlon_to_xyz
-from .coord import xyz_to_latlon
+from .coord import _normalise_lon, latlon_to_xyz, xyz_to_latlon
 
 
 def _normalise(x):

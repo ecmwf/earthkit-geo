@@ -11,8 +11,7 @@ import numpy as np
 
 from . import constants
 from .coord import latlon_to_xyz
-from .figure import IFS_SPHERE
-from .figure import UNIT_SPHERE
+from .figure import IFS_SPHERE, UNIT_SPHERE
 
 
 def _regulate_lat(lat):

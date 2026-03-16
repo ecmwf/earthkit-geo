@@ -12,10 +12,7 @@
 import numpy as np
 import pytest
 
-from earthkit.geo import UNIT_SPHERE
-from earthkit.geo import haversine_distance
-from earthkit.geo import nearest_point_haversine
-from earthkit.geo import nearest_point_kdtree
+from earthkit.geo import UNIT_SPHERE, haversine_distance, nearest_point_haversine, nearest_point_kdtree
 
 
 def get_nearest_method(mode):
