@@ -16,9 +16,7 @@ def _normalise(x):
 
 
 def _rotation_matrix(south_pole_lat, south_pole_lon):
-    """
-    Define matrix for spherical rotation.
-    """
+    """Define matrix for spherical rotation."""
     import numpy as np
 
     theta = -np.deg2rad(south_pole_lat - constants.SOUTH_POLE_LAT)
