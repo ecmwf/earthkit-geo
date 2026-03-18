@@ -32,8 +32,10 @@ dependencies = [
   "requests",
   "scipy",
 ]
-optional-dependencies.all = [ "cartopy" ]
+optional-dependencies.all = [ "cartopy", "earthkit-plots", "eckit" ]
 optional-dependencies.cartography = [ "cartopy" ]
+optional-dependencies.grids = [ "eckit" ]
+optional-dependencies.plots = [ "earthkit-plots" ]
 optional-dependencies.test = [
   "pytest",
   "pytest-cov",

@@ -9,3 +9,5 @@ setuptools
 sphinx-autoapi
 sphinx-issues
 sphinx-copybutton
+earthkit-plots
+matplotlib
