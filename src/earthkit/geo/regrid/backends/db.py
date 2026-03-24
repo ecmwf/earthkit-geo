@@ -305,7 +305,6 @@ class MatrixIndex(dict):
             version = index.get("version", None)
             if version != VERSION:
                 raise ValueError(f"Invalid index file version: expected {VERSION}, got {version}")
-
             for name, entry in index["matrix"].items():
                 # it is possible that the inventory is already updated with a new
                 # gridspecs type, but a given earthkit-geo version is not
@@ -319,11 +318,9 @@ class MatrixIndex(dict):
                     entry["output"] = out_gs
                     entry["_name"] = name
                     entry["_raw"] = raw
-                    # print(f"{in_gs=}")
-                    # print(f"{out_gs=}")
                     self[name] = entry
-                except Exception:
-                    pass
+                except Exception as e:
+                    LOG.warning(f"Could not load matrix inventory entry {name}: {e}")
 
     @staticmethod
     def interpolation_method_name(item):
@@ -372,8 +369,8 @@ class MatrixIndex(dict):
         return os.path.join(MatrixIndex.matrix_dir_name(item), item["_name"] + ".npz")
 
     def find(self, gridspec_in, gridspec_out, method):
-        gridspec_in = GridSpec.from_dict(gridspec_in)
-        gridspec_out = GridSpec.from_dict(gridspec_out)
+        gridspec_in = GridSpec.from_any(gridspec_in)
+        gridspec_out = GridSpec.from_any(gridspec_out)
 
         if gridspec_in is None or gridspec_out is None:
             return None
@@ -456,12 +453,16 @@ class MatrixDb:
         **kwargs,
     ):
 
-        gridspec_in = GridSpec.from_dict(gridspec_in)
-        gridspec_out = GridSpec.from_dict(gridspec_out)
+        try:
+            gridspec_in = GridSpec.from_any(gridspec_in)
+            gridspec_out = GridSpec.from_any(gridspec_out)
+        except Exception as e:
+            LOG.warning(f"Cannot parse gridspecs with eckit.geo: {e}")
+            gridspec_in = None
+            gridspec_out = None
+
         if gridspec_in is None or gridspec_out is None:
             return None, None
-
-        # return self._create_matrix(gridspec_in, gridspec_out, method)
 
         from earthkit.geo.utils.memcache import MEMORY_CACHE
 
@@ -481,7 +482,7 @@ class MatrixDb:
     def _create_matrix_from_entry(self, entry):
         if entry is not None:
             z = self.load_matrix(entry)
-            return z, entry["output"]["shape"]
+            return z, entry["output"].shape
         return None, None
 
     def find_entry(self, gridspec_in, gridspec_out, method):
@@ -562,22 +563,3 @@ class MatrixDb:
 
 
 SYS_DB = MatrixDb(SystemAccessor())
-# DB_LIST = [SYS_DB]
-
-
-# def add_matrix_source(path):
-#     global DB_LIST
-#     for item in DB_LIST[1:]:
-#         if item.matrix_source() == path:
-#             return item
-#     db = MatrixDb.from_path(path)
-#     DB_LIST.append(db)
-#     return db
-
-
-# def find(*args, matrix_source=None, **kwargs):
-#     if matrix_source is None:
-#         return SYS_DB.find(*args, **kwargs)
-#     else:
-#         db = add_matrix_source(matrix_source)
-#         return db.find(*args, **kwargs)

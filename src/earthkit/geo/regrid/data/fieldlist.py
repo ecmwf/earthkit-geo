@@ -63,11 +63,7 @@ class FieldListDataHandler(DataHandler):
         # TODO: refactor this when this limitation is removed
         from earthkit.geo.regrid.gridspec import GridSpec
 
-        out_grid = GridSpec.from_dict(grid)
-        if not out_grid.is_regular_ll():
-            raise ValueError(
-                (f"Fieldlists can only be regridded to global regular lat-lon target grids. Target grid is {out_grid}")
-            )
+        out_grid = GridSpec.from_any(grid)
 
         fields = []
         for i, f in enumerate(ds):
@@ -81,6 +77,9 @@ class FieldListDataHandler(DataHandler):
                 out_grid,
                 **kwargs,
             )
+
+            out_grid = GridSpec.from_any(out_grid).grid
+            print("out_grid", out_grid.spec)
 
             fields.append(f.set({"values": v_res, "geography.grid_spec": out_grid}))
 

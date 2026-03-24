@@ -8,6 +8,7 @@
 
 import numpy as np
 import pytest
+from eckit.geo import Grid
 
 from earthkit.geo.regrid.array import regrid as regrid_array
 from earthkit.geo.utils.testing import SYSTEM_MATRIX_BACKEND_NAME, get_test_data
@@ -28,18 +29,21 @@ INTERPOLATIONS = ["linear", "nearest-neighbour"]
         # ({"interpolation": "grid-box-average"}, "grid-box-average"),
     ],
 )
-def test_regrid_matrix_interpolation_kwarg(_kwarg, interpolation):
+@pytest.mark.parametrize("out_grid", [{"grid": [10, 10]}, Grid({"grid": [10, 10]}), "'grid': [10, 10]"])
+def test_regrid_matrix_interpolation_kwarg(_kwarg, interpolation, out_grid):
     f_in, f_out = get_test_data(["in_O32.npz", f"out_O32_10x10_{interpolation}.npz"])
 
     v_in = np.load(f_in)["arr_0"]
     v_ref = np.load(f_out)["arr_0"]
-    out_grid = {"grid": [10, 10]}
     v_res, grid_res = regrid_array(
         v_in, {"grid": "O32"}, out_grid=out_grid, backend=SYSTEM_MATRIX_BACKEND_NAME, **_kwarg
     )
 
+    assert isinstance(grid_res, dict)
+    grid_ref = Grid({"grid": [10, 10]}).spec
+
     assert v_res.shape == (19, 36)
-    assert grid_res == out_grid
+    assert grid_res == grid_ref
     assert np.allclose(v_res.flatten(), v_ref)
 
 

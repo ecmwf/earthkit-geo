@@ -20,7 +20,11 @@ class MatrixBackend(Backend):
         self.db = self.get_db(inventory)
 
     def regrid(self, data, in_grid, out_grid, interpolation):
-        z, shape = self.db.find(in_grid, out_grid, interpolation)
+        from earthkit.geo.regrid.gridspec import GridSpec
+
+        _out_grid = GridSpec.from_any(out_grid)
+
+        z, shape = self.db.find(in_grid, _out_grid, interpolation)
 
         if z is None:
             raise ValueError(f"No precomputed weights found! {in_grid=} {out_grid=} {interpolation=}")
@@ -31,7 +35,7 @@ class MatrixBackend(Backend):
         data = z @ data
         data = data.reshape(shape)
 
-        return data, out_grid
+        return data, _out_grid.spec
 
     def get_db(self, path_or_url):
         if path_or_url is None or path_or_url == self.system_inventory_id:

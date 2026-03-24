@@ -15,6 +15,8 @@ def make_sha(data):
     m = hashlib.sha256()
     if isinstance(data, str):
         m.update(data.encode("utf-8"))
+    elif hasattr(data, "grid") and data.grid is not None:
+        m.update(data.grid.uid.encode("utf-8"))
     else:
         m.update(json.dumps(data, sort_keys=True).encode("utf-8"))
     return m.hexdigest()

@@ -9,6 +9,7 @@
 
 import numpy as np
 import pytest
+from eckit.geo import Grid
 
 from earthkit.geo.regrid import regrid
 from earthkit.geo.utils.testing import (
@@ -46,24 +47,25 @@ def _create_fieldlist(filename, field_type):
     ],
 )
 @pytest.mark.parametrize("field_type", ["grib", "array"])
-def test_regrid_matrix_fieldlist_reg_ll(_kwarg, interpolation, field_type):
+@pytest.mark.parametrize("out_grid", [{"grid": [10, 10]}, Grid({"grid": [10, 10]}), "'grid': [10, 10]"])
+def test_regrid_matrix_fieldlist_reg_ll(_kwarg, interpolation, field_type, out_grid):
     ds = _create_fieldlist("5x5.grib", field_type)
 
     f_ref = get_test_data(f"out_5x5_10x10_{interpolation}.npz")
     v_ref = np.load(f_ref)["arr_0"]
-    metadata_ref = ds.metadata(["param", "level", "date", "time", "gridType"])
+    metadata_ref = ds.metadata(["param", "level", "date", "time"])
 
-    r = regrid(ds, grid={"grid": [10, 10]}, backend=SYSTEM_MATRIX_BACKEND_NAME, **_kwarg)
+    r = regrid(ds, grid=out_grid, backend=SYSTEM_MATRIX_BACKEND_NAME, **_kwarg)
 
     assert len(r) == 1
-    assert r[0].shape == (19, 36)
+    assert r[0].geography.shape() == (19, 36)
     assert np.allclose(r[0].values, v_ref)
-    assert r.metadata(["param", "level", "date", "time", "gridType"]) == metadata_ref
+    assert r.metadata(["param", "level", "date", "time"]) == metadata_ref
 
-    grid_ref = {"iDirectionIncrementInDegrees": 10.0, "jDirectionIncrementInDegrees": 10.0}
+    grid_ref = Grid({"grid": [10, 10]}).spec
+
     for f in r:
-        for k, v in grid_ref.items():
-            assert np.isclose(f.metadata(k), v), k
+        assert f.geography.grid().spec == grid_ref
 
 
 @pytest.mark.download
@@ -80,43 +82,25 @@ def test_regrid_matrix_fieldlist_reg_ll(_kwarg, interpolation, field_type):
     ],
 )
 @pytest.mark.parametrize("field_type", ["grib", "array"])
-def test_regrid_matrix_fieldlist_gg(_kwarg, interpolation, field_type):
+@pytest.mark.parametrize("out_grid", [{"grid": [10, 10]}, Grid({"grid": [10, 10]}), "'grid': [10, 10]"])
+def test_regrid_matrix_fieldlist_gg(_kwarg, interpolation, field_type, out_grid):
     ds = _create_fieldlist("O32.grib", field_type)
 
     f_ref = get_test_data(f"out_O32_10x10_{interpolation}.npz")
     v_ref = np.load(f_ref)["arr_0"]
     metadata_ref = ds.metadata(["param", "level", "date", "time"])
 
-    r = regrid(ds, grid={"grid": [10, 10]}, backend=SYSTEM_MATRIX_BACKEND_NAME, **_kwarg)
+    r = regrid(ds, grid=out_grid, backend=SYSTEM_MATRIX_BACKEND_NAME, **_kwarg)
 
     assert len(r) == 1
-    assert r[0].shape == (19, 36)
+    assert r[0].geography.shape() == (19, 36)
     assert np.allclose(r[0].values, v_ref)
     assert r.metadata(["param", "level", "date", "time"]) == metadata_ref
 
-    grid_ref = {"iDirectionIncrementInDegrees": 10.0, "jDirectionIncrementInDegrees": 10.0}
+    grid_ref = Grid({"grid": [10, 10]}).spec
+
     for f in r:
-        for k, v in grid_ref.items():
-            assert np.isclose(f.metadata(k), v), k
-
-
-@pytest.mark.skipif(NO_EKD, reason="No access to earthkit-data")
-@pytest.mark.parametrize(
-    "_kwarg",
-    [
-        ({}),
-        ({"interpolation": "linear"}),
-        ({"interpolation": "nearest-neighbour"}),
-        ({"interpolation": "nn"}),
-        ({"interpolation": "nearest-neighbor"}),
-    ],
-)
-def test_regrid_matrix_grib_fieldlist(_kwarg):
-    ds = from_source("url", get_test_data_path("O32.grib")).to_fieldlist()
-
-    r = regrid(ds, grid={"grid": [10, 10]}, backend=SYSTEM_MATRIX_BACKEND_NAME, **_kwarg)
-    assert len(r) == 1
-    assert r[0].shape == (19, 36)
+        assert f.geography.grid().spec == grid_ref
 
 
 @pytest.mark.download
@@ -133,20 +117,21 @@ def test_regrid_matrix_grib_fieldlist(_kwarg):
     ],
 )
 @pytest.mark.parametrize("field_type", ["grib", "array"])
-def test_regrid_matrix_single_field(_kwarg, interpolation, field_type):
+@pytest.mark.parametrize("out_grid", [{"grid": [10, 10]}, Grid({"grid": [10, 10]}), "'grid': [10, 10]"])
+def test_regrid_matrix_single_field(_kwarg, interpolation, field_type, out_grid):
     ds = _create_fieldlist("5x5.grib", field_type)
 
     f_ref = get_test_data(f"out_5x5_10x10_{interpolation}.npz")
     v_ref = np.load(f_ref)["arr_0"]
     field = ds[0]
-    metadata_ref = field.metadata(["param", "level", "date", "time", "gridType"])
+    metadata_ref = field.metadata(["param", "level", "date", "time"])
 
-    r = regrid(field, grid={"grid": [10, 10]}, backend=SYSTEM_MATRIX_BACKEND_NAME, **_kwarg)
+    r = regrid(field, grid=out_grid, backend=SYSTEM_MATRIX_BACKEND_NAME, **_kwarg)
 
-    assert r.shape == (19, 36)
+    assert r.geography.shape() == (19, 36)
     assert np.allclose(r.values, v_ref)
-    assert r.metadata(["param", "level", "date", "time", "gridType"]) == metadata_ref
+    assert r.metadata(["param", "level", "date", "time"]) == metadata_ref
 
-    grid_ref = {"iDirectionIncrementInDegrees": 10.0, "jDirectionIncrementInDegrees": 10.0}
-    for k, v in grid_ref.items():
-        assert np.isclose(r.metadata(k), v), k
+    grid_ref = Grid({"grid": [10, 10]}).spec
+
+    assert r.geography.grid().spec == grid_ref

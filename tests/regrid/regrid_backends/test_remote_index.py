@@ -58,7 +58,7 @@ def test_regrid_remote_matrix_index_handling():
         regrid_array(
             v_in,
             {"grid": "O32"},
-            {"grid": [1000, 10000]},
+            {"grid": [10, 20]},
             interpolation=interpolation,
             backend=SYSTEM_MATRIX_BACKEND_NAME,
         )
