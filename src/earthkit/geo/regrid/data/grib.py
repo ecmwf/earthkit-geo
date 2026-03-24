@@ -9,7 +9,7 @@
 
 import logging
 
-from eearthkit.geo.regrid.data.handler import DataHandler
+from earthkit.geo.regrid.data.handler import DataHandler
 
 LOG = logging.getLogger(__name__)
 
