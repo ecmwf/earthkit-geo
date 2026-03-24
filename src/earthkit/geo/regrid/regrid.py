@@ -20,10 +20,7 @@ def regrid(data, grid=None, *, interpolation="linear", backend="mir", **kwargs):
     h = get_data_handler(data)
     if h is None:
         if _is_array(data):
-            txt = (
-                f"Unsupported data type={type(data)}. "
-                "Use earthkit.geo.regrid.array.regrid.regrid() for arrays"
-            )
+            txt = f"Unsupported data type={type(data)}. " "Use earthkit.geo.regrid.array.regrid.regrid() for arrays"
         else:
             txt = f"Unsupported type={type(data)}"
         raise ValueError(txt)

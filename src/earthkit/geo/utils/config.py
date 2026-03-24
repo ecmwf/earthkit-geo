@@ -176,6 +176,27 @@ CONFIG_AND_HELP = {
         False,
         "Re-download URLs when the remote version of a cached file as been changed",
     ),
+    "maximum-weights-memory-cache-size": _(
+        "500MB",
+        """The maximum memory size of the in-memory precomputed weight cache in bytes.
+        Only used when ``weights-memory-cache-policy`` is ``"largest"`` or ``"lru"``. Can be
+        set to None.
+        See :ref:`mem_cache` for more information.""",
+        getter="_as_bytes",
+        none_ok=True,
+    ),
+    "weights-memory-cache-policy": _(
+        "largest",
+        """The in-memory precomputed weights cache policy. {validator}
+        See :ref:`mem_cache` for more information.""",
+        validator=ValuesValidator(["off", "unlimited", "largest", "lru"]),
+    ),
+    "weights-memory-cache-strict-mode": _(
+        False,
+        """Raise exception if the weights cannot be fitted into the in-memory cache.
+        Only used when ``weights-memory-cache-policy`` is ``"largest"`` or ``"lru"``.
+        See :ref:`mem_cache` for more information.""",
+    ),
 }
 
 
@@ -442,8 +463,7 @@ class Config:
             default = config.default if config else ""
             if k in env:
                 html.append(
-                    "<tr><td>%s</td><td>%s=%r<br>(%r)</td><td>%r</td></tr>"
-                    % (k, env[k][0], env[k][1], v, default)
+                    "<tr><td>%s</td><td>%s=%r<br>(%r)</td><td>%r</td></tr>" % (k, env[k][0], env[k][1], v, default)
                 )
             else:
                 html.append("<tr><td>%s</td><td>%r</td><td>%r</td></tr>" % (k, v, default))

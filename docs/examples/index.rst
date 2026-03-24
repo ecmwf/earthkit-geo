@@ -38,6 +38,7 @@ Regridding with precomputed weights
     precomp_numpy_array.ipynb
     precomp_octahedral_fieldlist.ipynb
     precomp_healpix_fieldlist.ipynb
+    memory_cache.ipynb
 
 
 

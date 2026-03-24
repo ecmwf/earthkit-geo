@@ -104,9 +104,7 @@ class Stream:
                 return 1
             else:
                 if tag < len(TAG_NAME):
-                    raise RuntimeError(
-                        "Unexpected tag: '%s', wanted '%s'" % (TAG_NAME[tag], TAG_NAME[TAG_START_OBJ])
-                    )
+                    raise RuntimeError("Unexpected tag: '%s', wanted '%s'" % (TAG_NAME[tag], TAG_NAME[TAG_START_OBJ]))
                 else:
                     raise RuntimeError("Invalid tag with id: '%d'" % tag)
 

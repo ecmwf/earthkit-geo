@@ -79,9 +79,7 @@ def test_regrid_local_matrix_ll_to_ll(interpolation):
     v_in = np.load(file_in_testdir("in_5x5.npz"))["arr_0"]
     v_ref = np.load(file_in_testdir(f"out_5x5_10x10_{interpolation}.npz"))["arr_0"]
     out_grid = {"grid": [10, 10]}
-    v_res, grid_res = run_regrid(
-        v_in, in_grid={"grid": [5, 5]}, out_grid=out_grid, interpolation=interpolation
-    )
+    v_res, grid_res = run_regrid(v_in, in_grid={"grid": [5, 5]}, out_grid=out_grid, interpolation=interpolation)
 
     assert v_res.shape == (19, 36)
     assert grid_res == out_grid
@@ -93,9 +91,7 @@ def test_regrid_local_matrix_ogg_to_ll(interpolation):
     v_in = np.load(file_in_testdir("in_O32.npz"))["arr_0"]
     v_ref = np.load(file_in_testdir(f"out_O32_10x10_{interpolation}.npz"))["arr_0"]
     out_grid = {"grid": [10, 10]}
-    v_res, grid_res = run_regrid(
-        v_in, in_grid={"grid": "O32"}, out_grid=out_grid, interpolation=interpolation
-    )
+    v_res, grid_res = run_regrid(v_in, in_grid={"grid": "O32"}, out_grid=out_grid, interpolation=interpolation)
 
     assert v_res.shape == (19, 36)
     assert grid_res == out_grid

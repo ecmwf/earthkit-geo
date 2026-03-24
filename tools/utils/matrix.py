@@ -106,10 +106,7 @@ def create_matrix_files(
     matrix_json = os.path.join(matrix_dir, f"{matrix_json}.json")
 
     if not os.path.exists(matrix_json):
-        cmd = (
-            f"{MIR_PATH} --grid={target_grid} {kwargs} --dump-weights-info={matrix_json}"
-            f" {grib_file} /dev/null"
-        )
+        cmd = f"{MIR_PATH} --grid={target_grid} {kwargs} --dump-weights-info={matrix_json}" f" {grib_file} /dev/null"
         LOG.debug(f" {cmd=}")
         os.system(cmd)
 

@@ -15,9 +15,7 @@ PATH = os.path.dirname(__file__)
 
 URL_ROOT = "https://sites.ecmwf.int/repository/earthkit-geo/test-data"
 
-_ROOT_DIR = top = os.path.dirname(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-)
+_ROOT_DIR = top = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
 if not os.path.exists(os.path.join(_ROOT_DIR, "tests", "data")):
     _ROOT_DIR = "./"
 
