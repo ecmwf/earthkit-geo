@@ -72,7 +72,7 @@ def rotate(lat, lon, south_pole_lat, south_pole_lon):
     (array([-20.]), array([-40.]))
 
     For more examples, see:
-        - :ref:`/examples/rotate.ipynb`
+        - :ref:`/examples/geo/rotate.ipynb`
 
     """
     import numpy as np

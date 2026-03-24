@@ -67,43 +67,36 @@ Use it for raw data arrays, e.g. Numpy ndarrays.
 
 
 
-
 .. toctree::
    :maxdepth: 1
-   :caption: Examples
-
-   examples/index
-
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Documentation
-
-   API Reference <autoapi/earthkit/geo/index.rst>
-   guide/index
-   references.rst
-   development
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Installation
+   :caption: User guide
 
    install
+   examples/index
+   guide/index
+   references.rst
+   API Reference <autoapi/earthkit/geo/index.rst>
+
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Developer guide
+
+   development
+
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Extra
+
    release_notes/index
    licence
+   :ref:`genindex`
+
 
 .. toctree::
    :maxdepth: 1
    :caption: Projects
 
    earthkit <https://earthkit.readthedocs.io/en/latest>
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-
-.. * :ref:`modindex`
-.. * :ref:`search`
+   earthkit-data <https://earthkit-data.readthedocs.io/en/release-1.0.0rc0>

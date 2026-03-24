@@ -1,6 +1,6 @@
 .. _guide:
 
-User guide
+Concepts
 =============
 
 

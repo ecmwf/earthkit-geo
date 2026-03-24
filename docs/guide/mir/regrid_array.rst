@@ -32,7 +32,7 @@ regrid (array-level) with MIR
 Examples
 --------
 
-- :ref:`/examples/mir_numpy_array.ipynb`
-- :ref:`/examples/mir_healpix_fieldlist.ipynb`
-- :ref:`/examples/mir_octahedral_fieldlist.ipynb`
-- :ref:`/examples/mir_interpolation_types.ipynb`
+- :ref:`/examples/mir/mir_numpy_array.ipynb`
+- :ref:`/examples/mir/mir_healpix_fieldlist.ipynb`
+- :ref:`/examples/mir/mir_octahedral_fieldlist.ipynb`
+- :ref:`/examples/mir/mir_interpolation_types.ipynb`
