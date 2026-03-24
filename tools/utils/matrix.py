@@ -21,9 +21,7 @@ MIR_INTERPOLATE_OPTION = "interpolation"
 
 def download_index_file(target):
     import requests
-
-    from earthkit.regrid.db import _INDEX_GZ_FILENAME
-    from earthkit.regrid.db import _SYSTEM_URL
+    from earthkit.regrid.db import _INDEX_GZ_FILENAME, _SYSTEM_URL
 
     path = os.path.join(_SYSTEM_URL, _INDEX_GZ_FILENAME)
     requests.get(path)
@@ -106,7 +104,7 @@ def create_matrix_files(
     matrix_json = os.path.join(matrix_dir, f"{matrix_json}.json")
 
     if not os.path.exists(matrix_json):
-        cmd = f"{MIR_PATH} --grid={target_grid} {kwargs} --dump-weights-info={matrix_json}" f" {grib_file} /dev/null"
+        cmd = f"{MIR_PATH} --grid={target_grid} {kwargs} --dump-weights-info={matrix_json} {grib_file} /dev/null"
         LOG.debug(f" {cmd=}")
         os.system(cmd)
 

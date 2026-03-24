@@ -8,8 +8,7 @@
 #
 
 
-from struct import pack
-from struct import unpack
+from struct import pack, unpack
 
 TAG_ZERO = 0
 TAG_START_OBJ = 1

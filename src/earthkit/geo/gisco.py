@@ -22,7 +22,7 @@ GISCO_GEOMETRY_TYPES = {
     "points": "LB",
 }
 
-GISCO_URL_TEMPLATE = "https://gisco-services.ec.europa.eu" "/distribution/v2/{category}/shp"
+GISCO_URL_TEMPLATE = "https://gisco-services.ec.europa.eu/distribution/v2/{category}/shp"
 
 AVAILABLE_YEARS = {
     "nuts": [2024, 2021, 2016, 2013, 2010, 2006, 2003],
@@ -67,7 +67,7 @@ def _download_and_cache_gisco(name, category, geometry_type, resolution, suffix=
             geometry_type = GISCO_GEOMETRY_TYPES[geometry_type]
         except KeyError:
             raise ValueError(
-                f"Invalid geometry type '{geometry_type}'. " f"Valid types are: {list(GISCO_GEOMETRY_TYPES.keys())}"
+                f"Invalid geometry type '{geometry_type}'. Valid types are: {list(GISCO_GEOMETRY_TYPES.keys())}"
             )
 
     # Validate year

@@ -104,9 +104,7 @@ class XarrrayGeographyBuilder:
         return self.grid.shape
 
     def geo_dims(self):
-        """
-        Determine the geographical dimensions of the dataset.
-        """
+        """Determine the geographical dimensions of the dataset."""
         num = len(self.shape)
         if num >= 2:
             return ["latitude", "longitude"]
@@ -187,9 +185,7 @@ class XarrrayGeographyBuilder:
 
 
 def xr_geo_dims(ds):
-    """
-    Determine the geographical dimensions of the dataset/dataarray.
-    """
+    """Determine the geographical dimensions of the dataset/dataarray."""
     dims = list(ds.sizes.keys())
     if len(ds.dims) >= 1:
         if dims[-1] == "values":
@@ -218,9 +214,7 @@ class XarrayDataHandler(DataHandler):
 
     @staticmethod
     def get_in_grid(ds, kwargs):
-        """
-        Get the input grid from the dataset or from the kwargs.
-        """
+        """Get the input grid from the dataset or from the kwargs."""
         # TODO: ensure the grid_spec is always available on an Xarray.
         # This probably should be implemented in earthkit-geo.
 
@@ -256,9 +250,7 @@ class XarrayDataHandler(DataHandler):
 
     @staticmethod
     def get_out_geo(grid):
-        """
-        Get the output geography from the out_grid.
-        """
+        """Get the output geography from the out_grid."""
         out_grid = grid
         if out_grid is None:
             raise ValueError("grid must be provided")
@@ -268,9 +260,7 @@ class XarrayDataHandler(DataHandler):
 
     @staticmethod
     def add_geo_coords(ds, out_geo):
-        """
-        Add the geographical coordinates to the dataset.
-        """
+        """Add the geographical coordinates to the dataset."""
         dims, coords, coords_dim = out_geo.coords()
 
         import xarray as xr

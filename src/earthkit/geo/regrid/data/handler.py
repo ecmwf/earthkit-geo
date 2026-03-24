@@ -8,8 +8,7 @@
 #
 
 import logging
-from abc import ABCMeta
-from abc import abstractmethod
+from abc import ABCMeta, abstractmethod
 
 LOG = logging.getLogger(__name__)
 

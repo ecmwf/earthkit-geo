@@ -10,10 +10,7 @@
 
 
 def regrid(data, in_grid=None, out_grid=None, *, interpolation="linear", backend="mir", **kwargs):
-    r"""
-    Array interface.
-
-    """
+    r"""Array interface."""
     from earthkit.geo.regrid.data.numpy import handler
 
     h = handler()

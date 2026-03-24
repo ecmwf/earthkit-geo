@@ -12,9 +12,7 @@ import numpy as np
 import pytest
 
 from earthkit.geo.regrid.array import regrid as array_regrid
-from earthkit.geo.utils.testing import LOCAL_MATRIX_BACKEND_NAME
-from earthkit.geo.utils.testing import earthkit_test_data_path
-from earthkit.geo.utils.testing import get_test_data
+from earthkit.geo.utils.testing import LOCAL_MATRIX_BACKEND_NAME, earthkit_test_data_path, get_test_data
 
 DB_PATH = earthkit_test_data_path("local", "db")
 DATA_PATH = earthkit_test_data_path("local")

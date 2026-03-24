@@ -11,9 +11,11 @@ import numpy as np
 import pytest
 
 from earthkit.geo.regrid import regrid
-from earthkit.geo.utils.testing import NO_EKD  # noqa: E402
-from earthkit.geo.utils.testing import NO_MIR  # noqa: E402
-from earthkit.geo.utils.testing import compare_dims
+from earthkit.geo.utils.testing import (
+    NO_EKD,  # noqa: E402
+    NO_MIR,  # noqa: E402
+    compare_dims,
+)
 
 if not NO_EKD:
     from earthkit.data import from_source  # noqa

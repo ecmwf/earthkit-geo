@@ -10,13 +10,10 @@
 #
 
 from pathlib import Path
-from typing import Dict
-from typing import List
-from typing import Optional
+from typing import Dict, List, Optional
 
 import numpy as np
-from scipy.sparse import csr_array
-from scipy.sparse import save_npz
+from scipy.sparse import csr_array, save_npz
 
 from .stream import Stream
 

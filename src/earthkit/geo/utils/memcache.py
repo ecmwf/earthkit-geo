@@ -10,10 +10,8 @@
 import logging
 import threading
 import time
-from abc import ABCMeta
-from abc import abstractmethod
-from collections import OrderedDict
-from collections import namedtuple
+from abc import ABCMeta, abstractmethod
+from collections import OrderedDict, namedtuple
 
 from earthkit.geo.utils.config import CONFIG
 from earthkit.geo.utils.hash import make_sha
@@ -305,13 +303,11 @@ class MemoryCache:
                 return False
 
             with self.lock:
-                if any(
-                    [
-                        _update("max_mem", self.MAX_SIZE_KEY),
-                        _update("strict", self.STRICT_KEY),
-                        _update_policy(),
-                    ]
-                ):
+                if any([
+                    _update("max_mem", self.MAX_SIZE_KEY),
+                    _update("strict", self.STRICT_KEY),
+                    _update_policy(),
+                ]):
                     self._reduce()
 
     def _reduce(self, target_size=None):

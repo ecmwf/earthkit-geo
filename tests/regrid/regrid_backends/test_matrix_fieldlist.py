@@ -11,10 +11,12 @@ import numpy as np
 import pytest
 
 from earthkit.geo.regrid import regrid
-from earthkit.geo.utils.testing import NO_EKD  # noqa: E402
-from earthkit.geo.utils.testing import SYSTEM_MATRIX_BACKEND_NAME  # noqa: E402
-from earthkit.geo.utils.testing import get_test_data  # noqa: E402
-from earthkit.geo.utils.testing import get_test_data_path  # noqa: E402
+from earthkit.geo.utils.testing import (
+    NO_EKD,  # noqa: E402
+    SYSTEM_MATRIX_BACKEND_NAME,  # noqa: E402
+    get_test_data,  # noqa: E402
+    get_test_data_path,  # noqa: E402
+)
 
 if not NO_EKD:
     from earthkit.data import from_source  # noqa

@@ -10,9 +10,11 @@ import numpy as np
 import pytest
 
 from earthkit.geo.regrid.array import regrid as regrid_array
-from earthkit.geo.utils.testing import NO_MIR  # noqa: E402
-from earthkit.geo.utils.testing import compare_global_ll_results
-from earthkit.geo.utils.testing import get_test_data
+from earthkit.geo.utils.testing import (
+    NO_MIR,  # noqa: E402
+    compare_global_ll_results,
+    get_test_data,
+)
 
 BASE_INTERPOLATIONS = ["linear", "nearest-neighbour"]
 INTERPOLATIONS = BASE_INTERPOLATIONS + ["grid-box-average"]

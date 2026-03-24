@@ -9,8 +9,7 @@
 
 import hashlib
 import json
-from collections import defaultdict
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 
 from earthkit.geo.regrid.backends.db import SYS_DB as DB
 from earthkit.geo.regrid.gridspec import GridSpec

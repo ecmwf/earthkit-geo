@@ -11,8 +11,7 @@ import functools
 import logging
 import os
 import warnings
-from abc import ABCMeta
-from abc import abstractmethod
+from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
 from typing import Callable
 
@@ -20,10 +19,7 @@ import yaml
 
 from earthkit.geo import __version__ as VERSION
 from earthkit.geo.utils.html import css
-from earthkit.geo.utils.humanize import as_bytes
-from earthkit.geo.utils.humanize import as_percent
-from earthkit.geo.utils.humanize import as_seconds
-from earthkit.geo.utils.humanize import list_to_human
+from earthkit.geo.utils.humanize import as_bytes, as_percent, as_seconds, list_to_human
 
 LOG = logging.getLogger(__name__)
 

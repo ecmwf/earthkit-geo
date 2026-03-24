@@ -14,8 +14,7 @@ import os
 import pytest
 
 from earthkit.geo import config
-from earthkit.geo.utils.temporary import temp_directory
-from earthkit.geo.utils.temporary import temp_file
+from earthkit.geo.utils.temporary import temp_directory, temp_file
 
 
 def read_config_yaml(path=os.path.expanduser("~/.config/earthkit/regrid/config.yaml")):

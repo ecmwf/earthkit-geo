@@ -11,8 +11,7 @@ from pathlib import Path
 import pytest
 from scipy.sparse import load_npz
 
-from earthkit.geo.utils.mir import mir_cached_matrix_to_array
-from earthkit.geo.utils.mir import mir_make_matrix
+from earthkit.geo.utils.mir import mir_cached_matrix_to_array, mir_make_matrix
 
 L1 = [1.0, 2.0, 3.0, 4.0]
 L2 = [1.1, 1.9, 3.1, 3.9]

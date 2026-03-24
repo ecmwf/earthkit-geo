@@ -11,8 +11,7 @@
 
 import re
 
-from earthkit.geo.utils.config import CONFIG_AND_HELP
-from earthkit.geo.utils.config import env_var_name
+from earthkit.geo.utils.config import CONFIG_AND_HELP, env_var_name
 
 
 def execute(*args):

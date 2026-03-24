@@ -9,9 +9,11 @@
 import pytest
 
 from earthkit.geo.regrid import regrid
-from earthkit.geo.utils.testing import NO_EKD  # noqa: E402
-from earthkit.geo.utils.testing import NO_MIR  # noqa: E402
-from earthkit.geo.utils.testing import earthkit_test_data_path
+from earthkit.geo.utils.testing import (
+    NO_EKD,  # noqa: E402
+    NO_MIR,  # noqa: E402
+    earthkit_test_data_path,
+)
 
 INTERPOLATIONS = ["linear", "nearest-neighbour", "grid-box-average"]
 

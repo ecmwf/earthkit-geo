@@ -86,9 +86,7 @@ REMOTE_MATRIX_BACKEND_NAME = "precomputed"
 
 
 def compare_global_ll_results(v_res, v_ref, interpolation, **kwargs):
-    """
-    Compare the results of the regrid operation with the reference values.
-    """
+    """Compare the results of the regrid operation with the reference values."""
     import numpy as np
 
     if interpolation in ("nearest-neighbour", "nn", "nearest-neighbor"):

@@ -13,9 +13,8 @@ import os
 import shutil
 import sys
 
-import numpy as np
-
 import earthkit.regrid
+import numpy as np
 
 here = os.path.dirname(__file__)
 sys.path.insert(0, os.path.dirname(here))
