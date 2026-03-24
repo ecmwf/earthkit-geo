@@ -226,6 +226,7 @@ Cache limits
   These config options do not work when ``cache-policy`` is :ref:`off <off_cache_policy>`.
 
 
+
 Maximum-cache-size
   The ``maximum-cache-size`` setting ensures that earthkit-geo does not
   use to much disk space.  Its value sets
@@ -236,10 +237,10 @@ Maximum-cache-size
 
 Maximum-cache-disk-usage
   The ``maximum-cache-disk-usage`` setting ensures that earthkit-geo
-  leaves does not fill your disk.
-  Its values sets the maximum disk usage as % of the filesystem containing the cache
-  directory. When the disk space goes below this limit, earthkit-geo triggers
-  its cache cleaning mechanism before downloading additional data.
+  does not fill your disk. It specifies the maximum disk usage (as a percentage) on the filesystem
+  containing the cache directory. When the total disk usage (so this is not the cache usage alone) goes above
+  this limit, earthkit-geo triggers its cache cleaning mechanism to free up space before
+  downloading additional data.
   The value of maximum-cache-disk-usage is relative (such as "90%" or "100%").
   To disable it use None.
 
@@ -247,6 +248,7 @@ Maximum-cache-disk-usage
     If your disk is filled by another application, earthkit-geo will happily
     delete its cached data to make room for the other application as soon
     as it has a chance.
+
 
 .. .. note::
 ..     When tweaking the cache config, it is recommended to set the
