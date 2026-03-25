@@ -320,7 +320,7 @@ class MatrixIndex(dict):
                     entry["_raw"] = raw
                     self[name] = entry
                 except Exception as e:
-                    LOG.warning(f"Could not load matrix inventory entry {name}: {e}")
+                    LOG.exception(f"Could not load matrix inventory entry {name}: {e}")
 
     @staticmethod
     def interpolation_method_name(item):

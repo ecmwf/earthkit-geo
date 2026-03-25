@@ -55,7 +55,7 @@ def test_regrid_local_matrix_index():
         d = json.load(f)
         assert len(d["matrix"]) == 17
 
-    assert len(DB) == 15
+    assert len(DB) == 16
 
     # r = DB.find_entry({"grid": [5, 5]}, {"grid": [10, 10]}, interpolation)
     # assert r
@@ -69,8 +69,8 @@ def test_regrid_local_matrix_index():
     r = DB.find_entry({"grid": "O64"}, {"grid": [10, 10]}, interpolation)
     assert r is None
 
-    # r = DB.find_entry({"grid": "eORCA025_T"}, {"grid": "O96"}, interpolation)
-    # assert r
+    r = DB.find_entry({"grid": "eORCA025_T"}, {"grid": "O96"}, interpolation)
+    assert r
 
 
 @pytest.mark.parametrize("interpolation", INTERPOLATIONS)
@@ -162,7 +162,6 @@ def test_regrid_local_matrix_nested_to_ll(interpolation, out_grid):
     assert np.allclose(v_res.flatten(), v_ref)
 
 
-@pytest.mark.skip(reason="This test is currently not working. We need to investigate the reason and fix it.")
 @pytest.mark.parametrize("interpolation", ["linear"])
 def test_regrid_local_matrix_orca_to_ogg(interpolation):
     f_in = get_test_data("in_eORCA025_T.npz", subfolder="orca")
@@ -181,8 +180,11 @@ def test_regrid_local_matrix_orca_to_ogg(interpolation):
         interpolation=interpolation,
     )
 
+    assert isinstance(grid_res, dict)
+    grid_ref = Grid({"grid": "O96"}).spec
+
     assert v_res.shape == (40320,)
-    assert grid_res == out_grid
+    assert grid_res == grid_ref
     np.testing.assert_allclose(v_res, v_ref, verbose=False)
 
 
@@ -248,7 +250,7 @@ def test_regrid_local_matrix_orca_to_ogg(interpolation):
         ),
         ({"grid": "H4"}, {"grid": [10, 10]}),
         ({"grid": "H4", "ordering": "ring"}, {"grid": [10, 10]}),
-        # ({"grid": "eORCA025_T"}, {"grid": "O96"}),
+        ({"grid": "eORCA025_T"}, {"grid": "O96"}),
         ({"grid": "n32"}, {"grid": [10, 10]}),
         ({"grid": "h4"}, {"grid": [10, 10]}),
     ],

@@ -79,7 +79,6 @@ class FieldListDataHandler(DataHandler):
             )
 
             out_grid = GridSpec.from_any(out_grid).grid
-            print("out_grid", out_grid.spec)
 
             fields.append(f.set({"values": v_res, "geography.grid_spec": out_grid}))
 

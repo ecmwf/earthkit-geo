@@ -86,14 +86,12 @@ from earthkit.geo.regrid.backends.db import SYS_DB
         ({"grid": "H128", "order": "nested"}, {"grid": [1, 1]}),
         ({"grid": "H128", "ordering": "nested"}, {"grid": [1, 1]}),
         # ({"grid": (5, 5)}, {"grid": (10, 10)}),
-        # ({"grid": "eORCA025_T"}, {"grid": "O96"}),
+        ({"grid": "eORCA025_T"}, {"grid": "O96"}),
     ],
 )
 def test_gridspec_ok(gs_in, gs_out):
-    print("SYS_DB=", type(SYS_DB._index))
     r = SYS_DB.find_entry(gs_in, gs_out, "linear")
     assert r, f"gs_in={gs_in} gs_out={gs_out}"
-    print("       SYS_DB=", type(SYS_DB._index))
 
 
 @pytest.mark.parametrize(
