@@ -91,7 +91,7 @@ These grids are designed for global ocean coverage, and are associated with the 
      NG5
      NG5_[CN]
 
-where *CORE2*, *DART* and *NG5* are distinct grids in increasing horizontal resolution, up to 5 km. *C* and *N* define the point location respective to the supporting mesh elements, repectivelly in cell-centred and vertex point arragements. The default arragement is cell-centred or *C*
+where *CORE2*, *DART* and *NG5* are distinct grids in increasing horizontal resolution, up to approximatelly 5 km. *C* and *N* define the point location respective to the supporting mesh elements, repectivelly in cell-centred and vertex point arragements. The default arragement is cell-centred or *C*
 
 Examples:
 
@@ -101,22 +101,104 @@ Examples:
     {"grid": "NG5"}
 
 
-..ICON grids
-..----------
+ICON grids
+----------
 
-..The ``grid`` format is case-insensitive, in the formats::
-..
-..     ICON-CH1(|-VXXX)
-..     ICON-CH2(|-VXXX)
-..
-..TODO
-..
-..Examples:
+ICON is a model used for both atmospheric and ocean modelling. ICON grids are identified by name (case-insensitive). Three
+sets of pre-defined grids are available:
 
-.... code-block::
+- **MeteoSwiss** (ICON-CH) — regional grids covering the Alpine region
+- **Deutscher Wetterdienst** (ICON-DWD) — global and regional grids for operational NWP
+- **Max Planck Institute for Meteorology** (ICON-MPIM) — global ocean-only grids for the ICON-O ocean model
 
-..    {"grid": "icon-ch2"}
-..    {"grid": "ICON-CH1-V1"}
+MeteoSwiss (ICON-CH)
+~~~~~~~~~~~~~~~~~~~~
+
+Regional operational grids covering the Alpine region. The version suffix ``-V1`` is optional, version 1 the default. The grid names are case-insensitive:
+
+- ``ICON-CH1``, ``ICON-CH1-V1``, 1° resolution
+- ``ICON-CH2``, ``ICON-CH2-V1``, 2° resolution
+
+Deutscher Wetterdienst (ICON-DWD)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+DWD grids follow the naming convention::
+
+    icon-grid-NNNN-rXXbYY-Z
+
+where *NNNN* is a sequential grid number, *rXXbYY* is the refinement level (root division *XX*,
+bisection level *YY*), and *Z* indicates the grid type (``g`` global, ``n`` regional nest,
+``l`` limited area, ``r`` radiation auxiliary). Many grids are rotated 36° around the z-axis.
+
+*Global grids*:
+
+- ``icon-grid-0002-r02b06-g``, 40 km
+- ``icon-grid-0004-r02b07-g``, 20 km
+- ``icon-grid-0006-r03b07-g``, 13 km
+- ``icon-grid-0008-r02b05-g``, 80 km
+- ``icon-grid-0010-r02b04-g``, 160 km
+- ``icon-grid-0012-r02b04-g``, 160 km
+- ``icon-grid-0014-r02b05-g``, 80 km
+- ``icon-grid-0016-r02b06-g``, 40 km
+- ``icon-grid-0018-r02b07-g``, 20 km
+- ``icon-grid-0020-r03b06-g``, 26 km
+- ``icon-grid-0022-r03b07-g``, 13 km
+- ``icon-grid-0024-r02b06-g``, 40 km
+- ``icon-grid-0026-r03b07-g``, 13 km
+- ``icon-grid-0030-r02b05-g``, 80 km
+- ``icon-grid-0033-r03b05-g``, 53 km
+- ``icon-grid-0036-r03b06-g``, 26.5 km
+- ``icon-grid-0039-r02b07-g``, 20 km
+- ``icon-grid-0054-r02b04-g``, 160 km (idealized test grid)
+
+*Regional grids* (Europe):
+
+- ``icon-grid-0027-r03b08-n02``, 6.5 km
+- ``icon-grid-0028-r02b07-n02``, 20 km
+- ``icon-grid-0031-r02b06-n02``, 40 km
+- ``icon-grid-0034-r03b06-n02``, 26.5 km
+- ``icon-grid-0037-r03b07-n02``, 13 km
+- ``icon-grid-0040-r02b08-n02``, 10 km
+- ``icon-grid-0048-r03b07-lr``, 13 km
+- ``icon-grid-0049-r03b08-l``, 6.5 km
+- ``icon-grid-0050-r02b07-n02``, 20 km (Europe, North Atlantic and North Africa)
+- ``icon-grid-0051-r03b07-n02``, 13 km (Europe, North Atlantic and North Africa)
+- ``icon-grid-0052-r03b07-lr``, 13 km
+- ``icon-grid-0053-r03b08-l``, 6.5 km
+
+*Regional grids* (Germany):
+
+- ``icon-grid-0041-r02b09-lr``, 5 km (COSMO-DE)
+- ``icon-grid-0042-r02b10-l``, 2.5 km (COSMO-DE)
+- ``icon-grid-0043-r19b06-lr``, 4 km (COSMO-D2)
+- ``icon-grid-0044-r19b07-l``, 2 km (COSMO-D2)
+- ``icon-grid-0045-r19b08-ln02``, 1 km (COSMO-D2)
+- ``icon-grid-0046-r19b06-lr``, 4 km (enhanced COSMO-D2)
+- ``icon-grid-0047-r19b07-l``, 2 km (enhanced COSMO-D2)
+
+Max Planck Institute for Meteorology (ICON-MPIM)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Global ocean-only grids for the ICON-O ocean model, rotated 37° around the z-axis and
+symmetrical about the equator. Each grid covers ocean areas only:
+
+- ``icon-grid-0036-r02b04-o``, 160 km
+- ``icon-grid-0020-r02b05-o``, 80 km
+- ``icon-grid-0046-r02b06-o``, 40 km
+- ``icon-grid-0024-r02b07-o``, 20 km
+- ``icon-grid-0016-r02b09-o``, 5 km
+- ``icon-grid-0040-r02b10-o``, 2.5 km
+- ``icon-grid-0038-r02b11-o``, 1.2 km
+
+Examples:
+
+.. code-block::
+
+   {"grid": "icon-ch2"}
+   {"grid": "ICON-CH1-V1"}
+   {"grid": "icon-grid-0022-r03b07-g"}
+   {"grid": "icon-grid-0044-r19b07-l"}
+   {"grid": "icon-grid-0024-r02b07-o"}
 
 
 ORCA grids
