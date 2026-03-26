@@ -15,7 +15,7 @@ The gridspecs supported by the ``in_grid`` and ``out_grid`` options in :ref:`reg
 Gaussian grids
 --------------
 
-Gaussian grids are a family of global grids defined by the number of constant-latitude lines (parallel) between the pole and equator. Each parallel's latitude is at Gaussian quadrature points so integrals can be calculated over the sphere. With increasing resolution these parallels approach but do not match the poles and equator. Longitudinally there are two descriptions: regular with constant number of points per parallel, and reduced with varying number of points per parallel, increasingly higher near the equator so as to approach a constant local horizontal resolution over the globe.
+Gaussian grids are a family of global grids defined by the number of constant-latitude lines (parallels) between the pole and equator. Each parallel's latitude is at Gaussian quadrature points so integrals can be calculated over the sphere. With increasing resolution these parallels approach but do not match the poles and equator. Longitudinally there are two descriptions: regular with constant number of points per parallel, and reduced with varying number of points per parallel, increasingly higher near the equator so as to approach a constant local horizontal resolution over the globe.
 
 There are three patterns for ``grid``, case-insensitive::
 
@@ -23,7 +23,7 @@ There are three patterns for ``grid``, case-insensitive::
     NXXX
     FXXX
 
-where *XXX* is known as the Gaussian number, and represents the number of latitude lines between the pole and equator. For details about these grids, see `here <https://confluence.ecmwf.int/display/FCST/Gaussian+grids>`_. The regular Gaussian grid is ``[Ff]XXX`` has, as described, a constant number of points per parallel, while the reduced Gaussian grid is ``[NnOo]XXX`` and has a varying number of points per parallel.
+where *XXX* is known as the Gaussian number, and represents the number of latitude lines between the pole and equator. For details about these grids, see `here <https://confluence.ecmwf.int/display/FCST/Gaussian+grids>`_. The regular Gaussian grid, ``[Ff]XXX``, has a constant number of points per parallel, while the reduced Gaussian grid, ``[NnOo]XXX``, has a varying number of points per parallel.
 
 There are a few pre-defined reduced Gaussian grids (eg. ``N160``, ``N320``, ``N640``) which have a pre-defined number of points per parallel. The octahedral Gaussian grid (``[Oo]XXX``) has a specific number of points per parallel starting from 20 near the poles and increasing 4 points per parallel towards the equator, so it is defined for any Gaussian number.
 
@@ -66,7 +66,7 @@ The ``grid`` is case-insensitive, in the format::
     HRXXX
     HNXXX
 
-The HEALPix grid is a global, hierarchical equal area isolatitude pixelisation of the sphere, where *XXX* is the HEALPix *Nside* representing the number of points per pixel side. There are 12 base pixels, so the total number of points is 12 * Nside ^ 2. The points can be in ring (default) or nested order, indicated by the second letter or ``order`` (default ``ring``); If the second letter is ``Nn`` or ``order`` is ``nested``, the points order is nested. For details about this grid, see `here  <https://en.wikipedia.org/wiki/HEALPix>`_.
+The HEALPix grid is a global, hierarchical equal area isolatitude pixelisation of the sphere, where *XXX* is the HEALPix *Nside* representing the number of points per pixel side. There are 12 base pixels, so the total number of points is :math:`12 N_\mathrm{side}^2`. The points can be in ring (default) or nested order, indicated by the second letter or ``order`` (default ``ring``); if the second letter is ``[Nn]`` or ``order`` is ``nested``, the points order is nested. For details about this grid, see `here  <https://en.wikipedia.org/wiki/HEALPix>`_.
 
 Examples (the last two are in nested order):
 
@@ -91,7 +91,7 @@ These grids are designed for global ocean coverage, and are associated with the 
      NG5
      NG5_[CN]
 
-where *CORE2*, *DART* and *NG5* are distinct grids in increasing horizontal resolution, up to approximatelly 5 km. *C* and *N* define the point location respective to the supporting mesh elements, repectivelly in cell-centred and vertex point arragements. The default arragement is cell-centred or *C*
+where *CORE2*, *DART* and *NG5* are distinct grids in increasing horizontal resolution, up to approximately 5 km. *C* and *N* define the point location respective to the supporting mesh elements, respectively in cell-centred and vertex point arrangements. The default arrangement is cell-centred or *C*.
 
 Examples:
 
@@ -209,9 +209,9 @@ These grids are designed for global ocean coverage, and are associated with the 
      ORCAXXX(|_[FTUVW])
      eORCAYYY(_|[FTUVW])
 
-where the first letter stands for *extended* indicating coverage closer to the South pole. *T*, *U*, *V* or *W* defines the point location respective to the supporting mesh elements, repectivelly in cell-centred, vertex and ``u``/``v`` edges point arragements. The default arragement is cell-centred or *F*.
+where the first letter stands for *extended* indicating coverage closer to the South pole. *T*, *U*, *V* or *W* define the point location respective to the supporting mesh elements, respectively in cell-centred, vertex and ``u``/``v`` edges point arrangements. The default arrangement is cell-centred or *F*.
 
-Horizontal resolution numbers *XXX* and *YYY* are in increasing order *2* (*XXX* only), *1*, *025*, *12*, aproximatelly corresponding to resolution in in degrees 2°, 1°, 0.25° and 1/12°.
+Horizontal resolution numbers *XXX* and *YYY* are in increasing order *2* (*XXX* only), *1*, *025*, *12*, approximately corresponding to resolution in degrees 2°, 1°, 0.25° and 1/12°.
 
 Examples:
 
