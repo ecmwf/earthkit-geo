@@ -124,7 +124,7 @@ Deutscher Wetterdienst (ICON-DWD)
 
 DWD grids follow the naming convention::
 
-    icon-grid-NNNN-rXXbYY-Z
+    ICON-GRID-NNNN-RXXBYY-Z
 
 where *NNNN* is a sequential grid number, *rXXbYY* is the refinement level (root division *XX*,
 bisection level *YY*), and *Z* indicates the grid type (``g`` global, ``n`` regional nest,
@@ -132,49 +132,49 @@ bisection level *YY*), and *Z* indicates the grid type (``g`` global, ``n`` regi
 
 *Global grids*:
 
-- ``icon-grid-0002-r02b06-g``, 40 km
-- ``icon-grid-0004-r02b07-g``, 20 km
-- ``icon-grid-0006-r03b07-g``, 13 km
-- ``icon-grid-0008-r02b05-g``, 80 km
-- ``icon-grid-0010-r02b04-g``, 160 km
-- ``icon-grid-0012-r02b04-g``, 160 km
-- ``icon-grid-0014-r02b05-g``, 80 km
-- ``icon-grid-0016-r02b06-g``, 40 km
-- ``icon-grid-0018-r02b07-g``, 20 km
-- ``icon-grid-0020-r03b06-g``, 26 km
-- ``icon-grid-0022-r03b07-g``, 13 km
-- ``icon-grid-0024-r02b06-g``, 40 km
-- ``icon-grid-0026-r03b07-g``, 13 km
-- ``icon-grid-0030-r02b05-g``, 80 km
-- ``icon-grid-0033-r03b05-g``, 53 km
-- ``icon-grid-0036-r03b06-g``, 26.5 km
-- ``icon-grid-0039-r02b07-g``, 20 km
-- ``icon-grid-0054-r02b04-g``, 160 km (idealized test grid)
+- ``ICON-GRID-0002-R02B06-G``, 40 km
+- ``ICON-GRID-0004-R02B07-G``, 20 km
+- ``ICON-GRID-0006-R03B07-G``, 13 km
+- ``ICON-GRID-0008-R02B05-G``, 80 km
+- ``ICON-GRID-0010-R02B04-G``, 160 km
+- ``ICON-GRID-0012-R02B04-G``, 160 km
+- ``ICON-GRID-0014-R02B05-G``, 80 km
+- ``ICON-GRID-0016-R02B06-G``, 40 km
+- ``ICON-GRID-0018-R02B07-G``, 20 km
+- ``ICON-GRID-0020-R03B06-G``, 26 km
+- ``ICON-GRID-0022-R03B07-G``, 13 km
+- ``ICON-GRID-0024-R02B06-G``, 40 km
+- ``ICON-GRID-0026-R03B07-G``, 13 km
+- ``ICON-GRID-0030-R02B05-G``, 80 km
+- ``ICON-GRID-0033-R03B05-G``, 53 km
+- ``ICON-GRID-0036-R03B06-G``, 26.5 km
+- ``ICON-GRID-0039-R02B07-G``, 20 km
+- ``ICON-GRID-0054-R02B04-G``, 160 km (idealized test grid)
 
 *Regional grids* (Europe):
 
-- ``icon-grid-0027-r03b08-n02``, 6.5 km
-- ``icon-grid-0028-r02b07-n02``, 20 km
-- ``icon-grid-0031-r02b06-n02``, 40 km
-- ``icon-grid-0034-r03b06-n02``, 26.5 km
-- ``icon-grid-0037-r03b07-n02``, 13 km
-- ``icon-grid-0040-r02b08-n02``, 10 km
-- ``icon-grid-0048-r03b07-lr``, 13 km
-- ``icon-grid-0049-r03b08-l``, 6.5 km
-- ``icon-grid-0050-r02b07-n02``, 20 km (Europe, North Atlantic and North Africa)
-- ``icon-grid-0051-r03b07-n02``, 13 km (Europe, North Atlantic and North Africa)
-- ``icon-grid-0052-r03b07-lr``, 13 km
-- ``icon-grid-0053-r03b08-l``, 6.5 km
+- ``ICON-GRID-0027-R03B08-N02``, 6.5 km
+- ``ICON-GRID-0028-R02B07-N02``, 20 km
+- ``ICON-GRID-0031-R02B06-N02``, 40 km
+- ``ICON-GRID-0034-R03B06-N02``, 26.5 km
+- ``ICON-GRID-0037-R03B07-N02``, 13 km
+- ``ICON-GRID-0040-R02B08-N02``, 10 km
+- ``ICON-GRID-0048-R03B07-LR``, 13 km
+- ``ICON-GRID-0049-R03B08-L``, 6.5 km
+- ``ICON-GRID-0050-R02B07-N02``, 20 km (Europe, North Atlantic and North Africa)
+- ``ICON-GRID-0051-R03B07-N02``, 13 km (Europe, North Atlantic and North Africa)
+- ``ICON-GRID-0052-R03B07-LR``, 13 km
+- ``ICON-GRID-0053-R03B08-L``, 6.5 km
 
 *Regional grids* (Germany):
 
-- ``icon-grid-0041-r02b09-lr``, 5 km (COSMO-DE)
-- ``icon-grid-0042-r02b10-l``, 2.5 km (COSMO-DE)
-- ``icon-grid-0043-r19b06-lr``, 4 km (COSMO-D2)
-- ``icon-grid-0044-r19b07-l``, 2 km (COSMO-D2)
-- ``icon-grid-0045-r19b08-ln02``, 1 km (COSMO-D2)
-- ``icon-grid-0046-r19b06-lr``, 4 km (enhanced COSMO-D2)
-- ``icon-grid-0047-r19b07-l``, 2 km (enhanced COSMO-D2)
+- ``ICON-GRID-0041-R02B09-LR``, 5 km (COSMO-DE)
+- ``ICON-GRID-0042-R02B10-L``, 2.5 km (COSMO-DE)
+- ``ICON-GRID-0043-R19B06-LR``, 4 km (COSMO-D2)
+- ``ICON-GRID-0044-R19B07-L``, 2 km (COSMO-D2)
+- ``ICON-GRID-0045-R19B08-LN02``, 1 km (COSMO-D2)
+- ``ICON-GRID-0046-R19B06-LR``, 4 km (enhanced COSMO-D2)
+- ``ICON-GRID-0047-R19B07-L``, 2 km (enhanced COSMO-D2)
 
 Max Planck Institute for Meteorology (ICON-MPIM)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -182,13 +182,13 @@ Max Planck Institute for Meteorology (ICON-MPIM)
 Global ocean-only grids for the ICON-O ocean model, rotated 37° around the z-axis and
 symmetrical about the equator. Each grid covers ocean areas only:
 
-- ``icon-grid-0036-r02b04-o``, 160 km
-- ``icon-grid-0020-r02b05-o``, 80 km
-- ``icon-grid-0046-r02b06-o``, 40 km
-- ``icon-grid-0024-r02b07-o``, 20 km
-- ``icon-grid-0016-r02b09-o``, 5 km
-- ``icon-grid-0040-r02b10-o``, 2.5 km
-- ``icon-grid-0038-r02b11-o``, 1.2 km
+- ``ICON-GRID-0036-R02B04-O``, 160 km
+- ``ICON-GRID-0020-R02B05-O``, 80 km
+- ``ICON-GRID-0046-R02B06-O``, 40 km
+- ``ICON-GRID-0024-R02B07-O``, 20 km
+- ``ICON-GRID-0016-R02B09-O``, 5 km
+- ``ICON-GRID-0040-R02B10-O``, 2.5 km
+- ``ICON-GRID-0038-R02B11-O``, 1.2 km
 
 Examples:
 
@@ -206,8 +206,10 @@ ORCA grids
 
 These grids are designed for global ocean coverage, and are associated with the NEMO model. The ``grid`` format is case-insensitive, in the formats::
 
-     ORCAXXX(|_[FTUVW])
-     eORCAYYY(_|[FTUVW])
+     ORCAXXX
+     ORCAXXX_[FTUVW]
+     eORCAYYY
+     eORCAYYY_[FTUVW]
 
 where the first letter stands for *extended* indicating coverage closer to the South pole. *T*, *U*, *V* or *W* define the point location respective to the supporting mesh elements, respectively in cell-centred, vertex and ``u``/``v`` edges point arrangements. The default arrangement is cell-centred or *F*.
 
