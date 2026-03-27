@@ -14,7 +14,6 @@ import json
 import yaml
 
 
-
 sys.path.insert(0, os.path.abspath("../src"))
 sys.path.insert(0, os.path.abspath("./"))
 sys.path.insert(0, os.path.abspath("../"))
@@ -178,6 +177,7 @@ intersphinx_mapping = {
     "earthkit-data": ("https://earthkit-data.readthedocs.io/en/latest/", None),
     "earthkit-plots": ("https://earthkit-plots.readthedocs.io/en/latest/", None),
 }
+
 
 def _write_earthkit_packages_js(app):
     """Read earthkit-packages.yml and write a JS data file into the output _static dir."""

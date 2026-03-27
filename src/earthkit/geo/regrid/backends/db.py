@@ -300,6 +300,7 @@ class SystemAccessor(UrlAccessor):
 
 class MatrixIndex(dict):
     """In-memory representation of the matrix inventory index file."""
+
     def load(self, path):
         with open(path, "r") as f:
             index = json.load(f)

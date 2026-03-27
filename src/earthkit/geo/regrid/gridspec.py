@@ -24,6 +24,7 @@ class ShapeDoesNotMatchError(Exception):
 # TODO: add logic here to support custom gridspecs that cannot be parsed by eckit.geo.
 class GridSpec(dict):
     """Base class for grid specifications."""
+
     @staticmethod
     def from_dict(d):
         return EckitGridSpec(d)
@@ -56,6 +57,7 @@ class GridSpec(dict):
 
 class EckitGridSpec(GridSpec):
     """GridSpec that is parsed by eckit.geo.Grid."""
+
     def __init__(self, gs_in):
         from eckit.geo import Grid
 
@@ -121,10 +123,12 @@ class EckitGridSpec(GridSpec):
 
 
 class CustomGridSpec(GridSpec):
-    """Custom grid spec that cannot be parsed by eckit.geo. 
-    
-    This is a placeholder for now, and can be extended in the future to suppor 
-    custom gridspecs."""
+    """Custom grid spec that cannot be parsed by eckit.geo.
+
+    This is a placeholder for now, and can be extended in the future to suppor
+    custom gridspecs.
+    """
+
     @property
     def grid(self):
         return None

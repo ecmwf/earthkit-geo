@@ -100,4 +100,3 @@ The API features the :func:`regrid` function taking inputs of Numpy arrays, eart
    release-notes/index
    licence
    genindex
-

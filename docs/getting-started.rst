@@ -56,5 +56,3 @@ Use it for raw data arrays, e.g. Numpy ndarrays.
     out_grid = {"grid": "O320"}  # octahedral reduced Gaussian grid
 
     res_vals, res_grid = regrid(vals, in_grid=in_grid, out_grid=out_grid)
-
-
