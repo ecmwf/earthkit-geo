@@ -7,7 +7,7 @@
 # nor does it submit to any jurisdiction.
 #
 
-"""Collection of constants in SI units."""
+"""Collection of constants."""
 
 NORTH_POLE_LAT = 90
 r"""Latitude of the north pole in degrees."""

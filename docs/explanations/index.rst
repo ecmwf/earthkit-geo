@@ -1,8 +1,7 @@
 .. _guide:
 
-Concepts
-=============
-
+Concepts and Explanations
+===========================
 
 Regrid
 ++++++++++++++++++++++

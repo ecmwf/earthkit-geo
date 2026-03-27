@@ -1,5 +1,5 @@
 
-Welcome to earthkit-geo's documentation
+Earthkit-geo's documentation
 ======================================================
 
 |Static Badge| |image1| |License: Apache 2.0| |Latest Release|
@@ -24,79 +24,80 @@ Welcome to earthkit-geo's documentation
 The API features the :func:`regrid` function taking inputs of Numpy arrays, earthkit-data GRIB :xref:`field` or :xref:`fieldlist` objects, and  Xarray DataArrays or Datasets. It is implemented with various backends, the :ref:`default backend <mir-backend>` uses ECMWF's **MIR (Meteorological Interpolation and Regridding)** library to perform the regridding.
 
 
-Quick start
------------
 
-A different interface is available depending on the input data type.
+.. grid:: 1
+   :gutter: 2
 
-High-level interface
-//////////////////////
+   .. grid-item-card:: Installation and Getting Started
+      :img-top: _static/rocket.svg
+      :link: getting-started
+      :link-type: doc
+      :class-card: sd-shadow-sm
 
-Use it for data containing geographical information, e.g. earthkit-data :xref:`fieldlist` objects, Xarray DataArrays or Datasets.
+      New to earthkit-geo? Start here with installation and a quick overview.
 
-.. code-block:: python
+.. grid:: 1 1 2 2
+   :gutter: 2
 
-    import earthkit.data as ekd
-    from earthkit.geo.regrid import regrid
+   .. grid-item-card:: Tutorials
+      :img-top: _static/book.svg
+      :link: tutorials/index
+      :link-type: doc
+      :class-card: sd-shadow-sm
 
-    # get fieldlist from a sample GRIB file
-    ds = ekd.from_source("sample", "O32_t2.grib2")
+      Step-by-step guides to learn earthkit-geo.
 
-    # the target is a regular latitude-longitude grid
-    grid = {"grid": [5, 5]}
+   .. grid-item-card:: How-tos
+      :img-top: _static/tool.svg
+      :link: how-tos/index
+      :link-type: doc
+      :class-card: sd-shadow-sm
 
-    ds_res = regrid(ds, grid=grid)
+      Practical recipes for common tasks.
 
+   .. grid-item-card:: Concepts and Explanations
+      :img-top: _static/bulb.svg
+      :link: explanations/index
+      :link-type: doc
+      :class-card: sd-shadow-sm
 
-Array-level interface
-////////////////////////
+      Understand the core ideas behind earthkit-geo.
 
-Use it for raw data arrays, e.g. Numpy ndarrays.
+   .. grid-item-card:: API Reference Guide
+      :img-top: _static/brackets-contain.svg
+      :link: autoapi/earthkit/geo/index
+      :link-type: doc
+      :class-card: sd-shadow-sm
 
-
-.. code-block:: python
-
-    from earthkit.geo.regrid.array import regrid
-    import numpy as np
-
-    vals = np.random.rand(320, 640)
-    in_grid = {"grid": [0.25, 0.25]}  # regular latitude-longitude grid
-    out_grid = {"grid": "O320"}  # octahedral reduced Gaussian grid
-
-    res_vals, res_grid = regrid(vals, in_grid=in_grid, out_grid=out_grid)
-
+      Detailed documentation of all functions and classes.
 
 
 .. toctree::
-   :maxdepth: 1
    :caption: User guide
+   :maxdepth: 2
+   :hidden:
 
-   install
-   examples/index
-   guide/index
-   references.rst
-   API Reference <autoapi/earthkit/geo/index.rst>
-
+   getting-started
+   installation
+   tutorials/index
+   how-tos/index
+   explanations/index
+   API Reference guide <autoapi/earthkit/geo/index.rst>
 
 .. toctree::
-   :maxdepth: 1
    :caption: Developer guide
+   :maxdepth: 2
+   :hidden:
 
    development
 
 
 .. toctree::
-   :maxdepth: 1
-   :caption: Extra
+   :maxdepth: 2
+   :caption: Extras
+   :hidden:
 
-   release_notes/index
+   release-notes/index
    licence
-   :ref:`genindex`
+   genindex
 
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Projects
-
-   earthkit <https://earthkit.readthedocs.io/en/latest>
-   earthkit-data <https://earthkit-data.readthedocs.io/en/release-1.0.0rc0>

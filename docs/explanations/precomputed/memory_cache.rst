@@ -158,7 +158,7 @@ Other earthkit-geo config options can be found :ref:`here <config_table>`.
 Notebooks
 ---------
 
-- :ref:`/examples/precomputed/memory_cache.ipynb`
+- :ref:`/how-tos/precomputed/memory_cache.ipynb`
 
 
 Examples

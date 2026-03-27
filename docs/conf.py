@@ -9,7 +9,13 @@
 import datetime
 import os
 import sys
+import json
 
+import yaml
+
+
+
+sys.path.insert(0, os.path.abspath("../src"))
 sys.path.insert(0, os.path.abspath("./"))
 sys.path.insert(0, os.path.abspath("../"))
 
@@ -31,11 +37,13 @@ extensions = [
     "nbsphinx",
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
+    "sphinx.ext.intersphinx",
     "autoapi.extension",
     "sphinx_issues",
     "sphinx_copybutton",
     "earthkit.geo.sphinxext.xref",
     "earthkit.geo.sphinxext.module_output",
+    "sphinx_design",
 ]
 
 # autodoc configuration
@@ -43,13 +51,12 @@ autodoc_typehints = "none"
 
 # autoapi configuration
 autoapi_dirs = ["../src/earthkit"]
-autoapi_ignore = ["*/version.py", "sphinxext/*"]
+autoapi_ignore = ["*/version.py", "*/sphinxext/*"]
 autoapi_options = [
     "members",
     "undoc-members",
     "show-inheritance",
     "show-module-summary",
-    "imported-members",
     "inherited-members",
 ]
 autoapi_root = "autoapi"
@@ -93,6 +100,15 @@ html_css_files = ["custom.css"]
 
 # html_logo = "https://github.com/ecmwf/logos/raw/refs/heads/main/logos/earthkit/earthkit-geo-dark.svg"
 
+
+html_js_files = [
+    "earthkit-packages.js",  # generated from earthkit-packages.yml at build time
+    "custom.js",
+]
+
+html_favicon = "https://raw.githubusercontent.com/ecmwf/logos/refs/heads/main/logos/earthkit/earthkit-logo-only.svg"
+
+
 html_theme_options = {
     "light_css_variables": {
         "color-sidebar-background": "#131320",
@@ -120,7 +136,7 @@ html_theme_options = {
     "dark_logo": "earthkit-geo-dark.svg",
     "source_repository": "https://github.com/ecmwf/earthkit-geo/",
     # "source_branch": source_branch,
-    "source_directory": "docs/source",
+    "source_directory": "docs",
     "footer_icons": [
         {
             "name": "GitHub",
@@ -154,3 +170,27 @@ xref_links = {
         "https://earthkit-data.readthedocs.io/en/latest/guide/data_format/grib.html",
     ),
 }
+
+intersphinx_mapping = {
+    "pandas": ("https://pandas.pydata.org/docs/", None),
+    "xarray": ("https://docs.xarray.dev/en/latest/", None),
+    "geopandas": ("https://geopandas.org", None),
+    "earthkit-data": ("https://earthkit-data.readthedocs.io/en/latest/", None),
+    "earthkit-plots": ("https://earthkit-plots.readthedocs.io/en/latest/", None),
+}
+
+def _write_earthkit_packages_js(app):
+    """Read earthkit-packages.yml and write a JS data file into the output _static dir."""
+    config_path = os.path.join(os.path.dirname(__file__), "earthkit-packages.yml")
+    with open(config_path, encoding="utf-8") as fh:
+        config = yaml.safe_load(fh)
+    packages = config.get("packages", [])
+    static_dir = os.path.join(app.outdir, "_static")
+    os.makedirs(static_dir, exist_ok=True)
+    js_path = os.path.join(static_dir, "earthkit-packages.js")
+    with open(js_path, "w", encoding="utf-8") as fh:
+        fh.write(f"window.earthkitPackages = {json.dumps(packages)};\n")
+
+
+def setup(app):
+    app.connect("builder-inited", _write_earthkit_packages_js)
