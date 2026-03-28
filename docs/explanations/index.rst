@@ -3,20 +3,9 @@
 Concepts and Explanations
 ===========================
 
-Regrid
-++++++++++++++++++++++
-
 .. toctree::
    :maxdepth: 2
 
-   mir/index
-   precomputed/index
-
-
-Miscellaneous
-++++++++++++++++++++++
-
-.. toctree::
-   :maxdepth: 1
-
-   misc/index
+   regridding/index.rst
+   config.rst
+   caching.rst

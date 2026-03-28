@@ -6,7 +6,7 @@ Earthkit-geo's documentation
 
 .. |Static Badge| image:: https://github.com/ecmwf/codex/raw/refs/heads/main/ESEE/foundation_badge.svg
    :target: https://github.com/ecmwf/codex/raw/refs/heads/main/ESEE
-.. |image1| image:: https://github.com/ecmwf/codex/raw/refs/heads/main/Project%20Maturity/emerging_badge.svg
+.. |image1| image:: https://github.com/ecmwf/codex/raw/refs/heads/main/Project%20Maturity/incubating_badge.svg
    :target: https://github.com/ecmwf/codex/raw/refs/heads/main/Project%20Maturity
 .. |License: Apache 2.0| image:: https://img.shields.io/badge/License-Apache%202.0-blue.svg
    :target: https://opensource.org/licenses/apache-2-0
@@ -14,15 +14,9 @@ Earthkit-geo's documentation
    :target: https://github.com/ecmwf/earthkit-geo/releases
 
 
-.. important::
+**earthkit-geo** is a Python package providing geospatial computations such as regridding and rotation. It is part of the :xref:`earthkit` ecosystem.
 
-    This software is **Emerging** and subject to ECMWF's guidelines on `Software Maturity <https://github.com/ecmwf/codex/raw/refs/heads/main/Project%20Maturity>`_.
-
-
-**earthkit-geo** is a Python package providing geospatial computations. It is part of the :xref:`earthkit` ecosystem.
-
-The API features the :func:`regrid` function taking inputs of Numpy arrays, earthkit-data GRIB :xref:`field` or :xref:`fieldlist` objects, and  Xarray DataArrays or Datasets. It is implemented with various backends, the :ref:`default backend <mir-backend>` uses ECMWF's **MIR (Meteorological Interpolation and Regridding)** library to perform the regridding.
-
+Regridding is available for inputs of Numpy arrays, earthkit-data GRIB :xref:`field` or :xref:`fieldlist` objects, and Xarray DataArrays or Datasets. It is implemented with various backends, the :ref:`default backend <mir-backend>` uses ECMWF's **MIR (Meteorological Interpolation and Regridding)** library.
 
 
 .. grid:: 1
@@ -65,7 +59,7 @@ The API features the :func:`regrid` function taking inputs of Numpy arrays, eart
 
    .. grid-item-card:: API Reference Guide
       :img-top: _static/brackets-contain.svg
-      :link: autoapi/earthkit/geo/index
+      :link: api-reference
       :link-type: doc
       :class-card: sd-shadow-sm
 
@@ -78,11 +72,10 @@ The API features the :func:`regrid` function taking inputs of Numpy arrays, eart
    :hidden:
 
    getting-started
-   installation
    tutorials/index
    how-tos/index
    explanations/index
-   API Reference guide <autoapi/earthkit/geo/index.rst>
+   api-reference
 
 .. toctree::
    :caption: Developer guide

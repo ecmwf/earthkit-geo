@@ -9,7 +9,9 @@ A gridspec describes spatial grids in the form a dict.
 
     The gridspec format is not finalised yet and may change in future releases. Subarea specification is not yet supported.
 
-The gridspecs supported by the ``in_grid`` and ``out_grid`` options in ``regrid()`` with the :ref:`precomputed <precomputed-regrid>` and the :ref:`precomputed-local <precomputed-local-regrid>` backends are summarised below:
+
+The gridspecs supported when :ref:`regridding <precomputed-backend>` with the ``precomputed`` backend are summarised below:
+
 
 
 Global octahedral reduced Gaussian grid

@@ -33,6 +33,3 @@ Examples
 --------
 
 - :ref:`/how-tos/mir/mir_numpy_array.ipynb`
-- :ref:`/how-tos/mir/mir_healpix_fieldlist.ipynb`
-- :ref:`/how-tos/mir/mir_octahedral_fieldlist.ipynb`
-- :ref:`/how-tos/mir/mir_interpolation_types.ipynb`

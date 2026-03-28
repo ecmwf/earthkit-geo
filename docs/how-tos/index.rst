@@ -1,7 +1,7 @@
 .. _examples:
 
 
-How-to guides
+How-to Guides
 ===============
 
 

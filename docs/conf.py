@@ -151,7 +151,7 @@ html_theme_options = {
 }
 
 xref_links = {
-    "earthkit": ("earthkit", "https://earthkit.readthedocs.io/en/latest/"),
+    "earthkit": ("earthkit", "https://earthkit.ecmwf.int/"),
     "earthkit-data": (
         "earthkit-data",
         "https://earthkit-data.readthedocs.io/en/latest/",

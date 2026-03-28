@@ -1,14 +1,15 @@
 .. _caching:
 
-Disk-based precomputed weights caching
-==========================================
+Disk-based caching of regridding precomputed weights caching
+===============================================================
+
+*New in version 1.0.0.*
 
 
 .. note::
 
-    At the moment this configuration is only related to the :ref:`precomputed <precomputed-regrid>`
+    At the moment this configuration is only related to the :ref:`precomputed <precomputed-backend>`
     backends in :func:`regrid`.
-
 
 
 Purpose
@@ -62,7 +63,7 @@ When the ``cache-policy`` is "user" the **cache will be active** and created in 
 
 The user cache directory is **not cleaned up on exit**. So next time you start earthkit-geo it will be there again unless it is deleted manually or it is set in way that on each startup a different path is assigned to it. Also, when you run multiple sessions of earthkit-geo under the same user they will share the same cache.
 
-We can query the directory path via the :doc:`config` and also by calling the :meth:`~earthkit.geo.caching.Cache.directory` :ref:`cache method <cache_methods>`.
+We can query the directory path via the :doc:`config` and also by calling the :meth:`~earthkit.geo.utils.caching.Cache.directory` :ref:`cache method <cache_methods>`.
 
 .. code-block:: python
 
@@ -101,7 +102,7 @@ Temporary cache policy
 
 When the ``cache-policy`` is "temporary" the **cache will be active and located in a managed** temporary directory created by ``tempfile.TemporaryDirectory``. This directory will be unique for each earthkit-geo session. When the directory object goes out of scope (at the latest on exit) the cache is **cleaned up**.
 
-Due to the temporary nature of this directory path it cannot be queried via the :doc:`config`, but we need to call the :meth:`~earthkit.geo.caching.Cache.directory` :ref:`cache method <cache_methods>`.
+Due to the temporary nature of this directory path it cannot be queried via the :doc:`config`, but we need to call the :meth:`~earthkit.geo.utils.caching.Cache.directory` :ref:`cache method <cache_methods>`.
 
 .. code-block:: python
 
@@ -110,7 +111,7 @@ Due to the temporary nature of this directory path it cannot be queried via the 
   >>> cache.directory()
   '/var/folders/ng/g0zkhc2s42xbslpsywwp_26m0000gn/T/tmp_5bf5kq8'
 
-We can specify the parent directory for the the temporary cache by using the ``temporary-cache-directory-root`` config option. By default it is set to None (no parent directory specified).
+We can specify the parent directory for the the temporary cache by using the ``temporary-cache-directory-root`` config option. By default it is set to Non  e (no parent directory specified).
 
 .. code-block:: python
 
@@ -131,7 +132,7 @@ Off cache policy
 
 When the ``cache-policy`` is "off" no disk-based caching is available. In this case all files are downloaded into an **unmanaged** temporary directory created by ``tempfile.TemporaryDirectory``. Since caching is disabled, all repeated calls to :func:`regrid` will download the interpolation matrix again! This temporary directory will be unique for each earthkit-geo session. When the directory object goes out of scope (at the latest on exit) the directory will be **cleaned up**.
 
-Due to the temporary nature of this directory path it cannot be queried via the :doc:`config`, but we need to call the :meth:`~earthkit.geo.caching.Cache.directory` :ref:`cache method <cache_methods>`.
+Due to the temporary nature of this directory path it cannot be queried via the :doc:`config`, but we need to call the :meth:`~earthkit.geo.utils.caching.Cache.directory` :ref:`cache method <cache_methods>`.
 
 .. code-block:: python
 
@@ -178,24 +179,24 @@ there are a set of methods available on this object to manage and interact with 
    * - Methods
      - Description
 
-   * - :attr:`~earthkit.geo.caching.Cache.policy`
+   * - :attr:`~earthkit.geo.utils.caching.Cache.policy`
      - Get the current cache policy object.
    * - :meth:`~earthkit.geo.caching.Cache.directory`
      - Return the path to the current cache directory
-   * - :meth:`~earthkit.geo.caching.Cache.size`
+   * - :meth:`~earthkit.geo.utils.caching.Cache.size`
      - Return the total number of bytes stored in the cache
-   * - :meth:`~earthkit.geo.caching.Cache.check_size`
+   * - :meth:`~earthkit.geo.utils.caching.Cache.check_size`
      - Check the cache size and trim it down when needed.
-   * - :meth:`~earthkit.geo.caching.Cache.entries`
+   * - :meth:`~earthkit.geo.utils.caching.Cache.entries`
      - Dump the entries stored in the cache
-   * - :meth:`~earthkit.geo.caching.Cache.summary_dump_database`
+   * - :meth:`~earthkit.geo.utils.caching.Cache.summary_dump_database`
      - Return the number of items and total size of the cache
-   * - :meth:`~earthkit.geo.caching.Cache.purge`
+   * - :meth:`~earthkit.geo.utils.caching.Cache.purge`
      - Delete entries from the cache
 
 .. warning::
 
-    :meth:`~earthkit.geo.caching.Cache.check_size` automatically runs when a new
+    :meth:`~earthkit.geo.utils.caching.Cache.check_size` automatically runs when a new
     entry is added to the cache or any of the :ref:`cache_config` changes.
 
 Examples:

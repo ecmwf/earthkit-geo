@@ -9,7 +9,7 @@ A gridspec describes spatial grids in the form of a dict.
 
     The gridspec format is not finalised yet and may change in future releases. Area specification is currently supported only as a provisional feature (subject to change or removal) and may emit deprecation warnings.
 
-The gridspecs supported by the ``in_grid`` and ``out_grid`` options in :ref:`regrid() <mir-regrid>` with the (default) MIR backend are summarised below:
+The gridspecs supported when :ref:`regridding <mir-backend>` with the MIR backend are summarised below:
 
 
 Gaussian grids
@@ -80,7 +80,7 @@ Examples (the last two are in nested order):
 
 
 FESOM grids
-----------
+-------------
 
 These grids are designed for global ocean coverage, and are associated with the FESOM model. The ``grid`` format is case-insensitive, in the formats::
 

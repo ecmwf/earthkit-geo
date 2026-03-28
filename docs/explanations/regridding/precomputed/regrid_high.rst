@@ -3,7 +3,7 @@
 regrid (high-level) with precomputed weights
 =============================================================
 
-*New in version 0.5.0.*
+*New in version 1.0.0.*
 
 .. py:function:: regrid(data, grid=None, *, interpolation='linear', backend="precomputed", inventory="ecmwf")
     :noindex:
@@ -31,3 +31,12 @@ regrid (high-level) with precomputed weights
 
 
     The regridding is performed by multiplying the ``data`` vector with the interpolation weights, which forms a sparse matrix (sparse matrix) -vector multiplication).
+
+
+
+Examples
+--------
+
+- :ref:`/how-tos/precomputed/precomp_healpix_fieldlist.ipynb`
+- :ref:`/how-tos/precomputed/precomp_octahedral_fieldlist.ipynb`
+- :ref:`/how-tos/precomputed/memory_cache.html`

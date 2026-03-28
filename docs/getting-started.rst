@@ -18,8 +18,7 @@ For more details on the installation please see :ref:`install`.
 Import and use
 --------------
 
-
-A different interface is available depending on the input data type.
+For regridding, a different interface is available depending on the input data type.
 
 High-level interface
 //////////////////////

@@ -20,7 +20,7 @@ regrid (high-level) with MIR
         - an :class:`xarray.DataArray` or :class:`xarray.Dataset`
 
     :type data: :xref:`fieldlist`, :xref:`field`, bytes, or :class:`io.BytesIO`
-    :param grid: the :ref:`grid_spec <grid_spec>` describing the target grid that ``data`` will be interpolated onto
+    :param grid: the :ref:`gridspec <gridspec>` describing the target grid that ``data`` will be interpolated onto
     :type grid: dict, str, :class:`Grid`
     :param interpolation: the interpolation method. There is a high degree of customisation available to parametrise the available interpolation methods. Please note ot all the interpolation methods support all possible grid types. The possible values are as follows:
 
@@ -34,7 +34,6 @@ regrid (high-level) with MIR
 Examples
 --------
 
-- :ref:`/how-tos/mir/mir_numpy_array.ipynb`
 - :ref:`/how-tos/mir/mir_healpix_fieldlist.ipynb`
 - :ref:`/how-tos/mir/mir_octahedral_fieldlist.ipynb`
 - :ref:`/how-tos/mir/mir_interpolation_types.ipynb`
