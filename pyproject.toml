@@ -35,11 +35,27 @@ readme = "README.md"
 requires-python = ">=3.10"
 optional-dependencies.all = ["cartopy"]
 optional-dependencies.cartography = ["cartopy"]
+optional-dependencies.dev = [
+  "earthkit-geo[all,docs,test]"
+]
+optional-dependencies.docs = [
+  "docutils",
+  "furo",
+  "ipykernel",
+  "nbconvert",
+  "nbsphinx",
+  "pygments>=2.6.1",
+  "setuptools",
+  "sphinx>=7.3.7",
+  "sphinx-autoapi",
+  "sphinx-copybutton",
+  "sphinx-design",
+  "sphinx-issues"
+]
 optional-dependencies.test = [
   "earthkit-data",
   "pytest",
-  "pytest-cov",
-  "requests"
+  "pytest-cov"
 ]
 urls.Documentation = "https://earthkit-geo.readthedocs.io/"
 urls.Homepage = "https://github.com/ecmwf/earthkit-geo/"

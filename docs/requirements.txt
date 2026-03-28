@@ -12,4 +12,4 @@ sphinx-issues
 sphinx-copybutton
 scipy
 furo
-phinx-design
+sphinx-design
