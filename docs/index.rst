@@ -16,7 +16,7 @@ Earthkit-geo's documentation
 
 **earthkit-geo** is a Python package providing geospatial computations such as regridding and rotation. It is part of the :xref:`earthkit` ecosystem.
 
-Regridding is available for inputs of Numpy arrays, earthkit-data GRIB :xref:`field` or :xref:`fieldlist` objects, and Xarray DataArrays or Datasets. It is implemented with various backends, the :ref:`default backend <mir-backend>` uses ECMWF's **MIR (Meteorological Interpolation and Regridding)** library.
+Regridding is available for inputs of Numpy arrays, earthkit-data GRIB :py:class:`~earthkit.data.core.field.Field` or :py:class:`~earthkit.data.core.fieldlist.FieldList` objects, and :py:class:`xarray.DataArray` or :py:class:`xarray.Dataset` objects. It is implemented with various backends, the :ref:`default backend <mir-backend>` uses ECMWF's **MIR (Meteorological Interpolation and Regridding)** library.
 
 
 .. grid:: 1
