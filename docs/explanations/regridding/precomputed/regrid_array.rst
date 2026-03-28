@@ -20,7 +20,7 @@ regrid (array-level) with precomputed weights
     :type interpolation: str
     :param inventory: the path to the inventory of the precomputed weights. The interpolation only works when the weights are available for the given ``in_grid``, ``out_grid`` and ``interpolation`` combination. At present, two inventory types are available:
 
-       - If ``inventory`` is "ecmwf" on None, the remote inventory managed by ECMWF is used. In this case the weights are automatically downloaded and stored in a local cache (at ``"~/.cache/earthkit-regrid"``) and when it is needed again the cached version is used. See the :ref:`inventory <matrix_inventory>` for the list of supported grid to grid combinations with this backend.
+       - If ``inventory`` is "ecmwf" on None, the remote inventory managed by ECMWF is used. In this case the weights are automatically downloaded and stored in a local cache (at ``"~/.cache/earthkit-geo"``) and when it is needed again the cached version is used. See the :ref:`inventory <matrix_inventory>` for the list of supported grid to grid combinations with this backend.
        - If ``inventory`` is a local path, a local inventory is used. Please note this in experimental feature only used for development purposes.
     :type inventory: str
     :return: Return a tuple with the interpolated values and the :ref:`gridspec <gridspec-precomputed>` of the output grid.

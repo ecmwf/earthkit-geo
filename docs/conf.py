@@ -192,8 +192,8 @@ intersphinx_mapping = {
     "pandas": ("https://pandas.pydata.org/docs/", None),
     "xarray": ("https://docs.xarray.dev/en/latest/", None),
     "geopandas": ("https://geopandas.org", None),
-    "earthkit-data": ("https://earthkit-data.readthedocs.io/en/latest/", None),
-    "earthkit-plots": ("https://earthkit-plots.readthedocs.io/en/latest/", None),
+    "earthkit-data": ("https://earthkit-data.readthedocs.io/en/release-1.0.0rc0/", None),
+    "earthkit-plots": ("https://earthkit-plots.readthedocs.io/en/release-1.0.0rc0/", None),
 }
 
 

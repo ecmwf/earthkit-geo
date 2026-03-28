@@ -14,12 +14,12 @@ regrid (high-level) with MIR
 
     :param data: the following input data types are supported:
 
-        - an earthkit-data GRIB :xref:`fieldlist` (requires :xref:`earthkit-data` >= 1.0.0).
-        - an earthkit-data GRIB :xref:`field` (requires :xref:`earthkit-data` >= 1.0.0).
+        - an earthkit-data GRIB :py:class:`~earthkit.data.core.fieldlist.FieldList` (requires :xref:`earthkit-data` >= 1.0.0).
+        - an earthkit-data GRIB :py:class:`~earthkit.data.core.field.Field` (requires :xref:`earthkit-data` >= 1.0.0).
         - a GRIB message as a bytes or :class:`io.BytesIO` object
         - an :class:`xarray.DataArray` or :class:`xarray.Dataset`
 
-    :type data: :xref:`fieldlist`, :xref:`field`, bytes, or :class:`io.BytesIO`
+    :type data: :py:class:`~earthkit.data.core.fieldlist.FieldList`, :py:class:`~earthkit.data.core.field.Field`, bytes, or :class:`io.BytesIO`, :class:`xarray.DataArray`, :class:`xarray.Dataset`
     :param grid: the :ref:`gridspec <gridspec>` describing the target grid that ``data`` will be interpolated onto
     :type grid: dict, str, :class:`Grid`
     :param interpolation: the interpolation method. Please note not all the interpolation methods support all possible grid types. The possible values are as follows:
