@@ -18,10 +18,10 @@ regrid (array-level) with MIR
     :type in_grid: dict, str,  :obj:`Grid <earthkit.geo.grid.Grid>`
     :param out_grid: the :ref:`gridspec <gridspec>` describing the target grid that ``data`` will be interpolated onto
     :type out_grid: dict, str, :obj:`Grid <earthkit.geo.grid.Grid>`
-    :param interpolation: the interpolation method. There is a high degree of customisation available to parametrise the available interpolation methods. Please note ot all the interpolation methods support all possible grid types. The possible values are  as follows:
+    :param interpolation: the interpolation method. Please note not all the interpolation methods support all possible grid types. The possible values are  as follows:
 
         - "linear": Finite Element based interpolation with linear base functions with supporting triangular mesh
-        - "grid-box-average": input/output grid box (see [model_grid_box]_) intersections interpolation preserving input value integrals (conservative interpolation).
+        - "grid-box-average": input/output grid box intersections interpolation preserving input value integrals (conservative interpolation).
         - "nearest-neighbour": choose a nearest neighbouring input point to define output point value
 
     :type interpolation: str
