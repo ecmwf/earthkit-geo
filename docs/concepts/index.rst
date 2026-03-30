@@ -1,6 +1,6 @@
-.. _guide:
+.. _concepts:
 
-Concepts and Explanations
+Concepts
 ===========================
 
 .. toctree::

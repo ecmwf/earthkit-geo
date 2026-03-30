@@ -49,9 +49,9 @@ Regridding is available for inputs of Numpy arrays, earthkit-data GRIB :py:class
 
       Practical recipes for common tasks.
 
-   .. grid-item-card:: Concepts and Explanations
+   .. grid-item-card:: Concepts
       :img-top: _static/bulb.svg
-      :link: explanations/index
+      :link: concepts/index
       :link-type: doc
       :class-card: sd-shadow-sm
 
@@ -74,7 +74,7 @@ Regridding is available for inputs of Numpy arrays, earthkit-data GRIB :py:class
    getting-started
    tutorials/index
    how-tos/index
-   explanations/index
+   concepts/index
    api-reference
 
 .. toctree::
