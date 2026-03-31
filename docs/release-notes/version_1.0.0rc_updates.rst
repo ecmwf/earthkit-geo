@@ -1,3 +1,5 @@
+..  _release-notes-1.0.0rc:
+
 Version 1.0.0 Release Candidate Updates
 /////////////////////////////////////////
 

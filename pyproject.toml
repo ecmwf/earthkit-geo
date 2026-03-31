@@ -19,8 +19,8 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy"
 ]
 dependencies = [
-  "eckit",
-  "mir-python>=1.28.0.13",
+  "eckit=2.0.6.17",
+  "mir-python==1.28.1.17",
   "multiurl",
   "pyproj",
   "pyyaml",
