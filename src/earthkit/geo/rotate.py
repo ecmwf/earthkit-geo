@@ -8,9 +8,7 @@
 #
 
 from . import constants
-from .coord import _normalise_lon
-from .coord import latlon_to_xyz
-from .coord import xyz_to_latlon
+from .coord import _normalise_lon, latlon_to_xyz, xyz_to_latlon
 
 
 def _normalise(x):
@@ -18,9 +16,7 @@ def _normalise(x):
 
 
 def _rotation_matrix(south_pole_lat, south_pole_lon):
-    """
-    Define matrix for spherical rotation.
-    """
+    """Define matrix for spherical rotation."""
     import numpy as np
 
     theta = -np.deg2rad(south_pole_lat - constants.SOUTH_POLE_LAT)
@@ -76,7 +72,7 @@ def rotate(lat, lon, south_pole_lat, south_pole_lon):
     (array([-20.]), array([-40.]))
 
     For more examples, see:
-        - :ref:`/examples/rotate.ipynb`
+        - :ref:`/how-tos/geo/rotate.ipynb`
 
     """
     import numpy as np

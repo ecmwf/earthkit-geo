@@ -12,13 +12,9 @@
 import numpy as np
 import pytest
 
-from earthkit.geo.rotate import rotate
-from earthkit.geo.rotate import rotate_vector
-from earthkit.geo.rotate import unrotate
-from earthkit.geo.rotate import unrotate_vector
+from earthkit.geo.rotate import rotate, rotate_vector, unrotate, unrotate_vector
 
-from .testing import earthkit_test_data_file
-from .testing import normalise_lon
+from .testing import earthkit_test_data_file, normalise_lon
 
 
 def _make_proj(name):

@@ -12,10 +12,7 @@
 import numpy as np
 import pytest
 
-from earthkit.geo import UNIT_SPHERE
-from earthkit.geo import haversine_distance
-from earthkit.geo import nearest_point_haversine
-from earthkit.geo import nearest_point_kdtree
+from earthkit.geo import UNIT_SPHERE, haversine_distance, nearest_point_haversine, nearest_point_kdtree
 
 
 def get_nearest_method(mode):
@@ -110,7 +107,7 @@ def test_haversine_distance_with_radius():
 
 
 # lat is out of range
-@pytest.mark.parametrize("p_ref", [((90.00001, 0)), (((-90.00001, 0)))])
+@pytest.mark.parametrize("p_ref", [((90.00001, 0)), ((-90.00001, 0))])
 def test_haversine_distance_invalid(p_ref):
     p = (-48, 12)
     d = haversine_distance(p_ref, p)

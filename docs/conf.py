@@ -9,10 +9,32 @@
 import datetime
 import os
 import sys
+import json
 
+import yaml
+
+
+on_rtd = os.environ.get("READTHEDOCS") == "True"
+
+if on_rtd:
+    version = os.environ.get("READTHEDOCS_VERSION", "latest")
+    release = version
+else:
+    version = "dev"
+    release = "dev"
+
+rtd_version = version if version != "latest" else "develop"
+rtd_version_type = os.environ.get("READTHEDOCS_VERSION_TYPE", "branch")
+
+if rtd_version_type in ("branch", "tag"):
+    source_branch = rtd_version
+else:
+    source_branch = "main"
+
+
+sys.path.insert(0, os.path.abspath("../src"))
 sys.path.insert(0, os.path.abspath("./"))
 sys.path.insert(0, os.path.abspath("../"))
-sys.path.append(os.path.abspath("./_ext"))
 
 # -- Project information -----------------------------------------------------
 
@@ -29,14 +51,16 @@ copyright = "%s, European Centre for Medium-Range Weather Forecasts (ECMWF)" % (
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    "sphinx_rtd_theme",
     "nbsphinx",
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
+    "sphinx.ext.intersphinx",
     "autoapi.extension",
     "sphinx_issues",
     "sphinx_copybutton",
-    "xref",
+    "earthkit.geo.sphinxext.xref",
+    "earthkit.geo.sphinxext.module_output",
+    "sphinx_design",
 ]
 
 # autodoc configuration
@@ -44,13 +68,12 @@ autodoc_typehints = "none"
 
 # autoapi configuration
 autoapi_dirs = ["../src/earthkit"]
-autoapi_ignore = ["*/version.py", "sphinxext/*"]
+autoapi_ignore = ["*/version.py", "*/sphinxext/*"]
 autoapi_options = [
     "members",
     "undoc-members",
     "show-inheritance",
     "show-module-summary",
-    "imported-members",
     "inherited-members",
 ]
 autoapi_root = "autoapi"
@@ -83,20 +106,70 @@ source_suffix = ".rst"
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = "sphinx_rtd_theme"
+html_theme = "furo"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
-html_css_files = ["style.css"]
+html_css_files = ["custom.css"]
 
 
-html_logo = "https://github.com/ecmwf/logos/raw/refs/heads/main/logos/earthkit/earthkit-geo-dark.svg"
+# html_logo = "https://github.com/ecmwf/logos/raw/refs/heads/main/logos/earthkit/earthkit-geo-dark.svg"
 
+
+html_js_files = [
+    "earthkit-packages.js",  # generated from earthkit-packages.yml at build time
+    "custom.js",
+]
+
+html_favicon = "https://raw.githubusercontent.com/ecmwf/logos/refs/heads/main/logos/earthkit/earthkit-logo-only.svg"
+
+
+html_theme_options = {
+    "light_css_variables": {
+        "color-sidebar-background": "#131320",
+        # "color-background-primary": "", # leave as default to avoid overriding the light theme background
+        "color-sidebar-link-text": "#ffffff",
+        "color-sidebar-brand-text": "#ffffff",
+        "color-sidebar-caption-text": "#ffffff",
+        "color-brand-primary": "#FCE54B",
+        "color-brand-content": "#5f8dd3",
+        "color-sidebar-item-background--hover": "#001F3F",
+        "color-sidebar-item-expander-background--hover": "#001F3F",
+    },
+    "dark_css_variables": {
+        "color-sidebar-background": "#131320",
+        "color-background-primary": "#131320",
+        "color-sidebar-link-text": "#ffffff",
+        "color-sidebar-brand-text": "#ffffff",
+        "color-sidebar-caption-text": "#ffffff",
+        "color-brand-primary": "#FCE54B",
+        "color-brand-content": "#5f8dd3",
+        "color-sidebar-item-background--hover": "#001F3F",
+        "color-sidebar-item-expander-background--hover": "#001F3F",
+    },
+    "light_logo": "earthkit-geo-dark.svg",
+    "dark_logo": "earthkit-geo-dark.svg",
+    "source_repository": "https://github.com/ecmwf/earthkit-geo/",
+    "source_branch": source_branch,
+    "source_directory": "docs",
+    "footer_icons": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/ecmwf/earthkit-geo",
+            "html": """
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            """,
+            "class": "",
+        },
+    ],
+}
 
 xref_links = {
-    "earthkit": ("earthkit", "https://earthkit.readthedocs.io/en/latest/"),
+    "earthkit": ("earthkit", "https://earthkit.ecmwf.int/"),
     "earthkit-data": (
         "earthkit-data",
         "https://earthkit-data.readthedocs.io/en/latest/",
@@ -105,4 +178,37 @@ xref_links = {
         "earthkit-plots",
         "https://earthkit-plots.readthedocs.io/en/latest/",
     ),
+    "fieldlist": (
+        "fieldlist",
+        "https://earthkit-data.readthedocs.io/en/latest/guide/data_format/grib.html",
+    ),
+    "field": (
+        "field",
+        "https://earthkit-data.readthedocs.io/en/latest/guide/data_format/grib.html",
+    ),
 }
+
+intersphinx_mapping = {
+    "pandas": ("https://pandas.pydata.org/docs/", None),
+    "xarray": ("https://docs.xarray.dev/en/latest/", None),
+    "geopandas": ("https://geopandas.org", None),
+    "earthkit-data": ("https://earthkit-data.readthedocs.io/en/release-1.0.0rc0/", None),
+    "earthkit-plots": ("https://earthkit-plots.readthedocs.io/en/release-1.0.0rc0/", None),
+}
+
+
+def _write_earthkit_packages_js(app):
+    """Read earthkit-packages.yml and write a JS data file into the output _static dir."""
+    config_path = os.path.join(os.path.dirname(__file__), "earthkit-packages.yml")
+    with open(config_path, encoding="utf-8") as fh:
+        config = yaml.safe_load(fh)
+    packages = config.get("packages", [])
+    static_dir = os.path.join(app.outdir, "_static")
+    os.makedirs(static_dir, exist_ok=True)
+    js_path = os.path.join(static_dir, "earthkit-packages.js")
+    with open(js_path, "w", encoding="utf-8") as fh:
+        fh.write(f"window.earthkitPackages = {json.dumps(packages)};\n")
+
+
+def setup(app):
+    app.connect("builder-inited", _write_earthkit_packages_js)

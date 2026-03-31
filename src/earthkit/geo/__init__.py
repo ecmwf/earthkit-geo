@@ -22,6 +22,11 @@ from earthkit.geo.distance import nearest_point_haversine
 from earthkit.geo.distance import nearest_point_kdtree
 from earthkit.geo.figure import IFS_SPHERE
 from earthkit.geo.figure import UNIT_SPHERE
+from earthkit.geo.regrid import regrid
+from earthkit.geo.utils.caching import CACHE as cache
+from earthkit.geo.utils.config import CONFIG as config
+from earthkit.geo.utils.memcache import clear_memory_cache
+from earthkit.geo.utils.memcache import memory_cache_info
 
 __all__ = [
     "GeoKDTree",
@@ -29,6 +34,11 @@ __all__ = [
     IFS_SPHERE,
     "nearest_point_haversine",
     "nearest_point_kdtree",
+    "regrid",
+    "cache",
+    "config",
+    "clear_memory_cache",
+    "memory_cache_info",
     UNIT_SPHERE,
     "__version__",
 ]

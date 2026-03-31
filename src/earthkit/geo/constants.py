@@ -7,18 +7,16 @@
 # nor does it submit to any jurisdiction.
 #
 
-"""
-Collection of constants in SI units.
-"""
+"""Collection of constants."""
 
 NORTH_POLE_LAT = 90
-r"""Latitude of the north pole in degrees"""
+r"""Latitude of the north pole in degrees."""
 
 SOUTH_POLE_LAT = -90
 r"""Latitude of the south pole in degrees"""
 
 FULL_ANGLE = 360.0
-r"""Full angle in degrees"""
+r"""Full angle in degrees."""
 
 STRAIGHT_ANGLE = 180.0
 r"""Half angle in degrees"""
