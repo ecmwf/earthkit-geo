@@ -1,7 +1,9 @@
 .. _mir-backend:
 
-MIR
+MIR backend
 ================
+
+Regridding with the MIR backend.
 
 .. toctree::
    :maxdepth: 1

@@ -1,7 +1,9 @@
 .. _precomputed-backend:
 
-precomputed
-================
+Precomputed backend
+========================
+
+Regridding with the precomputed backend.
 
 .. toctree::
    :maxdepth: 1
