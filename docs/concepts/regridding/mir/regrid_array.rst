@@ -14,9 +14,9 @@ regrid (array-level) with MIR
 
     :param data: array representing a single field defined on the ``in_grid``.
     :type data: ndarray
-    :param in_grid: the :ref:`gridspec <gridspec>` describing the grid that ``data`` are defined on. Ignored when ``data`` is not an ndarray.
+    :param in_grid: the :ref:`gridspec <gridspec>` describing the grid that ``data`` are defined on. For the list of supported grids, please refer to the :ref:`gridspec <grid_spec>` documentation.
     :type in_grid: dict, str,  :obj:`Grid <earthkit.geo.grid.Grid>`
-    :param out_grid: the :ref:`gridspec <gridspec>` describing the target grid that ``data`` will be interpolated onto
+    :param out_grid: the :ref:`gridspec <gridspec>` describing the target grid that ``data`` will be interpolated onto. For the list of supported grids, please refer to the :ref:`gridspec <grid_spec>` documentation.
     :type out_grid: dict, str, :obj:`Grid <earthkit.geo.grid.Grid>`
     :param interpolation: the interpolation method. Please note not all the interpolation methods support all possible grid types. The possible values are  as follows:
 

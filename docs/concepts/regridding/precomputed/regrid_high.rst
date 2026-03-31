@@ -12,8 +12,8 @@ regrid (high-level) with precomputed weights
 
     :param data: the input data. The following types are supported:
 
-        - an earthkit-data GRIB :py:class:`~earthkit.data.core.fieldlist.FieldList` (requires :xref:`earthkit-data` >= 0.6.0).
-        - an earthkit-data GRIB :py:class:`~earthkit.data.core.field.Field` (requires :xref:`earthkit-data` >= 0.6.0).
+        - an earthkit-data GRIB :py:class:`~earthkit.data.core.fieldlist.FieldList` (requires :xref:`earthkit-data` >= 1.0.0).
+        - an earthkit-data GRIB :py:class:`~earthkit.data.core.field.Field` (requires :xref:`earthkit-data` >= 1.0.0).
     :type data:  :py:class:`~earthkit.data.core.fieldlist.FieldList`, :py:class:`~earthkit.data.core.field.Field`
     :param grid: the :ref:`gridspec <gridspec-precomputed>` describing the target grid that ``data`` will be interpolated onto
     :type grid: dict
@@ -25,11 +25,10 @@ regrid (high-level) with precomputed weights
        - If ``inventory`` is a local path, a local inventory is used. Please note this in experimental feature only used for development purposes.
     :type inventory: str
     :return: The same type of data as ``data`` containing the interpolated values.
-    :rtype: :xref:`fieldlist`, :xref:`field`
+    :rtype: :py:class:`~earthkit.data.core.field.Field`, :py:class:`~earthkit.data.core.fieldlist.FieldList`
     :raises ValueError: if the precomputed weights are not available
 
-
-    The regridding is performed by multiplying the ``data`` vector with the interpolation weights, which forms a sparse matrix (sparse matrix) -vector multiplication).
+    The regridding is performed by multiplying the ``data`` vector with the interpolation weights, which forms a sparse matrix (sparse matrix-vector multiplication).
 
 
 

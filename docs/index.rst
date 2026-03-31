@@ -2,25 +2,23 @@
 Earthkit-geo's documentation
 ======================================================
 
-|Static Badge| |image1| |License: Apache 2.0| |Latest Release|
-
-.. |Static Badge| image:: https://github.com/ecmwf/codex/raw/refs/heads/main/ESEE/foundation_badge.svg
-   :target: https://github.com/ecmwf/codex/raw/refs/heads/main/ESEE
-.. |image1| image:: https://github.com/ecmwf/codex/raw/refs/heads/main/Project%20Maturity/incubating_badge.svg
-   :target: https://github.com/ecmwf/codex/raw/refs/heads/main/Project%20Maturity
-.. |License: Apache 2.0| image:: https://img.shields.io/badge/License-Apache%202.0-blue.svg
-   :target: https://opensource.org/licenses/apache-2-0
-.. |Latest Release| image:: https://img.shields.io/github/v/release/ecmwf/earthkit-geo?color=blue&label=Release&style=flat-square
-   :target: https://github.com/ecmwf/earthkit-geo/releases
-
-
 **earthkit-geo** is a Python package providing geospatial computations such as regridding and rotation. It is part of the :xref:`earthkit` ecosystem.
-
-Regridding is available for inputs of Numpy arrays, earthkit-data GRIB :py:class:`~earthkit.data.core.field.Field` or :py:class:`~earthkit.data.core.fieldlist.FieldList` objects, and :py:class:`xarray.DataArray` or :py:class:`xarray.Dataset` objects. It is implemented with various backends, the :ref:`default backend <mir-backend>` uses ECMWF's **MIR (Meteorological Interpolation and Regridding)** library.
-
 
 .. grid:: 1
    :gutter: 2
+
+   .. grid-item-card:: Why earthkit-geo?
+      :img-top:  _static/earthkit-geo-grey.svg
+      :link: why
+      :link-type: doc
+      :class-card: sd-shadow-sm
+
+      The motivation and key features of earthkit-geo.
+
+
+.. grid:: 1 1 2 2
+   :gutter: 2
+
 
    .. grid-item-card:: Installation and Getting Started
       :img-top: _static/rocket.svg
@@ -30,8 +28,13 @@ Regridding is available for inputs of Numpy arrays, earthkit-data GRIB :py:class
 
       New to earthkit-geo? Start here with installation and a quick overview.
 
-.. grid:: 1 1 2 2
-   :gutter: 2
+   .. grid-item-card:: Frequently Asked Questions
+      :img-top: _static/message-question.svg
+      :link: faq
+      :link-type: doc
+      :class-card: sd-shadow-sm
+
+      The most common questions, answered.
 
    .. grid-item-card:: Tutorials
       :img-top: _static/book.svg
@@ -65,6 +68,18 @@ Regridding is available for inputs of Numpy arrays, earthkit-data GRIB :py:class
 
       Detailed documentation of all functions and classes.
 
+
+**Support**
+
+Have a feature request or found a bug? Feel free to open an
+`issue <https://github.com/ecmwf/earthkit-geo/issues/new/choose>`_.
+
+
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+
+   why
 
 .. toctree::
    :caption: User guide
