@@ -1,62 +1,116 @@
 
-Welcome to earthkit-geo's documentation
+Earthkit-geo's documentation
 ======================================================
-
-|Static Badge| |image1| |License: Apache 2.0| |Latest Release|
-
-.. |Static Badge| image:: https://github.com/ecmwf/codex/raw/refs/heads/main/ESEE/foundation_badge.svg
-   :target: https://github.com/ecmwf/codex/raw/refs/heads/main/ESEE
-.. |image1| image:: https://github.com/ecmwf/codex/raw/refs/heads/main/Project%20Maturity/emerging_badge.svg
-   :target: https://github.com/ecmwf/codex/raw/refs/heads/main/Project%20Maturity
-.. |License: Apache 2.0| image:: https://img.shields.io/badge/License-Apache%202.0-blue.svg
-   :target: https://opensource.org/licenses/apache-2-0
-.. |Latest Release| image:: https://img.shields.io/github/v/release/ecmwf/earthkit-geo?color=blue&label=Release&style=flat-square
-   :target: https://github.com/ecmwf/earthkit-geo/releases
-
-
 .. important::
 
-    This software is **Emerging** and subject to ECMWF's guidelines on `Software Maturity <https://github.com/ecmwf/codex/raw/refs/heads/main/Project%20Maturity>`_.
+    This software is in **release candidate** stage. It is not yet considered stable and may still undergo significant changes before the final 1.0 release. We welcome feedback and contributions as we approach that milestone.
+
+    See the :ref:`release notes <release-notes-1.0.0rc>` for details on the changes in this release.
 
 
-**earthkit-geo** is a Python package providing geospatial computations. It is part of the :xref:`earthkit` ecosystem.
+**earthkit-geo** is a Python package providing geospatial computations such as regridding and rotation. It is part of the :xref:`earthkit` ecosystem.
+
+.. grid:: 1
+   :gutter: 2
+
+   .. grid-item-card:: Why earthkit-geo?
+      :img-top:  _static/earthkit-geo-grey.svg
+      :link: why
+      :link-type: doc
+      :class-card: sd-shadow-sm
+
+      The motivation and key features of earthkit-geo.
+
+
+.. grid:: 1 1 2 2
+   :gutter: 2
+
+
+   .. grid-item-card:: Installation and Getting Started
+      :img-top: _static/rocket.svg
+      :link: getting-started
+      :link-type: doc
+      :class-card: sd-shadow-sm
+
+      New to earthkit-geo? Start here with installation and a quick overview.
+
+   .. grid-item-card:: Frequently Asked Questions
+      :img-top: _static/message-question.svg
+      :link: faq
+      :link-type: doc
+      :class-card: sd-shadow-sm
+
+      The most common questions, answered.
+
+   .. grid-item-card:: Tutorials
+      :img-top: _static/book.svg
+      :link: tutorials/index
+      :link-type: doc
+      :class-card: sd-shadow-sm
+
+      Step-by-step guides to learn earthkit-geo.
+
+   .. grid-item-card:: How-tos
+      :img-top: _static/tool.svg
+      :link: how-tos/index
+      :link-type: doc
+      :class-card: sd-shadow-sm
+
+      Practical recipes for common tasks.
+
+   .. grid-item-card:: Concepts
+      :img-top: _static/bulb.svg
+      :link: concepts/index
+      :link-type: doc
+      :class-card: sd-shadow-sm
+
+      Understand the core ideas behind earthkit-geo.
+
+   .. grid-item-card:: API Reference Guide
+      :img-top: _static/brackets-contain.svg
+      :link: api-reference
+      :link-type: doc
+      :class-card: sd-shadow-sm
+
+      Detailed documentation of all functions and classes.
+
+
+**Support**
+
+Have a feature request or found a bug? Feel free to open an
+`issue <https://github.com/ecmwf/earthkit-geo/issues/new/choose>`_.
 
 
 .. toctree::
-   :maxdepth: 1
-   :caption: Examples
+   :maxdepth: 2
+   :hidden:
 
-   examples/index
-
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Documentation
-
-   API Reference <autoapi/earthkit/geo/index.rst>
-   references.rst
+   why
 
 .. toctree::
-   :maxdepth: 1
-   :caption: Installation
+   :caption: User guide
+   :maxdepth: 2
+   :hidden:
 
-   install
-   release_notes/index
+   getting-started
+   tutorials/index
+   how-tos/index
+   concepts/index
+   api-reference
+
+.. toctree::
+   :caption: Developer guide
+   :maxdepth: 2
+   :hidden:
+
    development
-   licence
+
 
 .. toctree::
-   :maxdepth: 1
-   :caption: Projects
+   :maxdepth: 2
+   :caption: Extras
+   :hidden:
 
-   earthkit <https://earthkit.readthedocs.io/en/latest>
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-
-.. * :ref:`modindex`
-.. * :ref:`search`
+   release-notes/index
+   licence
+   genindex

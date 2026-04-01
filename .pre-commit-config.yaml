@@ -18,7 +18,7 @@ repos:
   rev: v0.15.4
   hooks:
   - id: ruff-check
-    exclude: '(dev/.*|.*_)\.py$'
+    exclude: '(docs/conf|dev/.*|.*_)\.py$|docs/experimental/.*\.ipynb$'
     args:
     - --fix
     - --exit-non-zero-on-fix

@@ -3,11 +3,15 @@ channels:
 - conda-forge
 - nodefaults
 dependencies:
+- pip
+- multiurl
+- filelock
 - pyproj
 - cartopy
 - shapely
 - scipy
 - requests
+- pyyaml
 - make
 - mypy
 - myst-parser
@@ -20,3 +24,5 @@ dependencies:
 - sphinx_rtd_theme
 - sphinxcontrib-apidoc
 - nbsphinx
+- pip:
+  - mir-python>=1.28.0.13

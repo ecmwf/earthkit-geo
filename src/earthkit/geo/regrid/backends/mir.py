@@ -1,0 +1,106 @@
+# (C) Copyright 2025- ECMWF.
+#
+# This software is licensed under the terms of the Apache Licence Version 2.0
+# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+# In applying this licence, ECMWF does not waive the privileges and immunities
+# granted to it by virtue of its status as an intergovernmental organisation
+# nor does it submit to any jurisdiction.
+#
+
+from warnings import warn
+
+from . import Backend
+
+
+class MirBackend(Backend):
+    name = "mir"
+
+    @staticmethod
+    def normalise_area(area):
+        if isinstance(area, str):
+            return area
+        if isinstance(area, (list, tuple)):
+            if len(area) == 4:
+                return "/".join(map(str, area))
+
+        raise ValueError(f"Invalid area format: {area}")
+
+    @staticmethod
+    def adjust_options(grid, kwargs):
+        # TODO: remove this once we have a better way to handle area in gridspec
+        if "area" in grid:
+            warn(
+                "The area key is a temporary workaround for area in gridspec",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            grid = grid.copy()
+            kwargs = kwargs.copy()
+            area = grid.pop("area")
+            kwargs["area"] = MirBackend.normalise_area(area)
+        return grid, kwargs
+
+    def regrid(
+        self,
+        data,
+        in_grid,
+        out_grid,
+        interpolation="linear",
+    ):
+        import mir
+
+        kwargs = {
+            "interpolation": interpolation,
+        }
+
+        out_grid, kwargs = self.adjust_options(out_grid, {})
+
+        input = mir.ArrayInput(data, in_grid)
+        out = mir.ArrayOutput()
+
+        job = mir.Job()
+        job.set("grid", out_grid)
+        job.set("interpolation", interpolation)  # NOTE: needs generalisation
+        for k, v in kwargs.items():
+            job.set(k, v)
+
+        job.execute(input, out)
+
+        return out.values(), out.spec
+
+    # TODO: remove this once the gridspec can be written into the GRIB message
+    def regrid_grib(
+        self,
+        message,
+        grid,
+        interpolation="linear",
+    ):
+        from io import BytesIO
+
+        import mir
+
+        kwargs = {
+            "interpolation": interpolation,
+        }
+
+        # no 'automatic' necessary
+        kremove = [k for k, v in kwargs.items() if v == "automatic"]
+        for k in kremove:
+            del kwargs[k]
+
+        out_grid, kwargs = self.adjust_options(grid, kwargs)
+
+        in_data = mir.GribMemoryInput(message)
+        out = BytesIO()
+
+        job = mir.Job()
+        job.set("grid", out_grid)
+        for k, v in kwargs.items():
+            job.set(k, v)
+
+        job.execute(in_data, out)
+
+        return out.getvalue()
+
+
+backend = MirBackend

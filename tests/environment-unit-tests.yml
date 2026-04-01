@@ -1,8 +1,12 @@
-name: earthkit-data
+name: earthkit-geo
 channels:
 - conda-forge
 - nodefaults
 dependencies:
+- pip
+- deprecation
+- multiurl
+- filelock
 - pyproj
 - scipy
 - requests
@@ -21,3 +25,5 @@ dependencies:
 - nbsphinx
 - sphinx-issues
 - sphinx-copybutton
+- pip:
+  - mir-python>=1.28.0.13

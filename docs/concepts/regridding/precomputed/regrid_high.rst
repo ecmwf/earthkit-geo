@@ -1,0 +1,40 @@
+.. _precomputed-regrid-high :
+
+regrid (high-level) with precomputed weights
+=============================================================
+
+*New in version 1.0.0.*
+
+.. py:function:: regrid(data, grid=None, *, interpolation='linear', backend="precomputed", inventory="ecmwf")
+    :noindex:
+
+    Regrid the high-level ``data`` object (with geography information) using precomputed weights.
+
+    :param data: the input data. The following types are supported:
+
+        - an earthkit-data GRIB :py:class:`~earthkit.data.core.fieldlist.FieldList` (requires :xref:`earthkit-data` >= 1.0.0).
+        - an earthkit-data GRIB :py:class:`~earthkit.data.core.field.Field` (requires :xref:`earthkit-data` >= 1.0.0).
+    :type data:  :py:class:`~earthkit.data.core.fieldlist.FieldList`, :py:class:`~earthkit.data.core.field.Field`
+    :param grid: the :ref:`gridspec <gridspec-precomputed>` describing the target grid that ``data`` will be interpolated onto
+    :type grid: dict
+    :param interpolation: the interpolation method. Possible values are ``linear`` and ``nearest-neighbour``. For ``nearest-neighbour`` the following aliases are also supported: ``nn``, ``nearest-neighbor``.
+    :type interpolation: str
+    :param inventory: the path to the inventory of the precomputed weights. The interpolation only works when the weights are available for the given input grid (automatically determined from the data), target ``grid`` and ``interpolation`` combination. At present, two inventory types are available:
+
+       - If ``inventory`` is "ecmwf" on None, the remote inventory managed by ECMWF is used. In this case the weights are automatically downloaded and stored in a local cache (at ``"~/.cache/earthkit-geo"``) and when it is needed again the cached version is used. See the :ref:`inventory <matrix_inventory>` for the list of supported grid to grid combinations with this backend.
+       - If ``inventory`` is a local path, a local inventory is used. Please note this in experimental feature only used for development purposes.
+    :type inventory: str
+    :return: The same type of data as ``data`` containing the interpolated values.
+    :rtype: :py:class:`~earthkit.data.core.field.Field`, :py:class:`~earthkit.data.core.fieldlist.FieldList`
+    :raises ValueError: if the precomputed weights are not available
+
+    The regridding is performed by multiplying the ``data`` vector with the interpolation weights, which forms a sparse matrix (sparse matrix-vector multiplication).
+
+
+
+Examples
+--------
+
+- :ref:`/how-tos/precomputed/precomp_healpix_fieldlist.ipynb`
+- :ref:`/how-tos/precomputed/precomp_octahedral_fieldlist.ipynb`
+- :ref:`/how-tos/precomputed/memory_cache.html`

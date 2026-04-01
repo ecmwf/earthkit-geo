@@ -1,11 +1,15 @@
 # These are the requirements for readthedoc
+multiurl
+filelock
 ipykernel
 docutils
 Pygments>=2.6.1
 Sphinx>=7.3.7
-sphinx-rtd-theme
 nbsphinx
 setuptools
 sphinx-autoapi
 sphinx-issues
 sphinx-copybutton
+scipy
+furo
+sphinx-design
