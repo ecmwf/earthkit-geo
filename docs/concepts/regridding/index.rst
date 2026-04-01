@@ -1,4 +1,4 @@
-. _regridding:
+.. _regridding:
 
 Regridding
 ===========================
