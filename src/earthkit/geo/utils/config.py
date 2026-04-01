@@ -42,7 +42,7 @@ class Validator(metaclass=ABCMeta):
 
 
 class ValuesValidator(Validator):
-    """Check if value is in a list of valid values"""
+    """Check if value is in a list of valid values."""
 
     def __init__(self, values):
         self.values = values
@@ -55,7 +55,7 @@ class ValuesValidator(Validator):
 
 
 class ListValidator(Validator):
-    """Check if a list of values is in a list of valid values"""
+    """Check if a list of values is in a list of valid values."""
 
     def __init__(self, values):
         self.values = values
@@ -209,7 +209,7 @@ for k, v in CONFIG_AND_HELP.items():
 
 @contextmanager
 def new_config(s):
-    """Context manager to create new config"""
+    """Context manager to create new config."""
     CONFIG._stack.append(s)
     CONFIG._notify()
     try:

@@ -555,11 +555,11 @@ class MatrixDb:
         return len(self.index)
 
     def _clear_index(self):
-        """For testing only"""
+        """For testing only."""
         self._index = None
 
     def _reset(self):
-        """For testing only"""
+        """For testing only."""
         self._index = None
         self._accessor.reset()
 

@@ -94,7 +94,7 @@ class GridWrapper:
 
 
 # TODO: move this code to earthkit-geo
-class XarrrayGeographyBuilder:
+class XarrayGeographyBuilder:
     def __init__(self, grid_spec):
         self.grid = GridWrapper(grid_spec)
         self.grid_spec = grid_spec
@@ -255,7 +255,7 @@ class XarrayDataHandler(DataHandler):
         if out_grid is None:
             raise ValueError("grid must be provided")
 
-        out_geo = XarrrayGeographyBuilder(out_grid)
+        out_geo = XarrayGeographyBuilder(out_grid)
         return out_geo
 
     @staticmethod
@@ -347,7 +347,7 @@ class XarrayDataHandler(DataHandler):
 
         # The output geography might have changed, so we need to create a new geography builder
         # with the new grid spec
-        out_geo = XarrrayGeographyBuilder(method.out_grid)
+        out_geo = XarrayGeographyBuilder(method.out_grid)
 
         self.add_geo_coords(ds_out, out_geo)
 

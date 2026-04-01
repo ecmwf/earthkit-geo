@@ -36,7 +36,7 @@ def matrix_size(m):
 
 
 def estimate_matrix_size(entry):
-    """Estimate the size of a matrix entry"""
+    """Estimate the size of a matrix entry."""
     try:
         return entry["_raw"]["memory"]
     except Exception as e:
@@ -281,7 +281,7 @@ class MemoryCache:
         return create_from_entry(entry)
 
     def update(self):
-        """Called when settings change"""
+        """Called when settings change."""
         if self._has_settings:
             from earthkit.geo.utils.config import CONFIG
 
@@ -323,7 +323,7 @@ class MemoryCache:
             self.policy.reduce(target_size=target_size)
 
     def clear(self):
-        """Clear the cache"""
+        """Clear the cache."""
         with self.lock:
             self._clear()
 
@@ -339,7 +339,7 @@ class MemoryCache:
         return sum(v.size for v in self.items.values())
 
     def info(self):
-        """Report cache statistics"""
+        """Report cache statistics."""
         with self.lock:
             return _CacheInfo(
                 self.hits,
