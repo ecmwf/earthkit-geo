@@ -9,7 +9,7 @@ Install **earthkit-geo** with python3 (>= 3.10) and ``pip`` as follows:
 
 .. code-block:: bash
 
-    python3 -m pip install earthkit-geo==1.0.0rc0
+    python3 -m pip install earthkit-geo>=1.0.0rc0
 
 
 For more details on the installation please see :ref:`install`.
