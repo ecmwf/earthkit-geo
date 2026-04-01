@@ -125,7 +125,7 @@ class EckitGridSpec(GridSpec):
 class CustomGridSpec(GridSpec):
     """Custom grid spec that cannot be parsed by eckit.geo.
 
-    This is a placeholder for now, and can be extended in the future to suppor
+    This is a placeholder for now, and can be extended in the future to support
     custom gridspecs.
     """
 

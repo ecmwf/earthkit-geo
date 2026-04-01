@@ -13,10 +13,10 @@ NORTH_POLE_LAT = 90
 r"""Latitude of the north pole in degrees."""
 
 SOUTH_POLE_LAT = -90
-r"""Latitude of the south pole in degrees"""
+r"""Latitude of the south pole in degrees."""
 
 FULL_ANGLE = 360.0
 r"""Full angle in degrees."""
 
 STRAIGHT_ANGLE = 180.0
-r"""Half angle in degrees"""
+r"""Half angle in degrees."""
