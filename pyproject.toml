@@ -35,6 +35,16 @@ readme = "README.md"
 requires-python = ">=3.10"
 optional-dependencies.all = ["cartopy"]
 optional-dependencies.cartography = ["cartopy"]
+optional-dependencies.ci = [
+  "earthkit-utils>=1.0.0rc0",
+  "earthkit-data>=1.0.0rc0",
+  "pytest",
+  "pytest-cov",
+  "requests",
+  "cartopy",
+  "scipy",
+  "pyproj"
+]
 optional-dependencies.dev = [
   "earthkit-geo[all,docs,test]"
 ]
@@ -56,17 +66,7 @@ optional-dependencies.test = [
   "earthkit-utils>=1.0.0rc0",
   "earthkit-data>=1.0.0rc0",
   "pytest",
-  "pytest-cov",
-]
-optional-dependencies.ci = [
-  "earthkit-utils>=1.0.0rc0",
-  "earthkit-data>=1.0.0rc0",
-  "pytest",
-  "pytest-cov",
-  "requests",
-  "cartopy",
-  "scipy",
-  "pyproj",
+  "pytest-cov"
 ]
 urls.Documentation = "https://earthkit-geo.readthedocs.io/"
 urls.Homepage = "https://github.com/ecmwf/earthkit-geo/"
