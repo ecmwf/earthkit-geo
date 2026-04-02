@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61", "setuptools-scm>=8"]
+requires = ["setuptools>=77", "setuptools-scm>=8"]
 
 [project]
 authors = [
@@ -8,7 +8,6 @@ authors = [
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
-  "License :: OSI Approved :: Apache Software License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3.10",
@@ -30,7 +29,8 @@ dependencies = [
 ]
 description = "Geospatial computations"
 dynamic = ["version"]
-license = {text = "Apache License Version 2.0"}
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 name = "earthkit-geo"
 readme = "README.md"
 requires-python = ">=3.10"
