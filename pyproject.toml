@@ -53,6 +53,7 @@ optional-dependencies.docs = [
   "sphinx-issues"
 ]
 optional-dependencies.test = [
+  "earthkit-utils>=1.0.0rc0",
   "earthkit-data>=1.0.0rc0",
   "pytest",
   "pytest-cov"
