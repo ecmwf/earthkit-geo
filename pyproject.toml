@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61", "setuptools-scm>=8"]
+requires = ["setuptools>=77", "setuptools-scm>=8"]
 
 [project]
 authors = [
@@ -8,13 +8,13 @@ authors = [
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
-  "License :: OSI Approved :: Apache Software License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy"
 ]
@@ -29,12 +29,23 @@ dependencies = [
 ]
 description = "Geospatial computations"
 dynamic = ["version"]
-license = {text = "Apache License Version 2.0"}
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 name = "earthkit-geo"
 readme = "README.md"
 requires-python = ">=3.10"
 optional-dependencies.all = ["cartopy"]
 optional-dependencies.cartography = ["cartopy"]
+optional-dependencies.ci = [
+  "earthkit-utils>=1.0.0rc0",
+  "earthkit-data>=1.0.0rc0",
+  "pytest",
+  "pytest-cov",
+  "requests",
+  "cartopy",
+  "scipy",
+  "pyproj"
+]
 optional-dependencies.dev = [
   "earthkit-geo[all,docs,test]"
 ]
@@ -53,6 +64,7 @@ optional-dependencies.docs = [
   "sphinx-issues"
 ]
 optional-dependencies.test = [
+  "earthkit-utils>=1.0.0rc0",
   "earthkit-data>=1.0.0rc0",
   "pytest",
   "pytest-cov"

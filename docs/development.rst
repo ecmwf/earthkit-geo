@@ -9,25 +9,27 @@ The code repository is hosted on `Github`_, testing, bug reports and contributio
 Development setup
 -----------------------
 
-The recommended development environment is based on **conda**.
-
 First, clone the repository locally. You can use the following command:
 
 .. code-block:: shell
 
    git clone --branch develop git@github.com:ecmwf/earthkit-geo.git
 
-
-Next, enter your git repository and run the following commands:
+(optional) If using conda, create a new environment and activate it:
 
 .. code-block:: shell
 
-    make conda-env-update
+    conda create -n earthkit-geo python=3.12
     conda activate earthkit-geo
-    make setup
-    pip install -e .
 
-This will create a new conda environment called "earthkit-geo" with all the dependencies installed into it. This setup enables the `pre-commit`_ hooks, performing a series of quality control checks on every commit. If any of these checks fails the commit will be rejected.
+Lastly, enter your git repository and run the following commands:
+
+.. code-block:: shell
+
+    pip install -e .[dev]
+    pre-commit install
+
+This setup enables the `pre-commit`_ hooks, performing a series of quality control checks on every commit. If any of these checks fails the commit will be rejected.
 
 Run unit tests
 ---------------
