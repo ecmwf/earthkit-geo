@@ -26,7 +26,7 @@ Lastly, enter your git repository and run the following commands:
 
 .. code-block:: shell
 
-    pip install -e .
+    pip install -e .[dev]
     pre-commit install
 
 This setup enables the `pre-commit`_ hooks, performing a series of quality control checks on every commit. If any of these checks fails the commit will be rejected.
