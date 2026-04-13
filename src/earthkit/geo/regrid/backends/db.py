@@ -17,6 +17,7 @@ from scipy.sparse import load_npz
 from earthkit.geo.regrid.gridspec import GridSpec
 from earthkit.geo.utils import no_progress_bar
 from earthkit.geo.utils.download import download_and_cache
+from earthkit.geo.utils.url import join_url_path
 
 LOG = logging.getLogger(__name__)
 
@@ -124,7 +125,7 @@ class UrlAccessor(MatrixAccessor):
     def _get_index(self, check_remote=False, force=False):
         from earthkit.geo.utils.caching import cache_file
 
-        url = os.path.join(self._url, _INDEX_FILENAME)
+        url = join_url_path(self._url, _INDEX_FILENAME)
 
         def _compare_sha(args, path, owner_data):
             """Decide if the index file should be downloaded and cached again."""
@@ -206,7 +207,7 @@ class UrlAccessor(MatrixAccessor):
 
     def _remote_sha(self):
         try:
-            url = os.path.join(self._url, _INDEX_SHA_FILENAME)
+            url = join_url_path(self._url, _INDEX_SHA_FILENAME)
             path = download_and_cache(
                 url,
                 owner="url",
@@ -229,7 +230,7 @@ class UrlAccessor(MatrixAccessor):
 
     def _gzip_file(self):
         try:
-            url = os.path.join(self._url, _INDEX_GZ_FILENAME)
+            url = join_url_path(self._url, _INDEX_GZ_FILENAME)
             LOG.info(f"Download gzipped index file={url}")
             path = download_and_cache(
                 url,
@@ -251,7 +252,7 @@ class UrlAccessor(MatrixAccessor):
 
     def matrix_path(self, name):
         try:
-            url = os.path.join(self._url, name)
+            url = join_url_path(self._url, name)
             path = download_and_cache(
                 url,
                 owner="url",
