@@ -11,6 +11,8 @@ from importlib import import_module
 
 import numpy as np
 
+from earthkit.geo.utils.url import join_url_path
+
 PATH = os.path.dirname(__file__)
 
 URL_ROOT = "https://sites.ecmwf.int/repository/earthkit-geo/test-data"
@@ -50,7 +52,7 @@ def get_test_data(filename, subfolder="global_0_360"):
         os.makedirs(d_path, exist_ok=True)
         f_path = os.path.join(d_path, fn)
         if not os.path.exists(f_path):
-            simple_download(url=f"{URL_ROOT}/{subfolder}/{fn}", target=f_path)
+            simple_download(url=join_url_path(URL_ROOT, subfolder, fn), target=f_path)
         res.append(f_path)
 
     if len(res) == 1:
