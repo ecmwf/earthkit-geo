@@ -3,7 +3,13 @@
 Version 1.0.0 Release Candidate Updates
 /////////////////////////////////////////
 
-Version 1.0.0rc0
+Version 1.0.0rc2
+==================
+
+- Fixed issue when URL paths were not properly encoded in the precomputed weights backend, which prevented downloading index files and weights on Windows (:pr:`49`)
+
+
+Version 1.0.0rc1
 ==================
 
 Regridding
