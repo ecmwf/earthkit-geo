@@ -3,6 +3,13 @@
 Version 1.0.0 Release Candidate Updates
 /////////////////////////////////////////
 
+
+Version 1.0.0rc3
+==================
+
+- Added missing dependency (:pr:`55`)
+
+
 Version 1.0.0rc2
 ==================
 
