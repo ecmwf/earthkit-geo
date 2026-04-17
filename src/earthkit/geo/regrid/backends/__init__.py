@@ -9,8 +9,7 @@
 
 import logging
 import os
-from abc import ABCMeta
-from abc import abstractmethod
+from abc import ABCMeta, abstractmethod
 
 # from collections import namedtuple
 from importlib import import_module
@@ -62,8 +61,6 @@ class BackendMaker:
             return name
 
     def __call__(self, name, *args, **kwargs):
-        loader = BackendLoader()
-
         key = self._make_key(name, *args, **kwargs)
         if key in self.BACKEND_OBJECTS:
             return self.BACKEND_OBJECTS[key]

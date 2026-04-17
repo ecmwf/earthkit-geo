@@ -8,4 +8,4 @@
 #
 #
 
-from .regrid import regrid
+from .regrid import regrid as regrid

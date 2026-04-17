@@ -39,3 +39,9 @@ It is supported by :py:func:`regrid` when used with the :ref:`MIR backend <mir-b
     # regrid the fieldlist/field to the target grid, the default backend is MIR. The output
     # is stored in memory.
     ds_res = regrid(ds, grid=grid, interpolation="grid-box-average")
+
+
+How can I specify the cache directory for MIR?
+--------------------------------------------------
+
+The cache directory for MIR is managed by MIR itself and not by ``earthkit-geo``. It can be specified by setting the ``MIR_CACHE_PATH`` environment variable to the desired path.
