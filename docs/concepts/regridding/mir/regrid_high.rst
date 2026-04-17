@@ -35,7 +35,7 @@ regrid (high-level) with MIR
     :type interpolation: str
 
 
-    The interpolation only works if both the input and output grid are supported. For the list of supported grids, please refer to the :ref:`gridspec <grid_spec>` documentation.
+    The interpolation only works if both the input and output grid are supported. For the list of supported grids, please refer to the :ref:`gridspec <gridspec>` documentation.
 
     :return: Return the regridded data with the same type as ``data`` but with the grid changed to the output grid.
     :rtype:  The same type of data as ``data``.
