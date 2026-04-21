@@ -291,8 +291,8 @@ def test_local_matrix_gridspec_ok(gs_in, gs_out):
         ({"grid": "H4", "ordering": "any"}, {"grid": [10, 10]}, ValueError),
         # ({"grid": "ORCA025_T"}, {"grid": "O96"}, None),
         # ({"grid": "eORCA025_U"}, {"grid": "O96"}, None),
-        ({"grid": "bORCA025_T"}, {"grid": "O96"}, ValueError),
-        ({"grid": "ORCA025_TU"}, {"grid": "O96"}, ValueError),
+        ({"grid": "bORCA025_T"}, {"grid": "O96"}, None),
+        ({"grid": "ORCA025_TU"}, {"grid": "O96"}, None),
         # ({"grid": "eorca025_t"}, {"grid": "O96"}, ValueError),
     ],
 )

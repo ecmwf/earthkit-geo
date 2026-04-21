@@ -139,8 +139,15 @@ def test_gridspec_healpix(gs_in, gs_out, order):
         ({"grid": "N32", "area": [90, -0.1, -90, 360]}, {"grid": [10, 10]}, None),
         ({"grid": "ORCA025_T"}, {"grid": "O96"}, None),
         ({"grid": "eORCA025_U"}, {"grid": "O96"}, None),
-        ({"grid": "bORCA025_T"}, {"grid": "O96"}, ValueError),
-        ({"grid": "ORCA025_TU"}, {"grid": "O96"}, ValueError),
+        ({"grid": "bORCA025_T"}, {"grid": "O96"}, None),
+        ({"grid": "ORCA025_TU"}, {"grid": "O96"}, None),
+        ({"grid": "ICON-CH1"}, {"grid": "O96"}, None),
+        ({"grid": "CORE2"}, {"grid": "O96"}, None),
+        ({"grid": "DART"}, {"grid": "O96"}, None),
+        ({"grid": "NG5"}, {"grid": "O96"}, None),
+        ({"grid": "core2_"}, {"grid": "O96"}, None),
+        ({"grid": "dart"}, {"grid": "O96"}, None),
+        ({"grid": "ng5"}, {"grid": "O96"}, None),
     ],
 )
 def test_gridspec_bad(gs_in, gs_out, err):
