@@ -7,6 +7,7 @@
 # nor does it submit to any jurisdiction.
 #
 
+import json
 import logging
 import re
 from abc import abstractmethod
@@ -20,13 +21,26 @@ class ShapeDoesNotMatchError(Exception):
     pass
 
 
+# Temporary code to support gridspecs for the precomputed matrix inventory.
+
+
 # Wrapper around eckit.geo.Grid so that matrix inventory can be used.
-# TODO: add logic here to support custom gridspecs that cannot be parsed by eckit.geo.
 class GridSpec(dict):
     """Base class for grid specifications."""
 
     @staticmethod
     def from_dict(d):
+        # in some environments eckit.geoGrid generate a lot of erros when
+        # initializing with some specific gridspecs. We use dedicated classes
+        # for these gridspecs to avoid the issue.
+        if isinstance(d, dict):
+            grid = d.get("grid", "")
+            if isinstance(grid, str):
+                grid = grid.upper()
+                if "ORCA" in grid:
+                    return OrcaGridSpec(d)
+                elif "ICON" in grid or "CORE2" in grid or "NG5" in grid or "DART" in grid:
+                    return CustomGridSpec(d)
         return EckitGridSpec(d)
 
     @staticmethod
@@ -35,8 +49,18 @@ class GridSpec(dict):
             return d
         elif isinstance(d, dict):
             return GridSpec.from_dict(d)
-
+        elif isinstance(d, str):
+            try:
+                d = json.loads(d)
+                return GridSpec.from_dict(d)
+            except Exception:
+                pass
         return EckitGridSpec(d)
+
+    @property
+    @abstractmethod
+    def grid_type(self):
+        return None
 
     @property
     @abstractmethod
@@ -48,11 +72,9 @@ class GridSpec(dict):
     def shape(self):
         pass
 
-    def __eq__(self, o):
-        if self.grid is not None and o.grid is not None:
-            return self.grid.uid == o.grid.uid
-
-        return False
+    @abstractmethod
+    def __eq__(self, value):
+        pass
 
 
 class EckitGridSpec(GridSpec):
@@ -110,6 +132,10 @@ class EckitGridSpec(GridSpec):
                 d["shape"] = (1442, 1207)
 
     @property
+    def grid_type(self):
+        return self._grid.type
+
+    @property
     def grid(self):
         return self._grid
 
@@ -121,13 +147,66 @@ class EckitGridSpec(GridSpec):
     def spec(self):
         return self._grid.spec
 
+    def __eq__(self, o):
+        if self.grid is not None and o.grid is not None:
+            return self.grid.uid == o.grid.uid
+        return False
+
+
+class OrcaGridSpec(GridSpec):
+    """Only used for ORCA grids in the precomputed matrix inventory."""
+
+    def __init__(self, d):
+        super().__init__(d)
+        d = dict(d)
+        self._patch(d)
+        self._spec = {"grid": d.get("grid", None)}
+
+        self._grid_type = d.get("grid", None)
+        self._shape = d.get("shape", None)
+
+    @property
+    def grid_type(self):
+        return self._grid_type
+
+    @property
+    def grid(self):
+        return None
+
+    @property
+    def shape(self):
+        return self._shape
+
+    @property
+    def spec(self):
+        return dict(self._spec)
+
+    def _patch(self, d):
+        grid = d.get("grid", "")
+        if isinstance(grid, str):
+            # in the matrix inventory this orca grid has a 1D shape, but eckit.geo.Grid
+            # generates a 2D shape for it, so we patch it here
+            if grid == "eORCA025_T":
+                d["shape"] = (1442, 1207)
+
+    def __eq__(self, o):
+        if self._grid_type is not None and o.grid_type is not None:
+            return self._grid_type == o.grid_type
+
+        return False
+
 
 class CustomGridSpec(GridSpec):
-    """Custom grid spec that cannot be parsed by eckit.geo.
+    """Only used for some specific grids"""
 
-    This is a placeholder for now, and can be extended in the future to support
-    custom gridspecs.
-    """
+    def __init__(self, d):
+        super().__init__(d)
+        self._spec = dict(d)
+        super().__init__(self._spec)
+
+    @property
+    def grid_type(self):
+        return None
 
     @property
     def grid(self):
@@ -139,4 +218,9 @@ class CustomGridSpec(GridSpec):
 
     @property
     def spec(self):
-        return dict(self)
+        return dict(self._spec)
+
+    def __eq__(self, o):
+        if isinstance(o, CustomGridSpec):
+            return self._spec == o.spec
+        return False
