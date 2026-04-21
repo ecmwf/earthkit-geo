@@ -3,6 +3,7 @@ CONDA := conda
 CONDAFLAGS :=
 COV_REPORT := html
 
+
 setup:
 	pre-commit install
 
