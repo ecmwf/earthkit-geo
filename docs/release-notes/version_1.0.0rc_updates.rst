@@ -4,6 +4,13 @@ Version 1.0.0 Release Candidate Updates
 /////////////////////////////////////////
 
 
+Version 1.0.0rc4
+==================
+
+- Ensured that no eckit.geo related warnings appear when index file is loaded for the "precomputed" regridding backend (:pr:`60`)
+
+
+
 Version 1.0.0rc3
 ==================
 
