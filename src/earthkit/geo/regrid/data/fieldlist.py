@@ -5,8 +5,9 @@
 # In applying this licence, ECMWF does not waive the privileges and immunities
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
-#
 
+
+import json
 import logging
 
 from .handler import DataHandler
@@ -48,28 +49,77 @@ class FieldListDataHandler(DataHandler):
         if grid is None:
             raise ValueError("Missing 'grid' argument")
 
-        if hasattr(backend, "regrid_grib"):
-            # TODO: remove this when ecCodes supports setting the gridSpec on a GRIB handle
-            return self._regrid_grib(data, backend, grid, **kwargs)
-        else:
-            return self._regrid_array(data, backend, grid, **kwargs)
-
-    def _regrid_array(self, data, backend, grid, **kwargs):
-        import earthkit.data
-
-        ds = data
-        assert grid is not None
-
-        # TODO: refactor this when this limitation is removed
-        from earthkit.geo.regrid.gridspec import GridSpec
-
-        out_grid = GridSpec.from_any(grid)
-
         fields = []
-        for i, f in enumerate(ds):
-            vv = f.to_numpy(flatten=True)
+        for i, field in enumerate(data):
+            r = self._regrid_field(field, i, backend, grid, **kwargs)
+            fields.append(r)
 
-            in_grid = self.input_gridspec(f, i)
+        from earthkit.data import FieldList
+
+        return FieldList.from_fields(fields)
+
+    def _regrid_field(self, field, index, backend, grid, **kwargs):
+        message = None
+        if field._get_grib():
+            message = field.message()
+
+        # GRIB data
+        if message is not None:
+            from earthkit.data.field.grib.create import create_grib_field_from_buffer
+
+            # currently this means the mir backend
+            if hasattr(backend, "regrid_grib"):
+                v_res = backend.regrid_grib(message, grid, **kwargs)
+                return create_grib_field_from_buffer(v_res, template_field=field)
+
+            # currently this means the precomputed backend
+            else:
+                from earthkit.geo.regrid.gridspec import GridSpec
+
+                vv = field.to_numpy(flatten=True)
+
+                in_grid = self.input_gridspec(field, index)
+
+                # for precomputed backend we need to build a special gridspec object
+                # to match the matrix inventory items
+                # TODO: remove this limitation
+                in_grid = GridSpec.from_any(in_grid)
+                out_grid = GridSpec.from_any(grid)
+
+                v_res, out_grid = backend.regrid(
+                    vv,
+                    in_grid,
+                    out_grid,
+                    **kwargs,
+                )
+                from eckit.geo import Grid
+
+                out_grid = Grid(out_grid)
+                # convert gridspec to string as this is what ecCodes expects in the "gridSpec" key w
+                out_spec = json.dumps(out_grid.spec)
+
+                # when the field has an associated GRIB message, we
+                # use a GribEncoder to encode the resulting data and preserve
+                # the original GRIB metadata as much as possible (bar the grid)
+                from earthkit.data.encoders.grib import GribEncoder
+
+                encoder = GribEncoder()
+                d = encoder.encode(template=message, values=v_res, gridSpec=out_spec)
+                return create_grib_field_from_buffer(d.to_bytes(), template_field=field)
+
+        else:
+            vv = field.to_numpy(flatten=True)
+            in_grid = self.input_gridspec(field, index)
+
+            # currently this is the mir backend
+            if not hasattr(backend, "regrid_grib"):
+                # for precomputed backend we need to build a special gridspec object
+                # to match the matrix inventory items
+                # TODO: remove this limitation
+                from earthkit.geo.regrid.gridspec import GridSpec
+
+                in_grid = GridSpec.from_any(in_grid)
+                out_grid = GridSpec.from_any(grid)
 
             v_res, out_grid = backend.regrid(
                 vv,
@@ -77,39 +127,11 @@ class FieldListDataHandler(DataHandler):
                 out_grid,
                 **kwargs,
             )
+            from eckit.geo import Grid
 
-            out_grid = GridSpec.from_any(out_grid).grid
+            out_grid = Grid(out_grid)
 
-            fields.append(f.set({"values": v_res, "geography.grid_spec": out_grid}))
-
-        r = earthkit.data.create_fieldlist(fields)
-
-        return r
-
-    def _regrid_grib(self, values, backend, grid, **kwargs):
-        # TODO: remove this when ecCodes supports setting the gridSpec on a GRIB handle
-        from earthkit.data.encoders.grib import GribEncoder
-        from earthkit.data.field.grib.create import create_grib_field_from_buffer
-
-        assert hasattr(backend, "regrid_grib")
-
-        ds = values
-        assert grid is not None
-
-        encoder = GribEncoder()
-
-        r = []
-        for i, f in enumerate(ds):
-            if f._get_grib():
-                d = encoder.encode(f)
-                message = d.to_bytes()
-                if message is None:
-                    raise ValueError(f"field at index={i} type={type(f)} is not supported in regrid!")
-
-            v_res = backend.regrid_grib(message, grid, **kwargs)
-            r.append(create_grib_field_from_buffer(v_res))
-
-        return ds.from_fields(r)
+            return field.set({"values": v_res, "geography.grid_spec": out_grid})
 
 
 class FieldDataHandler(DataHandler):
