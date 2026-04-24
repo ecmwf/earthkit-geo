@@ -101,6 +101,9 @@ class FieldListDataHandler(DataHandler):
                 # when the field has an associated GRIB message, we
                 # use a GribEncoder to encode the resulting data and preserve
                 # the original GRIB metadata as much as possible (bar the grid)
+
+                # TODO: avoid using a GribEncoder once the grid(spec) handling in the
+                # earthkit-data field is improved
                 from earthkit.data.encoders.grib import GribEncoder
 
                 encoder = GribEncoder()
@@ -111,7 +114,7 @@ class FieldListDataHandler(DataHandler):
             vv = field.to_numpy(flatten=True)
             in_grid = self.input_gridspec(field, index)
 
-            # currently this is the mir backend
+            # currently this is the precomputed backend
             if not hasattr(backend, "regrid_grib"):
                 # for precomputed backend we need to build a special gridspec object
                 # to match the matrix inventory items
@@ -120,6 +123,8 @@ class FieldListDataHandler(DataHandler):
 
                 in_grid = GridSpec.from_any(in_grid)
                 out_grid = GridSpec.from_any(grid)
+            else:
+                out_grid = grid
 
             v_res, out_grid = backend.regrid(
                 vv,
