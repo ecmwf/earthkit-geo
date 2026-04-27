@@ -48,7 +48,7 @@ def _create_fieldlist(filename, field_type):
 )
 @pytest.mark.parametrize("field_type", ["grib", "array"])
 @pytest.mark.parametrize("out_grid", [{"grid": [10, 10]}, Grid({"grid": [10, 10]}), "'grid': [10, 10]"])
-def test_regrid_matrix_fieldlist_reg_ll(_kwarg, interpolation, field_type, out_grid):
+def test_regrid_matrix_fieldlist_reg_ll_grib(_kwarg, interpolation, field_type, out_grid):
     ds = _create_fieldlist("5x5.grib", field_type)
 
     f_ref = get_test_data(f"out_5x5_10x10_{interpolation}.npz")
@@ -65,7 +65,35 @@ def test_regrid_matrix_fieldlist_reg_ll(_kwarg, interpolation, field_type, out_g
     grid_ref = Grid({"grid": [10, 10]}).spec
 
     for f in r:
-        assert f.geography.grid().spec == grid_ref
+        assert f.geography.grid_spec() == grid_ref
+
+
+def test_regrid_matrix_fieldlist_reg_ll_non_grib():
+    interpolation = "linear"
+    field_type = "grib"
+    out_grid = {"grid": [10, 10]}
+
+    fl_ori = _create_fieldlist("5x5.grib", field_type)
+    fl = fl_ori.set({"parameter.variable": "msl", "labels": {"my_label": "my_value"}})
+
+    # the fields are now decoupled from the original grib messages
+    assert fl[0].message() is None, "Field should not have a GRIB message after setting new metadata"
+
+    f_ref = get_test_data(f"out_5x5_10x10_{interpolation}.npz")
+    v_ref = np.load(f_ref)["arr_0"]
+
+    r = regrid(fl, grid=out_grid, backend=SYSTEM_MATRIX_BACKEND_NAME, interpolation=interpolation)
+
+    assert len(r) == 1
+    assert r[0].geography.shape() == (19, 36)
+    assert np.allclose(r[0].values, v_ref)
+    assert r[0].get("parameter.variable") == "msl"
+    assert r[0].get("labels.my_label") == "my_value"
+
+    grid_ref = Grid({"grid": [10, 10]}).spec
+
+    for f in r:
+        assert f.geography.grid_spec() == grid_ref
 
 
 @pytest.mark.download
@@ -100,7 +128,7 @@ def test_regrid_matrix_fieldlist_gg(_kwarg, interpolation, field_type, out_grid)
     grid_ref = Grid({"grid": [10, 10]}).spec
 
     for f in r:
-        assert f.geography.grid().spec == grid_ref
+        assert f.geography.grid_spec() == grid_ref
 
 
 @pytest.mark.download
@@ -118,20 +146,51 @@ def test_regrid_matrix_fieldlist_gg(_kwarg, interpolation, field_type, out_grid)
 )
 @pytest.mark.parametrize("field_type", ["grib", "array"])
 @pytest.mark.parametrize("out_grid", [{"grid": [10, 10]}, Grid({"grid": [10, 10]}), "'grid': [10, 10]"])
-def test_regrid_matrix_single_field(_kwarg, interpolation, field_type, out_grid):
+def test_regrid_matrix_single_field_grib(_kwarg, interpolation, field_type, out_grid):
     ds = _create_fieldlist("5x5.grib", field_type)
 
     f_ref = get_test_data(f"out_5x5_10x10_{interpolation}.npz")
     v_ref = np.load(f_ref)["arr_0"]
     field = ds[0]
+    field = field.set(labels={"my_label": "my_value"})
     metadata_ref = field.metadata(["param", "level", "date", "time"])
 
     r = regrid(field, grid=out_grid, backend=SYSTEM_MATRIX_BACKEND_NAME, **_kwarg)
 
     assert r.geography.shape() == (19, 36)
     assert np.allclose(r.values, v_ref)
+    assert r.get("labels.my_label") == "my_value"
     assert r.metadata(["param", "level", "date", "time"]) == metadata_ref
 
     grid_ref = Grid({"grid": [10, 10]}).spec
 
-    assert r.geography.grid().spec == grid_ref
+    assert r.geography.grid_spec() == grid_ref
+
+
+@pytest.mark.download
+@pytest.mark.tmp_cache
+@pytest.mark.skipif(NO_EKD, reason="No access to earthkit-data")
+def test_regrid_matrix_single_field_non_grib():
+    interpolation = "linear"
+    out_grid = {"grid": [10, 10]}
+    field_type = "array"
+
+    fl = _create_fieldlist("5x5.grib", field_type)
+    field = fl[0].set({"parameter.variable": "msl"}, labels={"my_label": "my_value"})
+
+    # the field is now decoupled from the original grib message
+    assert field.message() is None
+
+    f_ref = get_test_data(f"out_5x5_10x10_{interpolation}.npz")
+    v_ref = np.load(f_ref)["arr_0"]
+
+    r = regrid(field, grid=out_grid, backend=SYSTEM_MATRIX_BACKEND_NAME, interpolation=interpolation)
+
+    assert r.geography.shape() == (19, 36)
+    assert np.allclose(r.values, v_ref)
+    assert r.get("parameter.variable") == "msl"
+    assert r.get("labels.my_label") == "my_value"
+
+    grid_ref = Grid({"grid": [10, 10]}).spec
+
+    assert r.geography.grid_spec() == grid_ref

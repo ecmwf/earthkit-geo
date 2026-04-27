@@ -9,6 +9,7 @@
 
 import numpy as np
 import pytest
+from eckit.geo import Grid
 
 from earthkit.geo.regrid import regrid
 from earthkit.geo.utils.testing import (
@@ -133,3 +134,33 @@ def test_regrid_single_field(_kwarg, interpolation, field_type):
         assert np.isclose(r.metadata(k), v), k
 
     assert r.metadata("gridType") == "regular_ll"
+
+
+@pytest.mark.skipif(NO_MIR, reason="No mir available")
+@pytest.mark.skipif(NO_EKD, reason="No access to earthkit-data")
+@pytest.mark.download
+@pytest.mark.tmp_cache
+def test_regrid_single_field_non_grib():
+    interpolation = "linear"
+    out_grid = {"grid": [10, 10]}
+    field_type = "array"
+
+    fl = _create_fieldlist("5x5.grib", field_type)
+    field = fl[0].set({"parameter.variable": "msl"}, labels={"my_label": "my_value"})
+
+    # the field is now decoupled from the original grib message
+    assert field.message() is None
+
+    f_ref = get_test_data(f"out_5x5_10x10_{interpolation}.npz")
+    v_ref = np.load(f_ref)["arr_0"]
+
+    r = regrid(field, grid=out_grid, interpolation=interpolation)
+
+    assert r.geography.shape() == (19, 36)
+    assert np.allclose(r.values, v_ref)
+    assert r.get("parameter.variable") == "msl"
+    assert r.get("labels.my_label") == "my_value"
+
+    grid_ref = Grid({"grid": [10, 10]}).spec
+
+    assert r.geography.grid_spec() == grid_ref

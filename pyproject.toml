@@ -66,7 +66,7 @@ optional-dependencies.docs = [
 ]
 optional-dependencies.test = [
   "earthkit-utils>=1.0.0rc0",
-  "earthkit-data>=1.0.0rc0",
+  "earthkit-data>=1.0.0rc4",
   "pytest",
   "pytest-cov"
 ]
