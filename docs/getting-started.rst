@@ -31,7 +31,7 @@ Use it for data containing geographical information, e.g. earthkit-data :xref:`f
     from earthkit.geo.regrid import regrid
 
     # get fieldlist from a sample GRIB file
-    ds = ekd.from_source("sample", "O32_t2.grib2")
+    ds = ekd.from_source("sample", "O32_t2.grib2").to_fieldlist()
 
     # the target is a regular latitude-longitude grid
     grid = {"grid": [5, 5]}
