@@ -65,14 +65,17 @@ class FieldListDataHandler(DataHandler):
 
         # GRIB data
         if message is not None:
-            from earthkit.data.field.grib.create import create_grib_field_from_buffer
+            # TODO: remove this check for the final 1.0.0 release
+            try:
+                from earthkit.data.field.grib.create import create_grib_field_from_message
+            except ImportError:
+                raise RuntimeError("Minimum version of earthkit-data >= 1.0.0rc4 is required for GRIB regridding")
 
-            # currently this means the mir backend
+            # currently this if branch means the mir backend
             if hasattr(backend, "regrid_grib"):
-                v_res = backend.regrid_grib(message, grid, **kwargs)
-                return create_grib_field_from_buffer(v_res, template_field=field)
+                res_message = backend.regrid_grib(message, grid, **kwargs)
 
-            # currently this means the precomputed backend
+            # currently this if branch means the precomputed backend
             else:
                 from earthkit.geo.regrid.gridspec import GridSpec
 
@@ -108,8 +111,9 @@ class FieldListDataHandler(DataHandler):
 
                 encoder = GribEncoder()
                 d = encoder.encode(template=message, values=v_res, gridSpec=out_spec)
-                return create_grib_field_from_buffer(d.to_bytes(), template_field=field)
+                res_message = d.to_bytes()
 
+            return create_grib_field_from_message(res_message, template_field=field)
         else:
             vv = field.to_numpy(flatten=True)
             in_grid = self.input_gridspec(field, index)
@@ -137,6 +141,8 @@ class FieldListDataHandler(DataHandler):
             out_grid = Grid(out_grid)
 
             return field.set({"values": v_res, "geography.grid_spec": out_grid})
+
+        return None
 
 
 class FieldDataHandler(DataHandler):
