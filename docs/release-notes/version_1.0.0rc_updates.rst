@@ -4,7 +4,7 @@ Version 1.0.0 Release Candidate Updates
 /////////////////////////////////////////
 
 
-Version 1.0.0rc4
+Version 1.0.0rc5
 ==================
 
 - Regridding GRIB data requires earthkit-data version 1.0.0rc4 or later
