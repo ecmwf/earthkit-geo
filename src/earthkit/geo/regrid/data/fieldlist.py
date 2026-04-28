@@ -77,7 +77,7 @@ class FieldListDataHandler(DataHandler):
 
             # currently this if branch means the precomputed backend
             else:
-                from earthkit.geo.regrid.gridspec import GridSpec
+                from earthkit.geo.regrid.gridspec import _GridSpec
 
                 vv = field.to_numpy(flatten=True)
 
@@ -86,8 +86,8 @@ class FieldListDataHandler(DataHandler):
                 # for precomputed backend we need to build a special gridspec object
                 # to match the matrix inventory items
                 # TODO: remove this limitation
-                in_grid = GridSpec.from_any(in_grid)
-                out_grid = GridSpec.from_any(grid)
+                in_grid = _GridSpec.from_any(in_grid)
+                out_grid = _GridSpec.from_any(grid)
 
                 v_res, out_grid = backend.regrid(
                     vv,
@@ -123,10 +123,10 @@ class FieldListDataHandler(DataHandler):
                 # for precomputed backend we need to build a special gridspec object
                 # to match the matrix inventory items
                 # TODO: remove this limitation
-                from earthkit.geo.regrid.gridspec import GridSpec
+                from earthkit.geo.regrid.gridspec import _GridSpec
 
-                in_grid = GridSpec.from_any(in_grid)
-                out_grid = GridSpec.from_any(grid)
+                in_grid = _GridSpec.from_any(in_grid)
+                out_grid = _GridSpec.from_any(grid)
             else:
                 out_grid = grid
 

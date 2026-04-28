@@ -14,7 +14,7 @@ from abc import ABCMeta, abstractmethod
 
 from scipy.sparse import load_npz
 
-from earthkit.geo.regrid.gridspec import GridSpec
+from earthkit.geo.regrid.gridspec import _GridSpec
 from earthkit.geo.utils import no_progress_bar
 from earthkit.geo.utils.download import download_and_cache
 from earthkit.geo.utils.url import join_url_path
@@ -313,8 +313,8 @@ class MatrixIndex(dict):
                 # gridspecs type, but a given earthkit-geo version is not
                 # yet supporting it. In this case loading the index should not crash.
                 try:
-                    in_gs = GridSpec.from_dict(entry["input"])
-                    out_gs = GridSpec.from_dict(entry["output"])
+                    in_gs = _GridSpec.from_dict(entry["input"])
+                    out_gs = _GridSpec.from_dict(entry["output"])
                     raw = entry
                     entry = dict(**entry)
                     entry["input"] = in_gs
@@ -372,8 +372,8 @@ class MatrixIndex(dict):
         return os.path.join(MatrixIndex.matrix_dir_name(item), item["_name"] + ".npz")
 
     def find(self, gridspec_in, gridspec_out, method):
-        gridspec_in = GridSpec.from_any(gridspec_in)
-        gridspec_out = GridSpec.from_any(gridspec_out)
+        gridspec_in = _GridSpec.from_any(gridspec_in)
+        gridspec_out = _GridSpec.from_any(gridspec_out)
 
         if gridspec_in is None or gridspec_out is None:
             return None
@@ -457,8 +457,8 @@ class MatrixDb:
     ):
 
         try:
-            gridspec_in = GridSpec.from_any(gridspec_in)
-            gridspec_out = GridSpec.from_any(gridspec_out)
+            gridspec_in = _GridSpec.from_any(gridspec_in)
+            gridspec_out = _GridSpec.from_any(gridspec_out)
         except Exception as e:
             LOG.warning(f"Cannot parse gridspecs with eckit.geo: {e}")
             gridspec_in = None
