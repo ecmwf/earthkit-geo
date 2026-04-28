@@ -12,7 +12,7 @@ import json
 from collections import defaultdict, namedtuple
 
 from earthkit.geo.regrid.backends.db import SYS_DB as DB
-from earthkit.geo.regrid.gridspec import GridSpec
+from earthkit.geo.regrid.gridspec import _GridSpec
 
 Specs = namedtuple("Specs", ["source", "target"])
 
@@ -130,8 +130,8 @@ def load_matrix_index_file():
     specs = defaultdict(Specs)
 
     for _, entry in DB.index.items():
-        gs_in = GridSpec.from_dict(entry["input"])
-        gs_out = GridSpec.from_dict(entry["output"])
+        gs_in = _GridSpec.from_dict(entry["input"])
+        gs_out = _GridSpec.from_dict(entry["output"])
 
         # only entires available for interpolation will
         # be considered for the inventory
