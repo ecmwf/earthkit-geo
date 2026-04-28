@@ -20,9 +20,9 @@ class MatrixBackend(Backend):
         self.db = self.get_db(inventory)
 
     def regrid(self, data, in_grid, out_grid, interpolation):
-        from earthkit.geo.regrid.gridspec import GridSpec
+        from earthkit.geo.regrid.gridspec import _GridSpec
 
-        _out_grid = GridSpec.from_any(out_grid)
+        _out_grid = _GridSpec.from_any(out_grid)
 
         z, shape = self.db.find(in_grid, _out_grid, interpolation)
 
