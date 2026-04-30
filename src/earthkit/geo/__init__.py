@@ -16,11 +16,22 @@ except ImportError:  # pragma: no cover
     __version__ = "999"
 
 
+import earthkit.geo.cartography  # noqa: F401
+import earthkit.geo.constants  # noqa: F401
+import earthkit.geo.coord  # noqa: F401
+import earthkit.geo.distance  # noqa: F401
+import earthkit.geo.figure  # noqa: F401
+import earthkit.geo.gisco  # noqa: F401
+import earthkit.geo.grids  # noqa: F401
+import earthkit.geo.rotate  # noqa: F401
+from earthkit.geo.grids import regrid
 from earthkit.geo.utils.caching import CACHE as cache
 from earthkit.geo.utils.config import CONFIG as config
 
 __all__ = [
     "cache",
     "config",
+    "regrid",
     "__version__",
+    "earthkit",
 ]

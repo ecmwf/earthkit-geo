@@ -6,12 +6,3 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 #
-
-from .memcache import clear_precomputed_memory_cache, precomputed_memory_cache_info
-from .regrid import regrid
-
-__all__ = [
-    "regrid",
-    "clear_precomputed_memory_cache",
-    "precomputed_memory_cache_info",
-]

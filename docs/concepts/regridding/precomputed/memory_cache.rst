@@ -25,10 +25,29 @@ In-memory cache policies
 
 The primary config option to control the in-memory cache is ``precomputed-weights-memory-cache-policy``, which can take the following values:
 
-  - :ref:`largest <largest_mem_cache_policy>` (default)
-  - :ref:`lru <lru_mem_cache_policy>`
+  - :ref:`lru <lru_mem_cache_policy>`  (default)
+  - - :ref:`largest <largest_mem_cache_policy>` (default)
   - :ref:`unlimited <unlimited_mem_cache_policy>`
   - :ref:`off <off_mem_cache_policy>`
+
+
+.. _lru_mem_cache_policy:
+
+LRU cache policy
+++++++++++++++++++++++
+
+When the ``regrid-precomputed-weights-memory-cache-policy`` is "lru" first evicts the least recently used matrices from the in-memory cache (default). The cache eviction policy is applied before loading the weights to ensure that it will fit into the cache. When it is not possible the behaviour depends on the :ref:`regrid-precomputed-weights-memory-cache-strict-mode <mem_cache_limits>` option. The maximum memory size of the in-memory cache is defined by the :ref:`regrid-precomputed-weights-maximum-memory-cache-size <mem_cache_limits>` option. The default is 500 MB.
+
+.. code-block:: python
+
+  >>> from earthkit.geo import cache, config
+  >>> config.set("regrid-precomputed-weights-memory-cache-policy", "lru")
+  >>> config.get("regrid-precomputed-weights-memory-cache-policy")
+  'lru'
+  >>> config.get("regrid-precomputed-weights-maximum-memory-cache-size")
+  524288000
+  >>> config.get("regrid-precomputed-weights-memory-cache-strict-mode")
+  False
 
 
 .. _largest_mem_cache_policy:
@@ -36,7 +55,7 @@ The primary config option to control the in-memory cache is ``precomputed-weight
 Largest cache policy
 ++++++++++++++++++++++
 
-When the ``regrid-precomputed-weights-memory-cache-policy`` is "largest" first evicts the largest matrices from the in-memory cache (default). The cache eviction policy is applied before loading the weights to ensure that it will fit into the cache. When it is not possible the behaviour depends on the :ref:`regrid-precomputed-weights-memory-cache-strict-mode <mem_cache_limits>` option. The maximum memory size of the in-memory cache is defined by the :ref:`regrid-precomputed-weights-maximum-memory-cache-size <mem_cache_limits>` option. The default is 500 MB.
+When the ``regrid-precomputed-weights-memory-cache-policy`` is "largest" first evicts the largest matrices from the in-memory cache. The cache eviction policy is applied before loading the weights to ensure that it will fit into the cache. When it is not possible the behaviour depends on the :ref:`regrid-precomputed-weights-memory-cache-strict-mode <mem_cache_limits>` option. The maximum memory size of the in-memory cache is defined by the :ref:`regrid-precomputed-weights-maximum-memory-cache-size <mem_cache_limits>` option. The default is 500 MB.
 
 .. code-block:: python
 
@@ -49,24 +68,6 @@ When the ``regrid-precomputed-weights-memory-cache-policy`` is "largest" first e
   >>> config.get("regrid-precomputed-weights-memory-cache-strict-mode")
   False
 
-
-.. _lru_mem_cache_policy:
-
-LRU cache policy
-++++++++++++++++++++++
-
-When the ``regrid-precomputed-weights-memory-cache-policy`` is "lru" first evicts the least recently used matrices from the in-memory cache. The cache eviction policy is applied before loading the weights to ensure that it will fit into the cache. When it is not possible the behaviour depends on the :ref:`regrid-precomputed-weights-memory-cache-strict-mode <mem_cache_limits>` option. The maximum memory size of the in-memory cache is defined by the :ref:`regrid-precomputed-weights-maximum-memory-cache-size <mem_cache_limits>` option. The default is 500 MB.
-
-.. code-block:: python
-
-  >>> from earthkit.geo import cache, config
-  >>> config.set("regrid-precomputed-weights-memory-cache-policy", "lru")
-  >>> config.get("regrid-precomputed-weights-memory-cache-policy")
-  'lru'
-  >>> config.get("regrid-precomputed-weights-maximum-memory-cache-size")
-  524288000
-  >>> config.get("regrid-precomputed-weights-memory-cache-strict-mode")
-  False
 
 
 .. _unlimited_mem_cache_policy:
@@ -168,7 +169,8 @@ Examples
 
     import numpy as np
     from earthkit.geo import config
-    from earthkit.geo.regrid.array import regrid, precomputed_memory_cache_info
+    from earthkit.geo.grids.array import regrid
+    from earthkit.geo.grids.utils import precomputed_memory_cache_info
 
     # set memory cache with a maximum size of 100 MB to evict the largest matrices first
     config.set(

@@ -15,7 +15,7 @@ def _is_array(values):  # IGNORE
 
 
 def regrid(data, grid=None, *, interpolation="linear", backend="mir", **kwargs):
-    from earthkit.geo.regrid.data import get_data_handler
+    from earthkit.geo.grids._regrid.data import get_data_handler
 
     h = get_data_handler(data)
     if h is None:

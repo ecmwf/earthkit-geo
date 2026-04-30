@@ -8,15 +8,5 @@
 #
 
 
-from eckit.geo import Grid
-
-import earthkit.geo.grids.array  # noqa: F401
-import earthkit.geo.grids.utils  # noqa: F401
-
-from ._regrid.regrid import regrid
-
-__all__ = [
-    "regrid",
-    "Grid",
-    "earthkit",
-]
+from .memcache import clear_precomputed_memory_cache as clear_precomputed_memory_cache
+from .memcache import precomputed_memory_cache_info as precomputed_memory_cache_info
