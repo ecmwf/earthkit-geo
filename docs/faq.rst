@@ -8,7 +8,7 @@ It is supported by :py:func:`regrid` when used with the :ref:`MIR backend <mir-b
 
 .. code-block:: python
 
-    from earthkit.geo.grids import regrid
+    from earthkit.geo.regrid import regrid
 
     # assume fl is a GRIB fieldlist/field on the O2560 grid
 
@@ -28,7 +28,7 @@ It is supported by :py:func:`regrid` when used with the :ref:`MIR backend <mir-b
 .. code-block:: python
 
     import earthkit.data as ekd
-    from earthkit.geo.grids import regrid
+    from earthkit.geo.regrid import regrid
 
     # get fieldlist from a sample GRIB file
     ds = ekd.from_source("sample", "O32_t2.grib2")

@@ -35,4 +35,12 @@ The full API reference guide
 Traverse through the API reference guide to find out more about the available functions
 and classes in `earthkit-geo`.
 
-- :doc:`autoapi/earthkit/geo/index`.
+- :doc:`autoapi/earthkit/geo/cartography/index`
+- :doc:`autoapi/earthkit/geo/constants/index`
+- :doc:`autoapi/earthkit/geo/coord/index`
+- :doc:`autoapi/earthkit/geo/distance/index`
+- :doc:`autoapi/earthkit/geo/figure/index`
+- :doc:`autoapi/earthkit/geo/gisco/index`
+- :doc:`autoapi/earthkit/geo/grids/index`
+- :doc:`autoapi/earthkit/geo/regrid/index`
+- :doc:`autoapi/earthkit/geo/rotate/index`

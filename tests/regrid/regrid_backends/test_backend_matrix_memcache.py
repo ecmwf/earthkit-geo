@@ -11,7 +11,7 @@ import os
 import numpy as np
 import pytest
 
-from earthkit.geo.grids.regrid.array import regrid as regrid_array
+from earthkit.geo.regrid.array import regrid as regrid_array
 from earthkit.geo.utils.testing import earthkit_test_data_path
 
 DB_PATH = earthkit_test_data_path("local", "db")
@@ -43,7 +43,7 @@ def run_regrid(mode):
 
 @pytest.fixture
 def patch_estimate_matrix_memory(monkeypatch):
-    from earthkit.geo.grids.regrid.backends.db import MatrixIndex
+    from earthkit.geo.regrid.backends.db import MatrixIndex
 
     def patched_estimate_memory(self):
         return 200000
@@ -58,7 +58,7 @@ def patch_estimate_matrix_memory(monkeypatch):
 def test_local_memcache_core_1(policy, adjust_to, evict):
     """The cache is large enough to hold two matrices. The first matrix is larger than the second one."""
     from earthkit.geo import config
-    from earthkit.geo.grids.regrid.memcache import MEMORY_CACHE
+    from earthkit.geo.regrid.memcache import MEMORY_CACHE
 
     max_mem = 300 * 1024 * 1024
 
@@ -132,7 +132,7 @@ def test_local_memcache_core_1(policy, adjust_to, evict):
 def test_local_memcache_core_2(policy, adjust_to, evict):
     """The cache is large enough to hold two matrices. The first weights is smaller than the second one."""
     from earthkit.geo import config
-    from earthkit.geo.grids.regrid.memcache import MEMORY_CACHE
+    from earthkit.geo.regrid.memcache import MEMORY_CACHE
 
     max_mem = 300 * 1024 * 1024
     with config.temporary():
@@ -201,7 +201,7 @@ def test_local_memcache_core_2(policy, adjust_to, evict):
 def test_local_memcache_small(policy):
     """Test the cache with such a small memory limit that no weights fits in"""
     from earthkit.geo import config
-    from earthkit.geo.grids.regrid.memcache import MEMORY_CACHE
+    from earthkit.geo.regrid.memcache import MEMORY_CACHE
 
     max_mem = 1
     with config.temporary():
@@ -235,7 +235,7 @@ def test_local_memcache_small(policy):
 
 def test_local_memcache_off_policy():
     from earthkit.geo import config
-    from earthkit.geo.grids.regrid.memcache import MEMORY_CACHE
+    from earthkit.geo.regrid.memcache import MEMORY_CACHE
 
     policy = "off"
     max_mem = 0
@@ -273,7 +273,7 @@ def test_local_memcache_off_policy():
 
 def test_local_memcache_unlimited():
     from earthkit.geo import config
-    from earthkit.geo.grids.regrid.memcache import MEMORY_CACHE
+    from earthkit.geo.regrid.memcache import MEMORY_CACHE
 
     policy = "unlimited"
     max_mem = None
@@ -310,7 +310,7 @@ def test_local_memcache_unlimited():
 def test_local_memcache_ensure_strict_1(monkeypatch):
     """Test the cache with a memory limit that is too small to hold any estimated weights size"""
     from earthkit.geo import config
-    from earthkit.geo.grids.regrid.memcache import MEMORY_CACHE
+    from earthkit.geo.regrid.memcache import MEMORY_CACHE
 
     policy = "largest"
     max_mem = 300 * 1024 * 1024
@@ -330,7 +330,7 @@ def test_local_memcache_ensure_strict_1(monkeypatch):
         def _estimate_memory(entry):
             return max_mem + 1
 
-        from earthkit.geo.grids.regrid import memcache
+        from earthkit.geo.regrid import memcache
 
         monkeypatch.setattr(memcache, "estimate_matrix_size", _estimate_memory)
 
@@ -343,7 +343,7 @@ def test_local_memcache_ensure_strict_1(monkeypatch):
 def test_local_memcache_strict_2(monkeypatch):
     """Test the cache with a memory limit that can only hold one estimated weights size"""
     from earthkit.geo import config
-    from earthkit.geo.grids.regrid.memcache import MEMORY_CACHE
+    from earthkit.geo.regrid.memcache import MEMORY_CACHE
 
     policy = "largest"
     max_mem = 300 * 1024 * 1024
@@ -363,7 +363,7 @@ def test_local_memcache_strict_2(monkeypatch):
         def _estimate_memory(entry):
             return max_mem - 1
 
-        from earthkit.geo.grids.regrid import memcache
+        from earthkit.geo.regrid import memcache
 
         monkeypatch.setattr(memcache, "estimate_matrix_size", _estimate_memory)
 

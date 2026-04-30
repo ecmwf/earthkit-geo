@@ -13,7 +13,7 @@ import os
 
 from scipy.sparse import load_npz
 
-from earthkit.geo.grids.regrid.backends.db import VERSION, MatrixIndex
+from earthkit.geo.regrid.backends.db import VERSION, MatrixIndex
 
 from .matrix import matrix_memory_size
 from .mir import mir_cached_matrix_to_file

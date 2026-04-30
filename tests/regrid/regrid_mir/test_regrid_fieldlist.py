@@ -10,7 +10,8 @@
 import numpy as np
 import pytest
 
-from earthkit.geo import Grid, regrid
+from earthkit.geo.grids import Grid
+from earthkit.geo.regrid import regrid
 from earthkit.geo.utils.testing import (
     NO_EKD,  # noqa: E402
     NO_MIR,  # noqa: E402

@@ -11,8 +11,8 @@ import hashlib
 import json
 from collections import defaultdict, namedtuple
 
-from earthkit.geo.grids.regrid.backends.db import SYS_DB as DB
-from earthkit.geo.grids.regrid.gridspec import _GridSpec
+from earthkit.geo.regrid.backends.db import SYS_DB as DB
+from earthkit.geo.regrid.gridspec import _GridSpec
 
 Specs = namedtuple("Specs", ["source", "target"])
 

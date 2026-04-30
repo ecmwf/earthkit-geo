@@ -108,7 +108,7 @@ The current status of the in-memory cache can be retrieved using the :func:`prec
 
 .. code:: python
 
-  >>> from earthkit.geo.grids.regrid import precomputed_memory_cache_info
+  >>> from earthkit.geo.regrid import precomputed_memory_cache_info
   >>> precomputed_memory_cache_info()
   CacheInfo(hits=9, misses=1, maxsize=524288000, currsize=259170724, count=1, policy='largest')
 
@@ -122,7 +122,7 @@ The in-memory cache can be cleared using the :func:`clear_precomputed_memory_cac
 
 .. code:: python
 
-  >>> from earthkit.geo.grids.regrid import clear_precomputed_memory_cache, precomputed_memory_cache_info
+  >>> from earthkit.geo.regrid import clear_precomputed_memory_cache, precomputed_memory_cache_info
   >>> clear_precomputed_memory_cache()
   >>> precomputed_memory_cache_info()
   CacheInfo(hits=0, misses=0, maxsize=524288000, currsize=0, count=0, policy='largest')
@@ -167,8 +167,8 @@ Examples
 .. code-block:: python
 
     import numpy as np
-    from earthkit.geo import regrid, config
-    from earthkit.geo.grids.regrid import precomputed_memory_cache_info
+    from earthkit.geo import config
+    from earthkit.geo.regrid.array import regrid, precomputed_memory_cache_info
 
     # set memory cache with a maximum size of 100 MB to evict the largest matrices first
     config.set(
