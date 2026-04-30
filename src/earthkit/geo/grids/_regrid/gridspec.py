@@ -147,10 +147,25 @@ class _EckitGridSpec(_GridSpec):
     def spec(self):
         return self._grid.spec
 
+    @property
+    def spec_str(self):
+        return self._grid.spec_str
+
     def __eq__(self, o):
         if self.grid is not None and o.grid is not None:
             return self.grid.uid == o.grid.uid
         return False
+
+    @property
+    def inventory_docs_spec(self):
+        # return a dict spec that can be used for inventory matching
+        spec = dict(self.spec)
+        if self.grid_type == "healpix" and "order" not in spec:
+            spec["order"] = "ring"
+        if self.grid_type == "reduced-gg" and "octahedral" not in spec:
+            spec["octahedral"] = True if self["grid"][0].lower() == "o" else False
+        spec["_type"] = self.grid_type
+        return spec
 
 
 class _OrcaGridSpec(_GridSpec):
@@ -181,6 +196,10 @@ class _OrcaGridSpec(_GridSpec):
     def spec(self):
         return dict(self._spec)
 
+    @property
+    def spec_str(self):
+        return json.dumps(self.spec)
+
     def _patch(self, d):
         grid = d.get("grid", "")
         if isinstance(grid, str):
@@ -194,6 +213,13 @@ class _OrcaGridSpec(_GridSpec):
             return self._grid_type == o.grid_type
 
         return False
+
+    @property
+    def inventory_docs_spec(self):
+        # return a dict spec that can be used for inventory matching
+        spec = dict(self.spec)
+        spec["_type"] = "ORCA"
+        return spec
 
 
 class _CustomGridSpec(_GridSpec):
@@ -220,7 +246,17 @@ class _CustomGridSpec(_GridSpec):
     def spec(self):
         return dict(self._spec)
 
+    @property
+    def spec_str(self):
+        return json.dumps(self._spec)
+
     def __eq__(self, o):
         if isinstance(o, _CustomGridSpec):
             return self._spec == o.spec
         return False
+
+    @property
+    def inventory_docs_spec(self):
+        spec = dict(self.spec)
+        spec["_type"] = None
+        return spec

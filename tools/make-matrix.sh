@@ -88,6 +88,6 @@ fi
    fi
 
    # process matrix and add it to index json file
-   python3 -c "from earthkit.regrid.utils.matrix import make_matrix; make_matrix('$output_json','$output_dir',index_file='$index_file', global_input=True,global_output=True,version='$version')"
+   python3 -c "from earthkit.geo.utils.matrix import make_matrix; make_matrix('$output_json','$output_dir',index_file='$index_file', global_input=True,global_output=True,version='$version')"
 
    #rm -f $output_json

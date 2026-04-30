@@ -172,9 +172,9 @@ CACHE_POLICIES = {p.name: p for p in [NoPolicy, UnlimitedPolicy, LRUPolicy, Larg
 
 
 class MemoryCache:
-    MAX_SIZE_KEY = "maximum-weights-memory-cache-size"
-    POLICY_KEY = "weights-memory-cache-policy"
-    STRICT_KEY = "weights-memory-cache-strict-mode"
+    MAX_SIZE_KEY = "regrid-precomputed-weights-maximum-memory-cache-size"
+    POLICY_KEY = "regrid-precomputed-weights-memory-cache-policy"
+    STRICT_KEY = "regrid-precomputed-weights-memory-cache-strict-mode"
 
     def __init__(
         self,
@@ -367,9 +367,9 @@ class MatrixMemoryCache(MemoryCache):
 MEMORY_CACHE = MatrixMemoryCache()
 
 
-def clear_memory_cache():
+def clear_precomputed_memory_cache():
     MEMORY_CACHE.clear()
 
 
-def memory_cache_info():
+def precomputed_memory_cache_info():
     return MEMORY_CACHE.info()

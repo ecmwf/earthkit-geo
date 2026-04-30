@@ -17,7 +17,7 @@ Purpose
 
 earthkit-geo uses a dedicated **directory** to store interpolation matrices and the related index file downloaded from the remote inventory. By default this directory serves a **cache** and is **managed** (its size is checked/limited).  It means if we run :func:`regrid` again with the same input and output grid it will load the matrix from the cache instead of downloading it again. Additionally, caching offers **monitoring and disk space management**. When the cache is full, cached data is deleted according to the configuration (i.e. oldest data is deleted first). The cache is implemented by using a sqlite database running in a separate thread.
 
-Please note that the earthkit-geo cache configuration is managed through the :doc:`config`.
+Please note that the earthkit-geo cache configuration is managed through the :ref:`config`.
 
 .. warning::
 
@@ -63,7 +63,7 @@ When the ``cache-policy`` is "user" the **cache will be active** and created in 
 
 The user cache directory is **not cleaned up on exit**. So next time you start earthkit-geo it will be there again unless it is deleted manually or it is set in way that on each startup a different path is assigned to it. Also, when you run multiple sessions of earthkit-geo under the same user they will share the same cache.
 
-We can query the directory path via the :doc:`config` and also by calling the :meth:`~earthkit.geo.utils.caching.Cache.directory` :ref:`cache method <cache_methods>`.
+We can query the directory path via the :ref:`config` and also by calling the :meth:`~earthkit.geo.utils.caching.Cache.directory` :ref:`cache method <cache_methods>`.
 
 .. code-block:: python
 
@@ -93,7 +93,7 @@ The following code shows how to change the ``user-cache-directory`` config optio
 
 More generally, the earthkit-geo config options can be read, modified, reset
 to their default values from Python,
-see the :doc:`Configs documentation <config>`.
+see the :ref:`Configs documentation <config>`.
 
 .. _temporary_cache_policy:
 
@@ -102,7 +102,7 @@ Temporary cache policy
 
 When the ``cache-policy`` is "temporary" the **cache will be active and located in a managed** temporary directory created by ``tempfile.TemporaryDirectory``. This directory will be unique for each earthkit-geo session. When the directory object goes out of scope (at the latest on exit) the cache is **cleaned up**.
 
-Due to the temporary nature of this directory path it cannot be queried via the :doc:`config`, but we need to call the :meth:`~earthkit.geo.utils.caching.Cache.directory` :ref:`cache method <cache_methods>`.
+Due to the temporary nature of this directory path it cannot be queried via the :ref:`config`, but we need to call the :meth:`~earthkit.geo.utils.caching.Cache.directory` :ref:`cache method <cache_methods>`.
 
 .. code-block:: python
 
@@ -132,7 +132,7 @@ Off cache policy
 
 When the ``cache-policy`` is "off" no disk-based caching is available. In this case all files are downloaded into an **unmanaged** temporary directory created by ``tempfile.TemporaryDirectory``. Since caching is disabled, all repeated calls to :func:`regrid` will download the interpolation matrix again! This temporary directory will be unique for each earthkit-geo session. When the directory object goes out of scope (at the latest on exit) the directory will be **cleaned up**.
 
-Due to the temporary nature of this directory path it cannot be queried via the :doc:`config`, but we need to call the :meth:`~earthkit.geo.utils.caching.Cache.directory` :ref:`cache method <cache_methods>`.
+Due to the temporary nature of this directory path it cannot be queried via the :ref:`config`, but we need to call the :meth:`~earthkit.geo.utils.caching.Cache.directory` :ref:`cache method <cache_methods>`.
 
 .. code-block:: python
 

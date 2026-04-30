@@ -6,6 +6,17 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 #
-#
 
-from .regrid import regrid as regrid
+
+from eckit.geo import Grid
+
+import earthkit.geo.grids.array  # noqa: F401
+import earthkit.geo.grids.utils  # noqa: F401
+
+from ._regrid.regrid import regrid
+
+__all__ = [
+    "regrid",
+    "Grid",
+    "earthkit",
+]

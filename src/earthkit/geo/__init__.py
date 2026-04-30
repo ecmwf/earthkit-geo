@@ -16,24 +16,22 @@ except ImportError:  # pragma: no cover
     __version__ = "999"
 
 
-from earthkit.geo.distance import GeoKDTree, haversine_distance, nearest_point_haversine, nearest_point_kdtree
-from earthkit.geo.figure import IFS_SPHERE, UNIT_SPHERE
-from earthkit.geo.regrid import regrid
+import earthkit.geo.cartography  # noqa: F401
+import earthkit.geo.constants  # noqa: F401
+import earthkit.geo.coord  # noqa: F401
+import earthkit.geo.distance  # noqa: F401
+import earthkit.geo.figure  # noqa: F401
+import earthkit.geo.gisco  # noqa: F401
+import earthkit.geo.grids  # noqa: F401
+import earthkit.geo.rotate  # noqa: F401
+from earthkit.geo.grids import regrid
 from earthkit.geo.utils.caching import CACHE as cache
 from earthkit.geo.utils.config import CONFIG as config
-from earthkit.geo.utils.memcache import clear_memory_cache, memory_cache_info
 
 __all__ = [
-    "GeoKDTree",
-    "haversine_distance",
-    IFS_SPHERE,
-    "nearest_point_haversine",
-    "nearest_point_kdtree",
-    "regrid",
     "cache",
     "config",
-    "clear_memory_cache",
-    "memory_cache_info",
-    UNIT_SPHERE,
+    "regrid",
     "__version__",
+    "earthkit",
 ]

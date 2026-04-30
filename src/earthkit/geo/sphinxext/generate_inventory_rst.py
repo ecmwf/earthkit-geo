@@ -11,8 +11,8 @@ import hashlib
 import json
 from collections import defaultdict, namedtuple
 
-from earthkit.geo.regrid.backends.db import SYS_DB as DB
-from earthkit.geo.regrid.gridspec import _GridSpec
+from earthkit.geo.grids._regrid.backends.db import SYS_DB as DB
+from earthkit.geo.grids._regrid.gridspec import _GridSpec
 
 Specs = namedtuple("Specs", ["source", "target"])
 
@@ -21,7 +21,7 @@ BLOCK_COL_NUM = 3
 
 
 def sort_key_gridspec(gs):
-    grid = gs["grid"]
+    grid = gs.spec.get("grid", "")
     if isinstance(grid, str):
         return (1000, grid)
     elif isinstance(grid, list) and grid:
@@ -34,11 +34,18 @@ def to_str(gs):
     if isinstance(gs, str):
         return gs
 
-    grid = gs["grid"]
-    if isinstance(grid, str) and grid.startswith("H"):
-        return {"grid": gs["grid"], "order": gs["order"]}
-    else:
-        return {"grid": gs["grid"]}
+    return gs.spec_str
+
+    # grid = gs.grid
+    # if grid:
+    #     return grid.spec_str
+    # else:
+    #     return dict(gs)
+    #     # grid = gs["grid"]
+    #     # if isinstance(grid, str) and grid.startswith("H"):
+    #     #     return {"grid": gs["grid"], "order": gs["order"]}
+    #     # else:
+    #     #     return {"grid": gs["grid"]}
 
 
 def make_gs_block(source, target):
@@ -88,13 +95,25 @@ Target :ref:`gridspec <gridspec>`\s available for source:
 
 
 def match(gs, grid):
+    # print(f"Matching {gs} to {grid}")
+
+    gs = gs.inventory_docs_spec
     for name, val in grid.items():
         if name == "type":
             continue
-        if hasattr(gs, name):
-            if getattr(gs, name) != val:
+        # elif name == "grid":
+        #     if isinstance(val, str):
+        #         print(f"Matching grid string {gs['grid']} to {val}")
+        #         if gs["grid"][0] != val[0]:
+        #             return False
+        #     elif isinstance(val, list):
+        #         return False
+        elif name in gs:
+            # print(f"Matching {name} {gs[name]} to {val}")
+            if gs[name] != val:
                 return False
         else:
+            # print('missing key "{}" in source gridspec'.format(name))
             return False
     return True
 
@@ -108,13 +127,12 @@ This page contains all the available target gridspecs for a given
 **{long_name}** source :ref:`gridspec <gridspec>`.
 
 """
-
     # print(f"{grid=}\n")
     for _, v in specs.items():
         source = v.source
         target = v.target
 
-        if source["type"] != grid["type"]:
+        if source.inventory_docs_spec["_type"] != grid["type"]:
             continue
 
         if match(source, grid):
@@ -147,6 +165,8 @@ def load_matrix_index_file():
             else:
                 specs[gs_id].target.append(gs_out)
 
+            # print(f"Loaded {gs_in} -> {gs_out} {gs_id=}")
+
     for k in specs:
         target = sorted(specs[k].target, key=sort_key_gridspec)
         specs[k] = Specs(specs[k].source, target)
@@ -161,10 +181,10 @@ def execute(*args):
 
     gs = {}
     if grid_type == "reduced_gg_o":
-        gs["type"] = "reduced_gg"
+        gs["type"] = "reduced-gg"
         gs["octahedral"] = True
     elif grid_type == "reduced_gg":
-        gs["type"] = "reduced_gg"
+        gs["type"] = "reduced-gg"
         gs["octahedral"] = False
     elif grid_type == "healpix_ring":
         gs["type"] = "healpix"
@@ -172,6 +192,10 @@ def execute(*args):
     elif grid_type == "healpix_nested":
         gs["type"] = "healpix"
         gs["order"] = "nested"
+    elif grid_type == "regular_ll":
+        gs["type"] = "regular-ll"
+    elif grid_type == "orca":
+        gs["type"] = "ORCA"
     else:
         gs["type"] = grid_type
 
