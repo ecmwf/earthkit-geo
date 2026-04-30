@@ -14,7 +14,7 @@ from abc import ABCMeta, abstractmethod
 
 from scipy.sparse import load_npz
 
-from earthkit.geo.regrid.gridspec import _GridSpec
+from earthkit.geo.grids.regrid.gridspec import _GridSpec
 from earthkit.geo.utils import no_progress_bar
 from earthkit.geo.utils.download import download_and_cache
 from earthkit.geo.utils.url import join_url_path
@@ -467,7 +467,7 @@ class MatrixDb:
         if gridspec_in is None or gridspec_out is None:
             return None, None
 
-        from earthkit.geo.utils.memcache import MEMORY_CACHE
+        from earthkit.geo.grids.regrid.memcache import MEMORY_CACHE
 
         return MEMORY_CACHE.get(
             gridspec_in,

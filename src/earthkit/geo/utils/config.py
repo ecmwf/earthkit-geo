@@ -122,26 +122,26 @@ CONFIG_AND_HELP = {
     "user-cache-directory": _(
         os.path.join(os.path.expanduser("~"), ".cache", "earthkit-geo"),
         """Cache directory used when ``cache-policy`` is ``user``.
-        See :doc:`/guide/misc/caching` for more information.""",
+        See :doc:`/concepts/caching` for more information.""",
     ),
     "temporary-cache-directory-root": _(
         None,
         """Parent of the cache directory when ``cache-policy`` is ``temporary``.
-        See :doc:`/guide/misc/caching` for more information.""",
+        See :doc:`/concepts/caching` for more information.""",
         getter="_as_str",
         none_ok=True,
     ),
     "temporary-directory-root": _(
         None,
         """Parent of the temporary directory when ``cache-policy`` is ``off``.
-        See :doc:`/guide/misc/caching` for more information.""",
+        See :doc:`/concepts/caching` for more information.""",
         getter="_as_str",
         none_ok=True,
     ),
     "cache-policy": _(
         "user",
         """Caching policy. {validator}
-        See :doc:`/guide/misc/caching` for more information. """,
+        See :doc:`/concepts/caching` for more information. """,
         validator=ValuesValidator(["off", "temporary", "user"]),
     ),
     "maximum-cache-size": _(
@@ -150,7 +150,7 @@ CONFIG_AND_HELP = {
         When exceeded, earthkit-geo evicts older cached entries until the usage
         is below the specified limit. Can be set to None.
         Ignored when ``cache-policy`` is ``off``.
-        See :ref:`caching` for more information.""",
+        See :doc:`/concepts/caching` for more information.""",
         getter="_as_bytes",
         none_ok=True,
     ),
@@ -160,7 +160,7 @@ CONFIG_AND_HELP = {
         cache is located (e.g.: 90%). When the total disk usage exceeds this limit (it's not limited to the
         cache usage alone), earthkit-geo evicts older cached entries until the usage is below the
         specified limit. Can be set to None. Ignored when ``cache-policy`` is ``off``.
-        See :ref:`caching` for more information.""",
+        See :doc:`/concepts/caching` for more information.""",
         getter="_as_percent",
         none_ok=True,
     ),
@@ -177,25 +177,25 @@ CONFIG_AND_HELP = {
         False,
         "Re-download URLs when the remote version of a cached file as been changed",
     ),
-    "maximum-weights-memory-cache-size": _(
+    "regrid-precomputed-weights-maximum-memory-cache-size": _(
         "500MB",
         """The maximum memory size of the in-memory precomputed weight cache in bytes.
-        Only used when ``weights-memory-cache-policy`` is ``"largest"`` or ``"lru"``. Can be
+        Only used when ``regrid-precomputed-weights-memory-cache-policy`` is ``"largest"`` or ``"lru"``. Can be
         set to None.
         See :ref:`mem_cache` for more information.""",
         getter="_as_bytes",
         none_ok=True,
     ),
-    "weights-memory-cache-policy": _(
-        "largest",
+    "regrid-precomputed-weights-memory-cache-policy": _(
+        "lru",
         """The in-memory precomputed weights cache policy. {validator}
         See :ref:`mem_cache` for more information.""",
         validator=ValuesValidator(["off", "unlimited", "largest", "lru"]),
     ),
-    "weights-memory-cache-strict-mode": _(
+    "regrid-precomputed-weights-memory-cache-strict-mode": _(
         False,
         """Raise exception if the weights cannot be fitted into the in-memory cache.
-        Only used when ``weights-memory-cache-policy`` is ``"largest"`` or ``"lru"``.
+        Only used when ``regrid-precomputed-weights-memory-cache-policy`` is ``"largest"`` or ``"lru"``.
         See :ref:`mem_cache` for more information.""",
     ),
 }

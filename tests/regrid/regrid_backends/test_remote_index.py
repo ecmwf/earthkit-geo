@@ -12,14 +12,14 @@ import time
 import numpy as np
 import pytest
 
-from earthkit.geo.regrid.array import regrid as regrid_array
+from earthkit.geo.grids.regrid.array import regrid as regrid_array
 from earthkit.geo.utils.testing import SYSTEM_MATRIX_BACKEND_NAME
 
 
 @pytest.mark.download
 @pytest.mark.tmp_cache
 def test_regrid_remote_matrix_index_handling():
-    from earthkit.geo.regrid.backends.db import SYS_DB
+    from earthkit.geo.grids.regrid.backends.db import SYS_DB
 
     interpolation = "linear"
 

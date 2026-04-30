@@ -8,8 +8,8 @@ Configuration
 
 .. note::
 
-    At the moment this configuration is only related to the :ref:`precomputed <precomputed-regrid>`
-    backends in :func:`regrid`.
+    At the moment this configuration is only related to the :ref:`precomputed <precomputed-backend>`
+    backend in :func:`regrid`.
 
 
 *earthkit-geo* maintains a global configuration.

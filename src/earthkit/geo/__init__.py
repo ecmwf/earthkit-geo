@@ -16,24 +16,39 @@ except ImportError:  # pragma: no cover
     __version__ = "999"
 
 
-from earthkit.geo.distance import GeoKDTree, haversine_distance, nearest_point_haversine, nearest_point_kdtree
-from earthkit.geo.figure import IFS_SPHERE, UNIT_SPHERE
-from earthkit.geo.regrid import regrid
+# from earthkit.geo.distance import GeoKDTree, haversine_distance, nearest_point_haversine, nearest_point_kdtree
+# # from earthkit.geo.figure import IFS_SPHERE, UNIT_SPHERE
+# from earthkit.geo.grids import regrid
+import earthkit.geo.cartography as cartography
+import earthkit.geo.distance as distance
+import earthkit.geo.figure as figure
+import earthkit.geo.gisco as gisco
+
+# from earthkit.geo.grids.memcache import clear_memory_cache, memory_cache_info
+import earthkit.geo.grids as grids
+from earthkit.geo.grids import Grid
+from earthkit.geo.grids.regrid.regrid import regrid
 from earthkit.geo.utils.caching import CACHE as cache
 from earthkit.geo.utils.config import CONFIG as config
-from earthkit.geo.utils.memcache import clear_memory_cache, memory_cache_info
 
 __all__ = [
-    "GeoKDTree",
-    "haversine_distance",
-    IFS_SPHERE,
-    "nearest_point_haversine",
-    "nearest_point_kdtree",
+    "grids",
     "regrid",
+    "distance",
+    "gisco",
+    "figure",
+    "cartography",
+    "Grid",
+    # "GeoKDTree",
+    # "haversine_distance",
+    # IFS_SPHERE,
+    # "nearest_point_haversine",
+    # "nearest_point_kdtree",
+    # "regrid",
     "cache",
     "config",
-    "clear_memory_cache",
-    "memory_cache_info",
-    UNIT_SPHERE,
+    # "clear_precomputed_memory_cache",
+    # "precomputedmemory_cache_info",
+    # UNIT_SPHERE,
     "__version__",
 ]

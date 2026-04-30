@@ -28,7 +28,7 @@ Use it for data containing geographical information, e.g. earthkit-data :xref:`f
 .. code-block:: python
 
     import earthkit.data as ekd
-    from earthkit.geo.regrid import regrid
+    from earthkit.geo.grids import regrid
 
     # get fieldlist from a sample GRIB file
     ds = ekd.from_source("sample", "O32_t2.grib2").to_fieldlist()
@@ -47,7 +47,7 @@ Use it for raw data arrays, e.g. Numpy ndarrays.
 
 .. code-block:: python
 
-    from earthkit.geo.regrid.array import regrid
+    from earthkit.geo.grids.regrid.array import regrid
     import numpy as np
 
     vals = np.random.rand(320, 640)

@@ -21,7 +21,7 @@ regrid (high-level) with precomputed weights
     :type interpolation: str
     :param inventory: the path to the inventory of the precomputed weights. The interpolation only works when the weights are available for the given input grid (automatically determined from the data), target ``grid`` and ``interpolation`` combination. At present, two inventory types are available:
 
-       - If ``inventory`` is "ecmwf" on None, the remote inventory managed by ECMWF is used. In this case the weights are automatically downloaded and stored in a local cache (at ``"~/.cache/earthkit-geo"``) and when it is needed again the cached version is used. See the :ref:`inventory <matrix_inventory>` for the list of supported grid to grid combinations with this backend.
+       - If ``inventory`` is "ecmwf" on None, the remote inventory managed by ECMWF is used. In this case the weights are automatically downloaded and stored in a local cache (at ``"~/.cache/earthkit-geo"``) and when it is needed again the cached version is used. See the :ref:`inventory <precomputed_inventory>` for the list of supported grid to grid combinations with this backend.
        - If ``inventory`` is a local path, a local inventory is used. Please note this in experimental feature only used for development purposes.
     :type inventory: str
     :return: The same type of data as ``data`` containing the interpolated values.
@@ -37,4 +37,4 @@ Examples
 
 - :ref:`/how-tos/precomputed/precomp_healpix_fieldlist.ipynb`
 - :ref:`/how-tos/precomputed/precomp_octahedral_fieldlist.ipynb`
-- :ref:`/how-tos/precomputed/memory_cache.html`
+- :ref:`/how-tos/precomputed/memory_cache.ipynb`

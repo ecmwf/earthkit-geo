@@ -6,13 +6,10 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 #
-#
 
 
-def regrid(data, in_grid=None, out_grid=None, *, interpolation="linear", backend="mir", **kwargs):
-    r"""Array interface."""
-    from earthkit.geo.regrid.data.numpy import handler
+from eckit.geo import Grid
 
-    h = handler()
-    kwargs = kwargs.copy()
-    return h.regrid(data, in_grid=in_grid, out_grid=out_grid, interpolation=interpolation, backend=backend, **kwargs)
+__all__ = [
+    "Grid",
+]

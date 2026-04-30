@@ -8,4 +8,11 @@
 #
 #
 
-from .regrid import regrid as regrid
+
+def regrid(data, in_grid=None, out_grid=None, *, interpolation="linear", backend="mir", **kwargs):
+    r"""Array interface."""
+    from earthkit.geo.grids.regrid.data.numpy import handler
+
+    h = handler()
+    kwargs = kwargs.copy()
+    return h.regrid(data, in_grid=in_grid, out_grid=out_grid, interpolation=interpolation, backend=backend, **kwargs)

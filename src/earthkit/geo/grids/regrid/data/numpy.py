@@ -17,7 +17,7 @@ LOG = logging.getLogger(__name__)
 class NumpyDataHandler(DataHandler):
     @staticmethod
     def match(data):
-        import numpy as np
+        import earthkit.geo.grids.regrid.data.numpy as np
 
         return isinstance(data, np.ndarray)
 

@@ -33,7 +33,7 @@ class DataHandler(metaclass=ABCMeta):
         return self.get_backend(backend, **b_kwargs)
 
     def get_backend(self, backend, **backend_kwargs):
-        from earthkit.geo.regrid.backends import get_backend
+        from earthkit.geo.grids.regrid.backends import get_backend
 
         backend = get_backend(backend, **backend_kwargs)
 

@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 from eckit.geo import Grid
 
-from earthkit.geo.regrid.array import regrid as regrid_array
+from earthkit.geo.grids.regrid.array import regrid as regrid_array
 from earthkit.geo.utils.testing import SYSTEM_MATRIX_BACKEND_NAME, get_test_data
 
 INTERPOLATIONS = ["linear", "nearest-neighbour"]
