@@ -6,6 +6,5 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 #
-#
 
-from .regrid import regrid as regrid
+from ._regrid.array import regrid  # noqa: F401

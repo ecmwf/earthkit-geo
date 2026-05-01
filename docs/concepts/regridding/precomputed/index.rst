@@ -12,3 +12,4 @@ Regridding with the precomputed backend.
    regrid_array
    gridspec
    inventory/index
+   memory_cache

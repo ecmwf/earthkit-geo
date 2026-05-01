@@ -1,7 +1,7 @@
 .. _precomputed_inventory:
 
-Precomputed weights
-=======================
+Precomputed weights inventory
+================================
 
 .. include:: pre_gen_warn.rst
 

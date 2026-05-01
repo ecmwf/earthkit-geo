@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 from eckit.geo import Grid
 
-from earthkit.geo.regrid.array import regrid as array_regrid
+from earthkit.geo.grids.array import regrid as array_regrid
 from earthkit.geo.utils.testing import LOCAL_MATRIX_BACKEND_NAME, earthkit_test_data_path, get_test_data
 
 DB_PATH = earthkit_test_data_path("local", "db")
@@ -25,7 +25,7 @@ def file_in_testdir(filename):
 
 
 def get_local_db():
-    from earthkit.geo.regrid.backends.db import MatrixDb
+    from earthkit.geo.grids._regrid.backends.db import MatrixDb
 
     return MatrixDb.from_path(DB_PATH)
 

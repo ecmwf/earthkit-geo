@@ -11,7 +11,7 @@ import os
 import numpy as np
 import pytest
 
-from earthkit.geo.regrid.array import regrid as regrid_array
+from earthkit.geo.grids._regrid.array import regrid as regrid_array
 from earthkit.geo.utils.testing import earthkit_test_data_path
 
 DB_PATH = earthkit_test_data_path("local", "db")
@@ -43,7 +43,7 @@ def run_regrid(mode):
 
 @pytest.fixture
 def patch_estimate_matrix_memory(monkeypatch):
-    from earthkit.geo.regrid.backends.db import MatrixIndex
+    from earthkit.geo.grids._regrid.backends.db import MatrixIndex
 
     def patched_estimate_memory(self):
         return 200000
@@ -58,13 +58,13 @@ def patch_estimate_matrix_memory(monkeypatch):
 def test_local_memcache_core_1(policy, adjust_to, evict):
     """The cache is large enough to hold two matrices. The first matrix is larger than the second one."""
     from earthkit.geo import config
-    from earthkit.geo.utils.memcache import MEMORY_CACHE
+    from earthkit.geo.grids.utils.memcache import MEMORY_CACHE
 
     max_mem = 300 * 1024 * 1024
 
     with config.temporary():
-        config.set("weights-memory-cache-policy", policy)
-        config.set("maximum-weights-memory-cache-size", max_mem)
+        config.set("regrid-precomputed-weights-memory-cache-policy", policy)
+        config.set("regrid-precomputed-weights-maximum-memory-cache-size", max_mem)
 
         MEMORY_CACHE.clear()
 
@@ -115,7 +115,7 @@ def test_local_memcache_core_1(policy, adjust_to, evict):
         else:
             raise ValueError(f"Invalid adjust_to value: {adjust_to}")
 
-        config.set("maximum-weights-memory-cache-size", max_mem)
+        config.set("regrid-precomputed-weights-maximum-memory-cache-size", max_mem)
 
         if evict == "first":
             assert MEMORY_CACHE.info() == (2, 2, max_mem, mem_second, 1, policy)
@@ -132,12 +132,12 @@ def test_local_memcache_core_1(policy, adjust_to, evict):
 def test_local_memcache_core_2(policy, adjust_to, evict):
     """The cache is large enough to hold two matrices. The first weights is smaller than the second one."""
     from earthkit.geo import config
-    from earthkit.geo.utils.memcache import MEMORY_CACHE
+    from earthkit.geo.grids.utils.memcache import MEMORY_CACHE
 
     max_mem = 300 * 1024 * 1024
     with config.temporary():
-        config.set("weights-memory-cache-policy", policy)
-        config.set("maximum-weights-memory-cache-size", max_mem)
+        config.set("regrid-precomputed-weights-memory-cache-policy", policy)
+        config.set("regrid-precomputed-weights-maximum-memory-cache-size", max_mem)
 
         MEMORY_CACHE.clear()
 
@@ -187,7 +187,7 @@ def test_local_memcache_core_2(policy, adjust_to, evict):
         else:
             raise ValueError(f"Invalid adjust_to value: {adjust_to}")
 
-        config.set("maximum-weights-memory-cache-size", max_mem)
+        config.set("regrid-precomputed-weights-maximum-memory-cache-size", max_mem)
 
         if evict == "first":
             assert MEMORY_CACHE.info() == (2, 2, max_mem, mem_second, 1, policy)
@@ -201,12 +201,12 @@ def test_local_memcache_core_2(policy, adjust_to, evict):
 def test_local_memcache_small(policy):
     """Test the cache with such a small memory limit that no weights fits in"""
     from earthkit.geo import config
-    from earthkit.geo.utils.memcache import MEMORY_CACHE
+    from earthkit.geo.grids.utils.memcache import MEMORY_CACHE
 
     max_mem = 1
     with config.temporary():
-        config.set("weights-memory-cache-policy", policy)
-        config.set("maximum-weights-memory-cache-size", max_mem)
+        config.set("regrid-precomputed-weights-memory-cache-policy", policy)
+        config.set("regrid-precomputed-weights-maximum-memory-cache-size", max_mem)
 
         MEMORY_CACHE.clear()
 
@@ -235,14 +235,14 @@ def test_local_memcache_small(policy):
 
 def test_local_memcache_off_policy():
     from earthkit.geo import config
-    from earthkit.geo.utils.memcache import MEMORY_CACHE
+    from earthkit.geo.grids.utils.memcache import MEMORY_CACHE
 
     policy = "off"
     max_mem = 0
 
     with config.temporary():
-        config.set("weights-memory-cache-policy", policy)
-        config.set("maximum-weights-memory-cache-size", max_mem)
+        config.set("regrid-precomputed-weights-memory-cache-policy", policy)
+        config.set("regrid-precomputed-weights-maximum-memory-cache-size", max_mem)
 
         MEMORY_CACHE.clear()
 
@@ -273,14 +273,14 @@ def test_local_memcache_off_policy():
 
 def test_local_memcache_unlimited():
     from earthkit.geo import config
-    from earthkit.geo.utils.memcache import MEMORY_CACHE
+    from earthkit.geo.grids.utils.memcache import MEMORY_CACHE
 
     policy = "unlimited"
     max_mem = None
 
     with config.temporary():
-        config.set("weights-memory-cache-policy", policy)
-        config.set("maximum-weights-memory-cache-size", max_mem)
+        config.set("regrid-precomputed-weights-memory-cache-policy", policy)
+        config.set("regrid-precomputed-weights-maximum-memory-cache-size", max_mem)
 
         MEMORY_CACHE.clear()
 
@@ -310,15 +310,15 @@ def test_local_memcache_unlimited():
 def test_local_memcache_ensure_strict_1(monkeypatch):
     """Test the cache with a memory limit that is too small to hold any estimated weights size"""
     from earthkit.geo import config
-    from earthkit.geo.utils.memcache import MEMORY_CACHE
+    from earthkit.geo.grids.utils.memcache import MEMORY_CACHE
 
     policy = "largest"
     max_mem = 300 * 1024 * 1024
 
     with config.temporary():
-        config.set("weights-memory-cache-policy", policy)
-        config.set("maximum-weights-memory-cache-size", max_mem)
-        config.set("weights-memory-cache-strict-mode", True)
+        config.set("regrid-precomputed-weights-memory-cache-policy", policy)
+        config.set("regrid-precomputed-weights-maximum-memory-cache-size", max_mem)
+        config.set("regrid-precomputed-weights-memory-cache-strict-mode", True)
 
         MEMORY_CACHE.clear()
 
@@ -330,7 +330,7 @@ def test_local_memcache_ensure_strict_1(monkeypatch):
         def _estimate_memory(entry):
             return max_mem + 1
 
-        from earthkit.geo.utils import memcache
+        from earthkit.geo.grids.utils import memcache
 
         monkeypatch.setattr(memcache, "estimate_matrix_size", _estimate_memory)
 
@@ -343,15 +343,15 @@ def test_local_memcache_ensure_strict_1(monkeypatch):
 def test_local_memcache_strict_2(monkeypatch):
     """Test the cache with a memory limit that can only hold one estimated weights size"""
     from earthkit.geo import config
-    from earthkit.geo.utils.memcache import MEMORY_CACHE
+    from earthkit.geo.grids.utils.memcache import MEMORY_CACHE
 
     policy = "largest"
     max_mem = 300 * 1024 * 1024
 
     with config.temporary():
-        config.set("weights-memory-cache-policy", policy)
-        config.set("maximum-weights-memory-cache-size", max_mem)
-        config.set("weights-memory-cache-strict-mode", True)
+        config.set("regrid-precomputed-weights-memory-cache-policy", policy)
+        config.set("regrid-precomputed-weights-maximum-memory-cache-size", max_mem)
+        config.set("regrid-precomputed-weights-memory-cache-strict-mode", True)
 
         MEMORY_CACHE.clear()
 
@@ -363,7 +363,7 @@ def test_local_memcache_strict_2(monkeypatch):
         def _estimate_memory(entry):
             return max_mem - 1
 
-        from earthkit.geo.utils import memcache
+        from earthkit.geo.grids.utils import memcache
 
         monkeypatch.setattr(memcache, "estimate_matrix_size", _estimate_memory)
 
