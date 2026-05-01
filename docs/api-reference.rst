@@ -42,5 +42,4 @@ and classes in `earthkit-geo`.
 - :doc:`autoapi/earthkit/geo/figure/index`
 - :doc:`autoapi/earthkit/geo/gisco/index`
 - :doc:`autoapi/earthkit/geo/grids/index`
-- :doc:`autoapi/earthkit/geo/regrid/index`
 - :doc:`autoapi/earthkit/geo/rotate/index`

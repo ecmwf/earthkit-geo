@@ -8,7 +8,7 @@ It is supported by :py:func:`regrid` when used with the :ref:`MIR backend <mir-b
 
 .. code-block:: python
 
-    from earthkit.geo.regrid import regrid
+    import earthkit.geo as ekg
 
     # assume fl is a GRIB fieldlist/field on the O2560 grid
 
@@ -17,7 +17,7 @@ It is supported by :py:func:`regrid` when used with the :ref:`MIR backend <mir-b
 
     # regrid the fieldlist/field to the target grid, the default backend is MIR. The output
     # is stored in memory.
-    fl_res = regrid(fl, grid=grid)
+    fl_res = ekg.regrid(fl, grid=grid)
 
 
 How can I use conservative regridding?
@@ -28,7 +28,7 @@ It is supported by :py:func:`regrid` when used with the :ref:`MIR backend <mir-b
 .. code-block:: python
 
     import earthkit.data as ekd
-    from earthkit.geo.regrid import regrid
+    import earthkit.geo as ekg
 
     # get fieldlist from a sample GRIB file
     ds = ekd.from_source("sample", "O32_t2.grib2")
@@ -38,7 +38,7 @@ It is supported by :py:func:`regrid` when used with the :ref:`MIR backend <mir-b
 
     # regrid the fieldlist/field to the target grid, the default backend is MIR. The output
     # is stored in memory.
-    ds_res = regrid(ds, grid=grid, interpolation="grid-box-average")
+    ds_res = ekg.regrid(ds, grid=grid, interpolation="grid-box-average")
 
 
 How can I specify the cache directory for MIR?

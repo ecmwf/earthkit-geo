@@ -18,5 +18,4 @@ from ._regrid.regrid import regrid
 __all__ = [
     "regrid",
     "Grid",
-    "earthkit",
 ]

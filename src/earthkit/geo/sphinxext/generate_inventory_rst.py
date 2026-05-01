@@ -72,14 +72,14 @@ def make_gs_block(source, target):
 {source_grid}
 +++++++++++++++++++++++++
 
-Source :ref:`gridspec <gridspec>`:
+Source :ref:`gridspec <gridspec-precomputed>`:
 
 .. code-block:: python
 
     {to_str(source)}
 
 
-Target :ref:`gridspec <gridspec>`\s available for source:
+Target :ref:`gridspec <gridspec-precomputed>`\s available for source:
 
 .. list-table::
     :header-rows: 0
