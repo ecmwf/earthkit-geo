@@ -33,5 +33,4 @@ __all__ = [
     "config",
     "regrid",
     "__version__",
-    "earthkit",
 ]
