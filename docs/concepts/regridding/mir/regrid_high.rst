@@ -20,7 +20,7 @@ regrid (high-level) with MIR
         - an :class:`xarray.DataArray` or :class:`xarray.Dataset`. Please note this is an **experimental** feature and
           only works if the input :ref:`gridspec <gridspec>` can be automatically inferred from the data. If the
           Xarray was created with ``earthkit-data`` it most probably contains the necessary metadata to be automatically
-          inferred. Otherwise, the Xarray dataset/dataarray must have the ``ek_grid_spec`` attribute containing
+          inferred. Otherwise, the Xarray dataset/dataarray must have the ``earthkit_grid_spec`` attribute containing
           the :ref:`gridspec <gridspec>` as a dict or a JSON string.
 
     :type data: :py:class:`~earthkit.data.core.fieldlist.FieldList`, :py:class:`~earthkit.data.core.field.Field`, bytes, :class:`io.BytesIO`, :class:`xarray.DataArray`, :class:`xarray.Dataset`

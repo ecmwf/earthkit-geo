@@ -4,6 +4,12 @@ Version 1.0.0 Release Candidate Updates
 /////////////////////////////////////////
 
 
+Version 1.0.0rc7
+==================
+
+- Use ``earthkit_grid_spec`` instead of ``ek_grid_spec`` as the attribute name for the grid specification in Xarray input for :func:`regrid` (:pr:`63`).
+
+
 Version 1.0.0rc6
 ==================
 
