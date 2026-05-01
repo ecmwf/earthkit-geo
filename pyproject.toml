@@ -39,7 +39,7 @@ optional-dependencies.all = ["cartopy"]
 optional-dependencies.cartography = ["cartopy"]
 optional-dependencies.ci = [
   "earthkit-utils>=1.0.0rc0",
-  "earthkit-data>=1.0.0rc0",
+  "earthkit-data>=1.0.0rc6",
   "pytest",
   "pytest-cov",
   "requests",
@@ -66,7 +66,7 @@ optional-dependencies.docs = [
 ]
 optional-dependencies.test = [
   "earthkit-utils>=1.0.0rc0",
-  "earthkit-data>=1.0.0rc4",
+  "earthkit-data>=1.0.0rc6",
   "pytest",
   "pytest-cov"
 ]
