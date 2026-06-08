@@ -55,6 +55,8 @@ def test_regrid_xarray_from_ogg(out_grid, dims):
 
     compare_dims(r, dims, sizes=True)
 
+    assert r.earthkit.grid_spec == out_grid
+
 
 @pytest.mark.skip(reason="This test is currently failing")
 @pytest.mark.skipif(NO_MIR, reason="No mir available")
@@ -69,6 +71,8 @@ def test_regrid_xarray_from_ogg_to_subarea(out_grid, dims, area_ref):
     r = regrid(ds["2t"], grid=out_grid, interpolation="linear")
 
     compare_dims(r, dims, sizes=True)
+
+    assert r.earthkit.grid_spec == out_grid
 
     lat = r["latitude"].values
     lon = r["longitude"].values
@@ -99,6 +103,8 @@ def test_regrid_xarray_from_h_nested(out_grid, dims):
 
     compare_dims(r, dims, sizes=True)
 
+    assert r.earthkit.grid_spec == out_grid
+
 
 @pytest.mark.skipif(NO_MIR, reason="No mir available")
 @pytest.mark.skipif(NO_EKD, reason="No earthkit.data available")
@@ -115,3 +121,5 @@ def test_regrid_xarray_dataset_from_h_nested(out_grid, dims):
     r = regrid(ds, grid=out_grid, interpolation="linear")
 
     compare_dims(r, dims, sizes=True)
+
+    assert r.earthkit.grid_spec == out_grid

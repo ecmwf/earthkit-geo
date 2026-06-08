@@ -35,10 +35,8 @@ class GridWrapper:
         return np.array(lat), np.array(lon)
 
     @property
-    def grid_spec(self):
-        # TODO: for grid specs like {'grid': 'O32', 'area': [87.863799, 0.0, -87.863799, 357.5]}
-        # The Grid.spec is not correct so we cannot return self.spec
-        return self._grid_spec
+    def grid(self):
+        return self._grid
 
     def is_spectral(self):
         return False
@@ -97,11 +95,15 @@ class GridWrapper:
 class XarrayGeographyBuilder:
     def __init__(self, grid_spec):
         self.grid = GridWrapper(grid_spec)
-        self.grid_spec = grid_spec
+        self.spec = grid_spec
 
     @property
     def shape(self):
         return self.grid.shape
+
+    @property
+    def spec_str(self):
+        return self.grid.spec_str
 
     def geo_dims(self):
         """Determine the geographical dimensions of the dataset."""
@@ -230,9 +232,7 @@ class XarrayDataHandler(DataHandler):
             return grid_spec
 
         try:
-            in_grid = _convert(ds.attrs.get("earthkit_grid_spec", None))
-            if in_grid is None:
-                in_grid = _convert(kwargs.pop("grid_spec", None))
+            in_grid = _convert(kwargs.pop("grid_spec", None))
             if in_grid is None:
                 in_grid = _convert(ds.earthkit.grid_spec)
         except AttributeError:
@@ -264,6 +264,12 @@ class XarrayDataHandler(DataHandler):
             c_dims = {x: dims[x] for x in coords_dim[k]}
             ds.coords[k] = xr.Variable(c_dims, v)
 
+        return ds
+
+    @staticmethod
+    def update_attributes(ds, out_geo):
+        if hasattr(ds, "earthkit"):
+            return ds.earthkit.set({"geography.grid_spec": out_geo.spec})
         return ds
 
     def regrid(self, values, grid=None, **kwargs):
@@ -314,7 +320,7 @@ class XarrayDataHandler(DataHandler):
                 vals, self.out_grid = self.method(vals)
                 return vals
 
-        method = _RegridMethod(in_grid.grid_spec, out_geo.grid_spec, **kwargs)
+        method = _RegridMethod(in_grid.spec, out_geo.spec, **kwargs)
 
         def _regrid(da):
             return xr.apply_ufunc(
@@ -345,6 +351,7 @@ class XarrayDataHandler(DataHandler):
         out_geo = XarrayGeographyBuilder(method.out_grid)
 
         self.add_geo_coords(ds_out, out_geo)
+        ds_out = self.update_attributes(ds_out, out_geo)
 
         return ds_out
 
