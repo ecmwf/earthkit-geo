@@ -3,7 +3,7 @@
 regrid (array-level) with precomputed weights
 ========================================================
 
-.. py:function:: regrid(date, in_grid=None, out_grid=None, *, interpolation='linear', backend="precomputed", inventory="ecmwf")
+.. py:function:: regrid(date, in_grid=None, out_grid=None, interpolation='linear', backend="precomputed", inventory="ecmwf")
     :noindex:
 
     Regrid array ``data`` using precomputed weights.

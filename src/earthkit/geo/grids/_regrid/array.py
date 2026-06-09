@@ -25,7 +25,6 @@ def regrid(
     data: "NDArray",
     in_grid: "dict|str|Grid|None" = None,
     out_grid: "dict|str|Grid|None" = None,
-    *,
     interpolation: str = "linear",
     backend: Literal["mir", "precomputed"] = "mir",
     **kwargs,

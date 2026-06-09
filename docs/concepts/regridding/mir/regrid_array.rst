@@ -4,7 +4,7 @@ regrid (array-level) with MIR
 ===============================================
 
 
-.. py:function:: regrid(data, in_grid=None, out_grid=None, *, interpolation='linear', backend="mir")
+.. py:function:: regrid(data, in_grid=None, out_grid=None, interpolation='linear', backend="mir")
     :noindex:
 
     Regrid array ``data`` using **MIR** (Meteorological Interpolation and Regridding).
