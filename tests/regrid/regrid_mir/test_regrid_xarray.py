@@ -22,20 +22,22 @@ if not NO_EKD:
 
 
 REFS = [
-    ({"grid": [10, 10]}, {"step": 2, "latitude": 19, "longitude": 36}),
-    ({"grid": "N32"}, {"step": 2, "values": 6114}),
-    ({"grid": "H4", "order": "nested"}, {"step": 2, "values": 192}),
-    ({"grid": "H4", "order": "ring"}, {"step": 2, "values": 192}),
+    ({"grid": [10, 10]}, {"grid": [10, 10]}, {"step": 2, "latitude": 19, "longitude": 36}),
+    ({"grid": "N32"}, {"grid": "N32"}, {"step": 2, "values": 6114}),
+    ({"grid": "H4", "order": "nested"}, {"grid": "H4", "order": "nested"}, {"step": 2, "values": 192}),
+    ({"grid": "H4", "order": "ring"}, {"grid": "H4"}, {"step": 2, "values": 192}),
 ]
 
 REFS_SUBAREA = [
     (
+        {"grid": [10, 10], "area": [80, -20, -10, 60]},
         {"grid": [10, 10], "area": [80, -20, -10, 60]},
         {"step": 2, "latitude": 10, "longitude": 9},
         [80, -20, -10, 60],
     ),
     (
         {"grid": [10, 10], "area": [85, -25, -10, 60]},
+        {"grid": [10, 10], "area": [80, -20, -10, 60]},
         {"step": 2, "latitude": 10, "longitude": 9},
         [80, -20, -10, 60],
     ),
@@ -44,8 +46,8 @@ REFS_SUBAREA = [
 
 @pytest.mark.skipif(NO_MIR, reason="No mir available")
 @pytest.mark.skipif(NO_EKD, reason="No earthkit.data available")
-@pytest.mark.parametrize("out_grid,dims", REFS)
-def test_regrid_xarray_from_ogg(out_grid, dims):
+@pytest.mark.parametrize("out_grid,out_grid_ref,dims", REFS)
+def test_regrid_xarray_from_ogg(out_grid, out_grid_ref, dims):
 
     ds_in = from_source("sample", "O32_t2.grib2").to_fieldlist()
     assert len(ds_in) == 2
@@ -54,13 +56,15 @@ def test_regrid_xarray_from_ogg(out_grid, dims):
     r = regrid(ds["2t"], out_grid=out_grid, interpolation="linear")
 
     compare_dims(r, dims, sizes=True)
+
+    assert r.earthkit.grid_spec == out_grid_ref
 
 
 @pytest.mark.skip(reason="This test is currently failing")
 @pytest.mark.skipif(NO_MIR, reason="No mir available")
 @pytest.mark.skipif(NO_EKD, reason="No earthkit.data available")
-@pytest.mark.parametrize("out_grid,dims,area_ref", REFS_SUBAREA)
-def test_regrid_xarray_from_ogg_to_subarea(out_grid, dims, area_ref):
+@pytest.mark.parametrize("out_grid,out_grid_ref,dims,area_ref", REFS_SUBAREA)
+def test_regrid_xarray_from_ogg_to_subarea(out_grid, out_grid_ref, dims, area_ref):
 
     ds_in = from_source("sample", "O32_t2.grib2").to_fieldlist()
     assert len(ds_in) == 2
@@ -69,6 +73,8 @@ def test_regrid_xarray_from_ogg_to_subarea(out_grid, dims, area_ref):
     r = regrid(ds["2t"], out_grid=out_grid, interpolation="linear")
 
     compare_dims(r, dims, sizes=True)
+
+    assert r.earthkit.grid_spec == out_grid_ref
 
     lat = r["latitude"].values
     lon = r["longitude"].values
@@ -86,10 +92,10 @@ def test_regrid_xarray_from_ogg_to_subarea(out_grid, dims, area_ref):
 @pytest.mark.skipif(NO_MIR, reason="No mir available")
 @pytest.mark.skipif(NO_EKD, reason="No earthkit.data available")
 @pytest.mark.parametrize(
-    "out_grid,dims",
+    "out_grid,out_grid_ref,dims",
     REFS,
 )
-def test_regrid_xarray_from_h_nested(out_grid, dims):
+def test_regrid_xarray_from_h_nested(out_grid, out_grid_ref, dims):
 
     ds_in = from_source("sample", "H8_nested_t2.grib2").to_fieldlist()
     assert len(ds_in) == 2
@@ -99,14 +105,16 @@ def test_regrid_xarray_from_h_nested(out_grid, dims):
 
     compare_dims(r, dims, sizes=True)
 
+    assert r.earthkit.grid_spec == out_grid_ref
+
 
 @pytest.mark.skipif(NO_MIR, reason="No mir available")
 @pytest.mark.skipif(NO_EKD, reason="No earthkit.data available")
 @pytest.mark.parametrize(
-    "out_grid,dims",
+    "out_grid,out_grid_ref,dims",
     REFS,
 )
-def test_regrid_xarray_dataset_from_h_nested(out_grid, dims):
+def test_regrid_xarray_dataset_from_h_nested(out_grid, out_grid_ref, dims):
 
     ds_in = from_source("sample", "H8_nested_t2.grib2").to_fieldlist()
     assert len(ds_in) == 2
@@ -115,3 +123,5 @@ def test_regrid_xarray_dataset_from_h_nested(out_grid, dims):
     r = regrid(ds, out_grid=out_grid, interpolation="linear")
 
     compare_dims(r, dims, sizes=True)
+
+    assert r.earthkit.grid_spec == out_grid_ref

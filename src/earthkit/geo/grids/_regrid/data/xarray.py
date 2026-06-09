@@ -219,20 +219,6 @@ class XarrayDataHandler(DataHandler):
     @staticmethod
     def get_in_grid(ds, in_grid_arg, kwargs):
         """Get the input grid from the dataset or from the kwargs."""
-        # TODO: ensure the grid_spec is always available on an Xarray.
-        # This probably should be implemented in earthkit-geo.
-
-        # def _convert(grid_spec):
-        #     if grid_spec is None:
-        #         return None
-        #     elif isinstance(grid_spec, dict) and grid_spec:
-        #         return grid_spec
-        #     elif isinstance(grid_spec, str):
-        #         import json
-
-        #         return json.loads(grid_spec)
-        #     return grid_spec
-
         in_grid = None
         if in_grid_arg is not None:
             from eckit.geo import Grid
@@ -246,17 +232,6 @@ class XarrayDataHandler(DataHandler):
                     from eckit.geo import Grid
 
                     in_grid = Grid(gs)
-
-            # try:
-            #     in_grid = _convert(ds.earthkit.grid_spec)
-
-            #     in_grid = _convert(ds.attrs.get("earthkit_grid_spec", None))
-            #     if in_grid is None:
-            #         in_grid = _convert(kwargs.pop("grid_spec", None))
-            #     if in_grid is None:
-            #         in_grid = _convert(ds.earthkit.grid_spec)
-            # except AttributeError:
-            #     pass
 
         if in_grid is None:
             raise ValueError("No in_grid specified and cannot determine in_grid from the dataset")
@@ -284,6 +259,10 @@ class XarrayDataHandler(DataHandler):
             c_dims = {x: dims[x] for x in coords_dim[k]}
             ds.coords[k] = xr.Variable(c_dims, v)
 
+        return ds
+
+    @staticmethod
+    def update_attributes(ds, out_geo):
         if hasattr(ds, "earthkit"):
             ds = ds.earthkit.set({"geography.grid_spec": out_geo.grid_spec})
 
@@ -380,6 +359,7 @@ class XarrayDataHandler(DataHandler):
         out_geo = XarrayGeographyBuilder(method.out_grid)
 
         ds_out = self.add_geo_coords(ds_out, out_geo)
+        ds_out = self.update_attributes(ds_out, out_geo)
 
         return ds_out
 
