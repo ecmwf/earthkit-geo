@@ -9,6 +9,7 @@
 
 import functools
 import logging
+from math import prod
 
 from earthkit.geo.utils import ensure_list
 
@@ -22,7 +23,10 @@ class GridWrapper:
     def __init__(self, grid_spec):
         from eckit.geo import Grid
 
-        self._grid = Grid(**grid_spec)
+        if isinstance(grid_spec, Grid):
+            self._grid = grid_spec
+        else:
+            self._grid = Grid(grid_spec)
         self._grid_spec = grid_spec
 
     def __getattr__(self, name):
@@ -213,33 +217,49 @@ class XarrayDataHandler(DataHandler):
             return False
 
     @staticmethod
-    def get_in_grid(ds, kwargs):
+    def get_in_grid(ds, in_grid_arg, kwargs):
         """Get the input grid from the dataset or from the kwargs."""
         # TODO: ensure the grid_spec is always available on an Xarray.
         # This probably should be implemented in earthkit-geo.
 
-        def _convert(grid_spec):
-            if grid_spec is None:
-                return None
-            elif isinstance(grid_spec, dict) and grid_spec:
-                return grid_spec
-            elif isinstance(grid_spec, str):
-                import json
+        # def _convert(grid_spec):
+        #     if grid_spec is None:
+        #         return None
+        #     elif isinstance(grid_spec, dict) and grid_spec:
+        #         return grid_spec
+        #     elif isinstance(grid_spec, str):
+        #         import json
 
-                return json.loads(grid_spec)
-            return grid_spec
+        #         return json.loads(grid_spec)
+        #     return grid_spec
 
-        try:
-            in_grid = _convert(ds.attrs.get("earthkit_grid_spec", None))
-            if in_grid is None:
-                in_grid = _convert(kwargs.pop("grid_spec", None))
-            if in_grid is None:
-                in_grid = _convert(ds.earthkit.grid_spec)
-        except AttributeError:
-            pass
+        in_grid = None
+        if in_grid_arg is not None:
+            from eckit.geo import Grid
+
+            in_grid = Grid(in_grid_arg)
 
         if in_grid is None:
-            raise ValueError("in_grid must be provided")
+            if hasattr(ds, "earthkit") and hasattr(ds.earthkit, "grid_spec"):
+                gs = ds.earthkit.grid_spec
+                if gs is not None:
+                    from eckit.geo import Grid
+
+                    in_grid = Grid(gs)
+
+            # try:
+            #     in_grid = _convert(ds.earthkit.grid_spec)
+
+            #     in_grid = _convert(ds.attrs.get("earthkit_grid_spec", None))
+            #     if in_grid is None:
+            #         in_grid = _convert(kwargs.pop("grid_spec", None))
+            #     if in_grid is None:
+            #         in_grid = _convert(ds.earthkit.grid_spec)
+            # except AttributeError:
+            #     pass
+
+        if in_grid is None:
+            raise ValueError("No in_grid specified and cannot determine in_grid from the dataset")
 
         return GridWrapper(in_grid)
 
@@ -264,15 +284,24 @@ class XarrayDataHandler(DataHandler):
             c_dims = {x: dims[x] for x in coords_dim[k]}
             ds.coords[k] = xr.Variable(c_dims, v)
 
+        if hasattr(ds, "earthkit"):
+            ds = ds.earthkit.set({"geography.grid_spec": out_geo.grid_spec})
+
         return ds
 
-    def regrid(self, values, grid=None, **kwargs):
+    def regrid(self, values, in_grid=None, out_grid=None, **kwargs):
         from .numpy import NumpyDataHandler
 
         kwargs = kwargs.copy()
+        in_grid_arg = in_grid
+        out_grid_arg = out_grid
 
-        in_grid = self.get_in_grid(values, kwargs)
-        out_geo = self.get_out_geo(grid)
+        # the input Grid object
+        in_grid = self.get_in_grid(values, in_grid_arg, kwargs)
+
+        # the output geography builder which can provide the output grid and the output coordinates
+        out_geo = self.get_out_geo(out_grid_arg)
+        out_grid = out_geo.grid._grid
 
         in_dims = kwargs.pop("in_dims", None)
         if in_dims is None:
@@ -290,6 +319,12 @@ class XarrayDataHandler(DataHandler):
 
         in_dims = ensure_list(in_dims)
         out_dims = ensure_list(out_dims)
+
+        field_size = prod([values.sizes[k] for k in in_dims])
+        if field_size != prod(in_grid.shape):
+            raise ValueError(
+                f"Input field size {field_size} does not match the input grid size {prod(in_grid.shape)}. "
+            )
 
         import xarray as xr
 
@@ -314,7 +349,7 @@ class XarrayDataHandler(DataHandler):
                 vals, self.out_grid = self.method(vals)
                 return vals
 
-        method = _RegridMethod(in_grid.grid_spec, out_geo.grid_spec, **kwargs)
+        method = _RegridMethod(in_grid.spec, out_geo.grid_spec, **kwargs)
 
         def _regrid(da):
             return xr.apply_ufunc(
@@ -344,7 +379,7 @@ class XarrayDataHandler(DataHandler):
         # with the new grid spec
         out_geo = XarrayGeographyBuilder(method.out_grid)
 
-        self.add_geo_coords(ds_out, out_geo)
+        ds_out = self.add_geo_coords(ds_out, out_geo)
 
         return ds_out
 

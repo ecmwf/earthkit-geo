@@ -51,7 +51,7 @@ def test_regrid_xarray_from_ogg(out_grid, dims):
     assert len(ds_in) == 2
     ds = ds_in.to_xarray()
 
-    r = regrid(ds["2t"], grid=out_grid, interpolation="linear")
+    r = regrid(ds["2t"], out_grid=out_grid, interpolation="linear")
 
     compare_dims(r, dims, sizes=True)
 
@@ -66,7 +66,7 @@ def test_regrid_xarray_from_ogg_to_subarea(out_grid, dims, area_ref):
     assert len(ds_in) == 2
     ds = ds_in.to_xarray()
 
-    r = regrid(ds["2t"], grid=out_grid, interpolation="linear")
+    r = regrid(ds["2t"], out_grid=out_grid, interpolation="linear")
 
     compare_dims(r, dims, sizes=True)
 
@@ -95,7 +95,7 @@ def test_regrid_xarray_from_h_nested(out_grid, dims):
     assert len(ds_in) == 2
     ds = ds_in.to_xarray()
 
-    r = regrid(ds["2t"], grid=out_grid, interpolation="linear")
+    r = regrid(ds["2t"], out_grid=out_grid, interpolation="linear")
 
     compare_dims(r, dims, sizes=True)
 
@@ -112,6 +112,6 @@ def test_regrid_xarray_dataset_from_h_nested(out_grid, dims):
     assert len(ds_in) == 2
     ds = ds_in.to_xarray()
 
-    r = regrid(ds, grid=out_grid, interpolation="linear")
+    r = regrid(ds, out_grid=out_grid, interpolation="linear")
 
     compare_dims(r, dims, sizes=True)

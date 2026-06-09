@@ -31,7 +31,7 @@ class FieldListDataHandler(DataHandler):
             return False
 
     @staticmethod
-    def input_gridspec(field, index):
+    def input_gridspec(field, index, in_grid_arg):
         try:
             in_grid = field.geography.grid_spec()
         except Exception as e:
@@ -42,26 +42,27 @@ class FieldListDataHandler(DataHandler):
 
         return in_grid
 
-    def regrid(self, data, **kwargs):
+    def regrid(self, data, in_grid=None, out_grid=None, **kwargs):
         backend = self.backend_from_kwargs(kwargs)
 
-        grid = kwargs.pop("grid", None)
-        if grid is None:
-            raise ValueError("Missing 'grid' argument")
+        if out_grid is None:
+            raise ValueError("Missing 'out_grid' argument")
 
         fields = []
         for i, field in enumerate(data):
-            r = self._regrid_field(field, i, backend, grid, **kwargs)
+            r = self._regrid_field(field, i, backend, in_grid, out_grid, **kwargs)
             fields.append(r)
 
         from earthkit.data import FieldList
 
         return FieldList.from_fields(fields)
 
-    def _regrid_field(self, field, index, backend, grid, **kwargs):
+    def _regrid_field(self, field, index, backend, in_grid, out_grid, **kwargs):
         message = None
         if field._get_grib():
             message = field.message()
+
+        in_grid_arg = in_grid
 
         # GRIB data
         if message is not None:
@@ -73,7 +74,7 @@ class FieldListDataHandler(DataHandler):
 
             # currently this if branch means the mir backend
             if hasattr(backend, "regrid_grib"):
-                res_message = backend.regrid_grib(message, grid, **kwargs)
+                res_message = backend.regrid_grib(message, out_grid, **kwargs)
 
             # currently this if branch means the precomputed backend
             else:
@@ -81,13 +82,13 @@ class FieldListDataHandler(DataHandler):
 
                 vv = field.to_numpy(flatten=True)
 
-                in_grid = self.input_gridspec(field, index)
+                in_grid = self.input_gridspec(field, index, in_grid_arg)
 
                 # for precomputed backend we need to build a special gridspec object
                 # to match the matrix inventory items
                 # TODO: remove this limitation
                 in_grid = _GridSpec.from_any(in_grid)
-                out_grid = _GridSpec.from_any(grid)
+                out_grid = _GridSpec.from_any(out_grid)
 
                 v_res, out_grid = backend.regrid(
                     vv,
@@ -116,7 +117,7 @@ class FieldListDataHandler(DataHandler):
             return create_grib_field_from_message(res_message, template_field=field)
         else:
             vv = field.to_numpy(flatten=True)
-            in_grid = self.input_gridspec(field, index)
+            in_grid = self.input_gridspec(field, index, in_grid_arg)
 
             # currently this is the precomputed backend
             if not hasattr(backend, "regrid_grib"):
@@ -126,9 +127,9 @@ class FieldListDataHandler(DataHandler):
                 from earthkit.geo.grids._regrid.gridspec import _GridSpec
 
                 in_grid = _GridSpec.from_any(in_grid)
-                out_grid = _GridSpec.from_any(grid)
+                out_grid = _GridSpec.from_any(out_grid)
             else:
-                out_grid = grid
+                out_grid = out_grid
 
             v_res, out_grid = backend.regrid(
                 vv,

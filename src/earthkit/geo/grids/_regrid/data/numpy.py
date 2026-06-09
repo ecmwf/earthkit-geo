@@ -21,9 +21,7 @@ class NumpyDataHandler(DataHandler):
 
         return isinstance(data, np.ndarray)
 
-    def regrid(self, data, **kwargs):
-        in_grid = kwargs.pop("in_grid")
-        out_grid = kwargs.pop("out_grid")
+    def regrid(self, data, in_grid=None, out_grid=None, **kwargs):
         backend = self.backend_from_kwargs(kwargs)
         return backend.regrid(data, in_grid, out_grid, **kwargs)
 

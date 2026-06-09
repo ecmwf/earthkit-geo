@@ -23,7 +23,7 @@ For regridding, a different interface is available depending on the input data t
 High-level interface
 //////////////////////
 
-Use it for data containing geographical information, e.g. earthkit-data :xref:`fieldlist` objects, Xarray DataArrays or Datasets.
+Use it for data containing geographical information, e.g. earthkit-data field/fieldlist objects, Xarray DataArrays or Datasets.
 
 .. code-block:: python
 
@@ -34,9 +34,9 @@ Use it for data containing geographical information, e.g. earthkit-data :xref:`f
     ds = ekd.from_source("sample", "O32_t2.grib2").to_fieldlist()
 
     # the target is a regular latitude-longitude grid
-    grid = {"grid": [5, 5]}
+    out_grid = {"grid": [5, 5]}
 
-    ds_res = ekg.regrid(ds, grid=grid)
+    ds_res = ekg.regrid(ds, out_grid=out_grid)
 
 
 Array-level interface

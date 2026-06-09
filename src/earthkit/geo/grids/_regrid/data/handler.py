@@ -18,7 +18,7 @@ OPTIONAL_BACKENDS_KWARGS = ["inventory"]
 
 class DataHandler(metaclass=ABCMeta):
     @abstractmethod
-    def regrid(self, values, **kwargs):
+    def regrid(self, values, in_grid=None, out_grid=None, **kwargs):
         pass
 
     def backend_from_kwargs(self, kwargs):
