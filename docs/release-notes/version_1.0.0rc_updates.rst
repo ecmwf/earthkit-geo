@@ -4,6 +4,55 @@ Version 1.0.0 Release Candidate Updates
 /////////////////////////////////////////
 
 
+Version 1.0.0rc8
+==================
+
+Changes in the regridding interface
+-------------------------------------
+
+Added the ``in_grid`` and ``out_grid`` kwargs to the high level regrid() methods :ref:`regrid() <mir-regrid-high>` and :ref:`regrid() <precomputed-regrid-high>`. These kwargs are used to specify the input and output grid specifications for regridding. The previously used ``grid`` kwarg is now deprecated and replaced with ``out_grid``. However, it can still be used for backward compatibility but it will raise a deprecation warning. The ``in_grid`` kwarg can be used to specify the input grid specification if it cannot be inferred from the input data, e.g. for Xarray input without proper metadata.
+
+An example of how to use the new interface.
+
+.. code-block:: python
+
+    import earthkit.data as ekd
+    import earthkit.geo as ekg
+
+    # get fieldlist from a sample GRIB file
+    ds = ekd.from_source("sample", "O32_t2.grib2").to_fieldlist()
+
+    # the target is a regular latitude-longitude grid
+    out_grid = {"grid": [5, 5]}
+
+    ds_res = ekg.regrid(ds, out_grid=out_grid)
+
+
+Breaking changes for Xarray regridding
+---------------------------------------
+If the input grid cannot be automatically inferred from the input data, it can now be specified via the new ``in_grid`` kwarg. Previously, it required adding the grid specification to the Xarray data as a custom attribute ``earthkit_grid_spec``, which was not straightforward for users. This attribute is not supported any longer.
+
+See the new notebook :ref:`/tutorials/mir_regrid_xarray.ipynb` for an example of how to regrid Xarray data with the new interface.
+
+An example of how to regrid Xarray data with the new interface.
+
+.. code-block:: python
+
+    import earthkit.geo as ekg
+    import xarray as xr
+
+    # create a sample Xarray DataArray without grid metadata
+    da = xr.DataArray(...)
+
+    # specify the input grid specification via the new in_grid kwarg
+    in_grid = {"grid": [0.25, 0.25]}  # regular latitude-longitude grid
+
+    # specify the output grid specification via the new out_grid kwarg
+    out_grid = {"grid": "O320"}  # octahedral reduced Gaussian grid
+
+    da_res = ekg.regrid(da, in_grid=in_grid, out_grid=out_grid)
+
+
 Version 1.0.0rc7
 ==================
 
