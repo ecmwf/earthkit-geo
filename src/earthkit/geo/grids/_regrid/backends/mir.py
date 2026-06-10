@@ -40,6 +40,14 @@ class MirBackend(Backend):
             kwargs["area"] = MirBackend.normalise_area(area)
         return grid, kwargs
 
+    @staticmethod
+    def get_grid_spec(grid):
+        from eckit.geo import Grid
+
+        if isinstance(grid, Grid):
+            return grid.spec
+        return grid
+
     def regrid(
         self,
         data,
@@ -52,6 +60,9 @@ class MirBackend(Backend):
         kwargs = {
             "interpolation": interpolation,
         }
+
+        in_grid = self.get_grid_spec(in_grid)
+        out_grid = self.get_grid_spec(out_grid)
 
         out_grid, kwargs = self.adjust_options(out_grid, {})
 
@@ -72,12 +83,14 @@ class MirBackend(Backend):
     def regrid_grib(
         self,
         message,
-        grid,
+        out_grid,
         interpolation="linear",
     ):
         from io import BytesIO
 
         import mir
+
+        out_grid = self.get_grid_spec(out_grid)
 
         kwargs = {
             "interpolation": interpolation,
@@ -88,7 +101,7 @@ class MirBackend(Backend):
         for k in kremove:
             del kwargs[k]
 
-        out_grid, kwargs = self.adjust_options(grid, kwargs)
+        out_grid, kwargs = self.adjust_options(out_grid, kwargs)
 
         in_data = mir.GribMemoryInput(message)
         out = BytesIO()

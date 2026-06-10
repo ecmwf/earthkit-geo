@@ -54,7 +54,7 @@ def test_regrid_fieldlist_reg_ll(_kwarg, interpolation, field_type):
     v_ref = np.load(f_ref)["arr_0"]
     metadata_ref = ds.metadata(["param", "level", "date", "time", "gridType"])
 
-    r = regrid(ds, grid={"grid": [10, 10]}, **_kwarg)
+    r = regrid(ds, out_grid={"grid": [10, 10]}, **_kwarg)
 
     assert len(r) == 1
     assert r[0].shape == (19, 36)
@@ -87,7 +87,7 @@ def test_regrid_fieldlist_gg(_kwarg, interpolation, field_type):
     v_ref = np.load(f_ref)["arr_0"]
     metadata_ref = ds.metadata(["param", "level", "date", "time"])
 
-    r = regrid(ds, grid={"grid": [10, 10]}, **_kwarg)
+    r = regrid(ds, out_grid={"grid": [10, 10]}, **_kwarg)
 
     assert len(r) == 1
     assert r[0].shape == (19, 36)
@@ -123,7 +123,7 @@ def test_regrid_single_field(_kwarg, interpolation, field_type):
     v_ref = np.load(f_ref)["arr_0"]
     metadata_ref = field.metadata(["param", "level", "date", "time"])
 
-    r = regrid(field, grid={"grid": [10, 10]}, **_kwarg)
+    r = regrid(field, out_grid={"grid": [10, 10]}, **_kwarg)
 
     assert r.shape == (19, 36)
     compare_global_ll_results(r.to_numpy(), v_ref, interpolation, rtol=1e-4)
@@ -154,7 +154,7 @@ def test_regrid_single_field_non_grib():
     f_ref = get_test_data(f"out_5x5_10x10_{interpolation}.npz")
     v_ref = np.load(f_ref)["arr_0"]
 
-    r = regrid(field, grid=out_grid, interpolation=interpolation)
+    r = regrid(field, out_grid=out_grid, interpolation=interpolation)
 
     assert r.geography.shape() == (19, 36)
     assert np.allclose(r.values, v_ref)
@@ -164,3 +164,27 @@ def test_regrid_single_field_non_grib():
     grid_ref = Grid({"grid": [10, 10]}).spec
 
     assert r.geography.grid_spec() == grid_ref
+
+
+@pytest.mark.skipif(NO_MIR, reason="No mir available")
+@pytest.mark.skipif(NO_EKD, reason="No access to earthkit-data")
+def test_regrid_fieldlist_deprec_grid_kwarg():
+    ds = _create_fieldlist("5x5.grib", "grib")
+
+    interpolation = "linear"
+
+    f_ref = get_test_data(f"out_5x5_10x10_{interpolation}.npz")
+    v_ref = np.load(f_ref)["arr_0"]
+    metadata_ref = ds.metadata(["param", "level", "date", "time", "gridType"])
+
+    r = regrid(ds, grid={"grid": [10, 10]}, interpolation=interpolation)
+
+    assert len(r) == 1
+    assert r[0].shape == (19, 36)
+    compare_global_ll_results(r[0].to_numpy(), v_ref, interpolation, rtol=1e-4)
+    assert r.metadata(["param", "level", "date", "time", "gridType"]) == metadata_ref
+
+    grid_ref = {"iDirectionIncrementInDegrees": 10.0, "jDirectionIncrementInDegrees": 10.0}
+    for f in r:
+        for k, v in grid_ref.items():
+            assert np.isclose(f.metadata(k), v), k

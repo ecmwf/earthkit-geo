@@ -3,22 +3,21 @@
 regrid (array-level) with MIR
 ===============================================
 
-*New in version 1.0.0.*
 
-.. py:function:: regrid(data, in_grid=None, out_grid=None, *, interpolation='linear', backend="mir")
+.. py:function:: regrid(data, in_grid=None, out_grid=None, interpolation='linear', backend="mir")
     :noindex:
 
     Regrid array ``data`` using **MIR** (Meteorological Interpolation and Regridding).
 
     The ``backend`` parameter is set to "mir" by default so it is not necessary to specify it explicitly.
 
-    :param data: array representing a single field defined on the ``in_grid``.
+    :param data: The data to be regridded, represented as a NumPy array, defining a single field on the ``in_grid``.
     :type data: ndarray
-    :param in_grid: the :ref:`gridspec <gridspec>` describing the grid that ``data`` are defined on. For the list of supported grids, please refer to the :ref:`gridspec <gridspec>` documentation.
+    :param in_grid: The :ref:`gridspec <gridspec>` describing the grid that ``data`` are defined on. For the list of supported grids, please refer to the :ref:`gridspec <gridspec>` documentation.
     :type in_grid: dict, str,  :obj:`Grid <earthkit.geo.grid.Grid>`
-    :param out_grid: the :ref:`gridspec <gridspec>` describing the target grid that ``data`` will be interpolated onto. For the list of supported grids, please refer to the :ref:`gridspec <gridspec>` documentation.
+    :param out_grid: The :ref:`gridspec <gridspec>` describing the target grid that ``data`` will be interpolated onto. For the list of supported grids, please refer to the :ref:`gridspec <gridspec>` documentation.
     :type out_grid: dict, str, :obj:`Grid <earthkit.geo.grid.Grid>`
-    :param interpolation: the interpolation method. Please note not all the interpolation methods support all possible grid types. The possible values are  as follows:
+    :param interpolation: The interpolation method. Please note not all the interpolation methods support all possible grid types. The possible values are  as follows:
 
         - "linear": Finite Element based interpolation with linear base functions with supporting triangular mesh
         - "grid-box-average": input/output grid box intersections interpolation preserving input value integrals (conservative interpolation).

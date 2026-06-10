@@ -55,7 +55,7 @@ def test_regrid_matrix_fieldlist_reg_ll_grib(_kwarg, interpolation, field_type, 
     v_ref = np.load(f_ref)["arr_0"]
     metadata_ref = ds.metadata(["param", "level", "date", "time"])
 
-    r = regrid(ds, grid=out_grid, backend=SYSTEM_MATRIX_BACKEND_NAME, **_kwarg)
+    r = regrid(ds, out_grid=out_grid, backend=SYSTEM_MATRIX_BACKEND_NAME, **_kwarg)
 
     assert len(r) == 1
     assert r[0].geography.shape() == (19, 36)
@@ -82,7 +82,7 @@ def test_regrid_matrix_fieldlist_reg_ll_non_grib():
     f_ref = get_test_data(f"out_5x5_10x10_{interpolation}.npz")
     v_ref = np.load(f_ref)["arr_0"]
 
-    r = regrid(fl, grid=out_grid, backend=SYSTEM_MATRIX_BACKEND_NAME, interpolation=interpolation)
+    r = regrid(fl, out_grid=out_grid, backend=SYSTEM_MATRIX_BACKEND_NAME, interpolation=interpolation)
 
     assert len(r) == 1
     assert r[0].geography.shape() == (19, 36)
@@ -118,7 +118,7 @@ def test_regrid_matrix_fieldlist_gg(_kwarg, interpolation, field_type, out_grid)
     v_ref = np.load(f_ref)["arr_0"]
     metadata_ref = ds.metadata(["param", "level", "date", "time"])
 
-    r = regrid(ds, grid=out_grid, backend=SYSTEM_MATRIX_BACKEND_NAME, **_kwarg)
+    r = regrid(ds, out_grid=out_grid, backend=SYSTEM_MATRIX_BACKEND_NAME, **_kwarg)
 
     assert len(r) == 1
     assert r[0].geography.shape() == (19, 36)
@@ -155,7 +155,7 @@ def test_regrid_matrix_single_field_grib(_kwarg, interpolation, field_type, out_
     field = field.set(labels={"my_label": "my_value"})
     metadata_ref = field.metadata(["param", "level", "date", "time"])
 
-    r = regrid(field, grid=out_grid, backend=SYSTEM_MATRIX_BACKEND_NAME, **_kwarg)
+    r = regrid(field, out_grid=out_grid, backend=SYSTEM_MATRIX_BACKEND_NAME, **_kwarg)
 
     assert r.geography.shape() == (19, 36)
     assert np.allclose(r.values, v_ref)
@@ -184,7 +184,7 @@ def test_regrid_matrix_single_field_non_grib():
     f_ref = get_test_data(f"out_5x5_10x10_{interpolation}.npz")
     v_ref = np.load(f_ref)["arr_0"]
 
-    r = regrid(field, grid=out_grid, backend=SYSTEM_MATRIX_BACKEND_NAME, interpolation=interpolation)
+    r = regrid(field, out_grid=out_grid, backend=SYSTEM_MATRIX_BACKEND_NAME, interpolation=interpolation)
 
     assert r.geography.shape() == (19, 36)
     assert np.allclose(r.values, v_ref)
@@ -194,3 +194,29 @@ def test_regrid_matrix_single_field_non_grib():
     grid_ref = Grid({"grid": [10, 10]}).spec
 
     assert r.geography.grid_spec() == grid_ref
+
+
+@pytest.mark.download
+@pytest.mark.tmp_cache
+@pytest.mark.skipif(NO_EKD, reason="No access to earthkit-data")
+def test_regrid_matrix_fieldlist_reg_ll_grib_deprec_grid_kwarg():
+    ds = _create_fieldlist("5x5.grib", "grib")
+
+    interpolation = "linear"
+    out_grid = {"grid": [10, 10]}
+
+    f_ref = get_test_data(f"out_5x5_10x10_{interpolation}.npz")
+    v_ref = np.load(f_ref)["arr_0"]
+    metadata_ref = ds.metadata(["param", "level", "date", "time"])
+
+    r = regrid(ds, grid=out_grid, backend=SYSTEM_MATRIX_BACKEND_NAME, interpolation=interpolation)
+
+    assert len(r) == 1
+    assert r[0].geography.shape() == (19, 36)
+    assert np.allclose(r[0].values, v_ref)
+    assert r.metadata(["param", "level", "date", "time"]) == metadata_ref
+
+    grid_ref = Grid({"grid": [10, 10]}).spec
+
+    for f in r:
+        assert f.geography.grid_spec() == grid_ref
