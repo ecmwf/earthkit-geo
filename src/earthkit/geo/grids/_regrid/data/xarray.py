@@ -263,8 +263,27 @@ class XarrayDataHandler(DataHandler):
 
     @staticmethod
     def update_attributes(ds, out_geo):
-        if hasattr(ds, "earthkit"):
-            ds = ds.earthkit.set({"geography.grid_spec": out_geo.grid_spec})
+        # TODO: this is a temporary workaround to only set the grid_spec attribute
+        # for datasets/arrays created from earthkit-data. The problem is that
+        # the earthkit specific attributes cannot be written to NetCDF files. So
+        # we avoid adding/updating it if it is not already present in the dataset.
+        # This whole approach needs to be rethought once we have a better
+        # way to handle the grid spec in xarray.
+
+        # This low level check should be replaced by a more robust way to
+        # determine if the dataset/array is created from earthkit-data.
+        has_earthkit = False
+        if "_earthkit" in ds.attrs:
+            has_earthkit = True
+        else:
+            for var in ds.data_vars.values():
+                if "_earthkit" in var.attrs:
+                    has_earthkit = True
+                    break
+
+        if has_earthkit:
+            if hasattr(ds, "earthkit"):
+                ds = ds.earthkit.set({"geography.grid_spec": out_geo.grid_spec})
 
         return ds
 
