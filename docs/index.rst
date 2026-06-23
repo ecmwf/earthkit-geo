@@ -1,12 +1,13 @@
 
 Earthkit-geo's documentation
 ======================================================
+
+**earthkit-geo** is a Python package providing geospatial computations such as regridding and rotation. It is part of the :xref:`earthkit` ecosystem.
+
 .. important::
 
      The latest major version 1.0 introduces significant changes. Please read the :ref:`1.0 release notes <release-notes-1.0>` for the details.
 
-
-**earthkit-geo** is a Python package providing geospatial computations such as regridding and rotation. It is part of the :xref:`earthkit` ecosystem.
 
 .. grid:: 1
    :gutter: 2
