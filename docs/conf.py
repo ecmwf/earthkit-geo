@@ -7,11 +7,8 @@
 # -- Import and path setup ---------------------------------------------------
 
 import datetime
-import json
 import os
 import sys
-
-import yaml
 
 on_rtd = os.environ.get("READTHEDOCS") == "True"
 
@@ -214,7 +211,6 @@ intersphinx_mapping = {
     "earthkit-data": ("https://earthkit-data.readthedocs.io/en/release-1.0.0rc11/", None),
     "earthkit-plots": ("https://earthkit-plots.readthedocs.io/en/release-1.0.0rc0/", None),
 }
-
 
 
 def setup(app):
