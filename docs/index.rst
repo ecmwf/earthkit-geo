@@ -1,5 +1,5 @@
 
-Earthkit-geo's documentation
+earthkit-geo
 ======================================================
 
 **earthkit-geo** is a Python package providing geospatial computations such as regridding and rotation. It is part of the :xref:`earthkit` ecosystem.
