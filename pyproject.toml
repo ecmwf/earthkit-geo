@@ -19,9 +19,9 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy"
 ]
 dependencies = [
-  "eckit==2.0.6.17",
+  "eckit==2.1.0.21",
   "filelock",
-  "mir-python==1.28.1.17",
+  "mir-python==1.29.0.21",
   "multiurl",
   "pyproj",
   "pyyaml",
