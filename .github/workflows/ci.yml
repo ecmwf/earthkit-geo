@@ -31,6 +31,7 @@ jobs:
     uses: ecmwf/downstream-ci/.github/workflows/downstream-ci.yml@main
     with:
       earthkit-geo: ecmwf/earthkit-geo@${{ github.event.pull_request.head.sha || github.sha }}
+      earthkit-data: ecmwf/earthkit-data@release/1.0.0
       codecov_upload: true
       python_qa: false
     secrets: inherit
@@ -41,4 +42,5 @@ jobs:
     uses: ecmwf/downstream-ci/.github/workflows/downstream-ci-hpc.yml@main
     with:
       earthkit-geo: ecmwf/earthkit-geo@${{ github.event.pull_request.head.sha || github.sha }}
+      earthkit-data: ecmwf/earthkit-data@release/1.0.0
     secrets: inherit
