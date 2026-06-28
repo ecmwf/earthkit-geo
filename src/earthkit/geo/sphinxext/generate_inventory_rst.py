@@ -1,0 +1,214 @@
+# (C) Copyright 2023 ECMWF.
+#
+# This software is licensed under the terms of the Apache Licence Version 2.0
+# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+# In applying this licence, ECMWF does not waive the privileges and immunities
+# granted to it by virtue of its status as an intergovernmental organisation
+# nor does it submit to any jurisdiction.
+#
+
+import hashlib
+import json
+from collections import defaultdict, namedtuple
+
+from earthkit.geo.grids._regrid.backends.db import SYS_DB as DB
+from earthkit.geo.grids._regrid.gridspec import _GridSpec
+
+Specs = namedtuple("Specs", ["source", "target"])
+
+
+BLOCK_COL_NUM = 3
+
+
+def sort_key_gridspec(gs):
+    grid = gs.spec.get("grid", "")
+    if isinstance(grid, str):
+        return (1000, grid)
+    elif isinstance(grid, list) and grid:
+        return (grid[0], grid[1])
+
+    return (0, 0)
+
+
+def to_str(gs):
+    if isinstance(gs, str):
+        return gs
+
+    return gs.spec_str
+
+    # grid = gs.grid
+    # if grid:
+    #     return grid.spec_str
+    # else:
+    #     return dict(gs)
+    #     # grid = gs["grid"]
+    #     # if isinstance(grid, str) and grid.startswith("H"):
+    #     #     return {"grid": gs["grid"], "order": gs["order"]}
+    #     # else:
+    #     #     return {"grid": gs["grid"]}
+
+
+def make_gs_block(source, target):
+    while len(target) % BLOCK_COL_NUM != 0:
+        target.append("")
+
+    step = len(target) // BLOCK_COL_NUM
+
+    source_grid = source["grid"]
+
+    CODE_LINE = "         {}"
+    FIRST_COL = """
+    * - .. code-block:: python
+
+"""
+
+    OTHER_COL = """
+      - .. code-block:: python
+
+"""
+
+    txt = rf"""
+
+{source_grid}
++++++++++++++++++++++++++
+
+Source :ref:`gridspec <gridspec-precomputed>`:
+
+.. code-block:: python
+
+    {to_str(source)}
+
+
+Target :ref:`gridspec <gridspec-precomputed>`\s available for source:
+
+.. list-table::
+    :header-rows: 0
+
+"""
+
+    for k in range(BLOCK_COL_NUM):
+        txt += FIRST_COL if k == 0 else OTHER_COL
+        for i in range(k * step, (k + 1) * step):
+            txt += CODE_LINE.format(to_str(target[i])) + "\n"
+
+    return txt
+
+
+def match(gs, grid):
+    # print(f"Matching {gs} to {grid}")
+
+    gs = gs.inventory_docs_spec
+    for name, val in grid.items():
+        if name == "type":
+            continue
+        # elif name == "grid":
+        #     if isinstance(val, str):
+        #         print(f"Matching grid string {gs['grid']} to {val}")
+        #         if gs["grid"][0] != val[0]:
+        #             return False
+        #     elif isinstance(val, list):
+        #         return False
+        elif name in gs:
+            # print(f"Matching {name} {gs[name]} to {val}")
+            if gs[name] != val:
+                return False
+        else:
+            # print('missing key "{}" in source gridspec'.format(name))
+            return False
+    return True
+
+
+def build_gs_page(specs, grid, long_name):
+    txt = f"""
+
+.. include:: pre_gen_warn.rst
+
+This page contains all the available target gridspecs for a given
+**{long_name}** source :ref:`gridspec <gridspec>`.
+
+"""
+    # print(f"{grid=}\n")
+    for _, v in specs.items():
+        source = v.source
+        target = v.target
+
+        if source.inventory_docs_spec["_type"] != grid["type"]:
+            continue
+
+        if match(source, grid):
+            # print(f"->{source=}\n")
+            # for t in target:
+            # print(f"    {t=}\n")
+            txt += make_gs_block(source, target)
+
+    return txt
+
+
+def load_matrix_index_file():
+    specs = defaultdict(Specs)
+
+    for _, entry in DB.index.items():
+        gs_in = _GridSpec.from_dict(entry["input"])
+        gs_out = _GridSpec.from_dict(entry["output"])
+
+        # only entires available for interpolation will
+        # be considered for the inventory
+        if entry["interpolation"]["method"] == "linear":
+            # key = dict(grid=gs_in["grid"])
+            key = dict(gs_in)
+            m = hashlib.sha256()
+            m.update(json.dumps(key).encode("utf-8"))
+            gs_id = m.hexdigest()
+
+            if gs_id not in specs:
+                specs[gs_id] = Specs(gs_in, [gs_out])
+            else:
+                specs[gs_id].target.append(gs_out)
+
+            # print(f"Loaded {gs_in} -> {gs_out} {gs_id=}")
+
+    for k in specs:
+        target = sorted(specs[k].target, key=sort_key_gridspec)
+        specs[k] = Specs(specs[k].source, target)
+
+    return specs
+
+
+def execute(*args):
+    specs = load_matrix_index_file()
+
+    grid_type = args[0]
+
+    gs = {}
+    if grid_type == "reduced_gg_o":
+        gs["type"] = "reduced-gg"
+        gs["octahedral"] = True
+    elif grid_type == "reduced_gg":
+        gs["type"] = "reduced-gg"
+        gs["octahedral"] = False
+    elif grid_type == "healpix_ring":
+        gs["type"] = "healpix"
+        gs["order"] = "ring"
+    elif grid_type == "healpix_nested":
+        gs["type"] = "healpix"
+        gs["order"] = "nested"
+    elif grid_type == "regular_ll":
+        gs["type"] = "regular-ll"
+    elif grid_type == "orca":
+        gs["type"] = "ORCA"
+    else:
+        gs["type"] = grid_type
+
+    if len(args) >= 2:
+        long_name = " ".join(args[1:])
+        long_name = long_name.replace('"', "")
+    else:
+        long_name = grid_type
+
+    # print(f"{gs=}\n")
+    txt = build_gs_page(specs, gs, long_name)
+    print(txt)
+
+
+if __name__ == "__main__":
+    execute()

@@ -360,3 +360,11 @@ tags
 
 # local code
 _dev
+
+
+# data and precomputed weights
+*.grib
+*.grib1
+*.grib2
+*.json
+*.npz

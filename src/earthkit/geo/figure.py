@@ -9,7 +9,7 @@
 
 
 class Figure:
-    """Figure representing the size and shape of a spheroid"""
+    """Figure representing the size and shape of a spheroid."""
 
     pass
 

@@ -9,12 +9,9 @@
 
 
 import pytest
-from shapely.geometry import MultiPolygon
-from shapely.geometry import Polygon
+from shapely.geometry import MultiPolygon, Polygon
 
-from earthkit.geo.cartography import _closest_resolution
-from earthkit.geo.cartography import country_polygons
-from earthkit.geo.cartography import multipolygon_to_coordinates
+from earthkit.geo.cartography import _closest_resolution, country_polygons, multipolygon_to_coordinates
 
 
 @pytest.mark.parametrize(

@@ -1,0 +1,29 @@
+# (C) Copyright 2023 ECMWF.
+#
+# This software is licensed under the terms of the Apache Licence Version 2.0
+# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+# In applying this licence, ECMWF does not waive the privileges and immunities
+# granted to it by virtue of its status as an intergovernmental organisation
+# nor does it submit to any jurisdiction.
+#
+
+import logging
+
+from .handler import DataHandler
+
+LOG = logging.getLogger(__name__)
+
+
+class NumpyDataHandler(DataHandler):
+    @staticmethod
+    def match(data):
+        import earthkit.geo.grids._regrid.data.numpy as np
+
+        return isinstance(data, np.ndarray)
+
+    def regrid(self, data, in_grid=None, out_grid=None, **kwargs):
+        backend = self.backend_from_kwargs(kwargs)
+        return backend.regrid(data, in_grid, out_grid, **kwargs)
+
+
+handler = NumpyDataHandler
