@@ -38,8 +38,8 @@ requires-python = ">=3.10"
 optional-dependencies.all = ["cartopy"]
 optional-dependencies.cartography = ["cartopy"]
 optional-dependencies.ci = [
-  "earthkit-utils>=1.0.0rc0",
-  "earthkit-data>=1.0.0rc11",
+  "earthkit-utils",
+  "earthkit-data",
   "pytest",
   "pytest-cov",
   "requests",
