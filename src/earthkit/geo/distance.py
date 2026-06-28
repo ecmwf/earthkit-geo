@@ -11,8 +11,7 @@ import numpy as np
 
 from . import constants
 from .coord import latlon_to_xyz
-from .figure import IFS_SPHERE
-from .figure import UNIT_SPHERE
+from .figure import IFS_SPHERE, UNIT_SPHERE
 
 
 def _regulate_lat(lat):
@@ -45,7 +44,7 @@ def haversine_distance(p1, p2, figure=IFS_SPHERE):
     --------
     Compute the distance between Reading and Bologna.
 
-    >>> from earthkit.geo import haversine_distance
+    >>> from earthkit.geo.distance import haversine_distance
     >>> p1 = (51.45, -0.97)
     >>> p2 = (44.49, 11.34)
     >>> haversine_distance(p1, p2)
@@ -53,7 +52,7 @@ def haversine_distance(p1, p2, figure=IFS_SPHERE):
 
     Compute the distance from Reading to Bologna and Bonn.
 
-    >>> from earthkit.geo import haversine_distance
+    >>> from earthkit.geo.distance import haversine_distance
     >>> p1 = (51.45, -0.97)
     >>> p_lat = [44.49, 50.73]
     >>> p_lon = [11.34, 7.90]
@@ -118,14 +117,14 @@ def nearest_point_haversine(ref_points, points, figure=IFS_SPHERE):
 
     Examples
     --------
-    >>> from earthkit.geo import nearest_point_haversine
+    >>> from earthkit.geo.distance import nearest_point_haversine
     >>> p_ref = (51.45, -0.97)
     >>> p_lat = [44.49, 50.73, 50.1]
     >>> p_lon = [11.34, 7.90, -8.1]
     >>> nearest_point_haversine(p_ref, (p_lat, p_lon))
     (array([2]), array([523115.83147777]))
 
-    >>> from earthkit.geo import nearest_point_haversine
+    >>> from earthkit.geo.distance import nearest_point_haversine
     >>> p_ref = [(51.45, 41.49, 12.29), (-0.97, 18.34, -17.1)]
     >>> p_lat = [44.49, 50.73, 50.1]
     >>> p_lon = [11.34, 7.90, -8.1]
@@ -252,14 +251,14 @@ def nearest_point_kdtree(ref_points, points, figure=IFS_SPHERE):
 
     Examples
     --------
-    >>> from earthkit.geo import nearest_point_kdtree
+    >>> from earthkit.geo.distance import nearest_point_kdtree
     >>> p_ref = (51.45, -0.97)
     >>> p_lat = [44.49, 50.73, 50.1]
     >>> p_lon = [11.34, 7.90, -8.1]
     >>> nearest_point_kdtree(p_ref, (p_lat, p_lon))
     (array([2]), array([523115.83147777]))
 
-    >>> from earthkit.geo import nearest_point_kdtree
+    >>> from earthkit.geo.distance import nearest_point_kdtree
     >>> p_ref = [(51.45, 41.49, 12.29), (-0.97, 18.34, -17.1)]
     >>> p_lat = [44.49, 50.73, 50.1]
     >>> p_lon = [11.34, 7.90, -8.1]

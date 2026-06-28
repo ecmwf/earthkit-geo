@@ -12,8 +12,7 @@
 import numpy as np
 import pytest
 
-from earthkit.geo.coord import latlon_to_xyz
-from earthkit.geo.coord import xyz_to_latlon
+from earthkit.geo.coord import latlon_to_xyz, xyz_to_latlon
 
 from .testing import normalise_lon
 
