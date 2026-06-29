@@ -56,6 +56,43 @@ Example:
     {"grid": [0.1, 0.1]}
 
 
+Arakawa C-grids
+---------------
+
+Two related ``type``-based gridspecs describing Arakawa C-grids are supported:
+
+- ``arakawa_c_um`` for Met Office Unified Model grids.
+- ``arakawa_c`` for general equirectangular projection-based grids.
+
+The ``arakawa_c_um`` type is specific to UM and supports a range of UM *N* values, including::
+
+    N48, N96, N144, N216, N320, N400, N512, N640, N768, N1280
+
+For both types, ``arrangement`` can be ``T``, ``U`` or ``V`` (case-insensitive). The default arrangement is ``T``.
+
+The ``arakawa_c`` type provides a compact way to define an Arakawa C-grid on a regular latitude-longitude geometry. This is useful when you want explicit control of the grid construction while keeping the C-grid arrangement semantics.
+
+The two types map to progressively more foundational descriptions:
+
+- ``arakawa_c_um`` -> ``arakawa_c`` (with explicit UM-specific grid stretching and order)
+- ``arakawa_c`` -> ``regular_ll`` (with explicit ``grid`` and ``reference``)
+
+Example equivalent constructions (for UM N96, arrangement ``T``):
+
+.. code-block::
+
+    {"type": "arakawa_c_um", "N": 96}
+    {"type": "arakawa_c", "N": 96, "grid_factor": [2, 1.3333333333], "order": "i+j+"}
+    {"grid": [1.875, 1.25], "reference": [0.9375, 0.625], "order": "i+j+"}
+
+You can then explore related grids by setting ``arrangement``.
+
+References:
+
+- `Met Office Unified Model <https://www.metoffice.gov.uk/research/approach/modelling-systems/unified-model>`_
+- `Arakawa grids overview <https://en.wikipedia.org/wiki/Arakawa_grids>`_
+
+
 
 HEALPix grids
 -------------
@@ -84,12 +121,10 @@ ORCA grids
 
 These grids are designed for global ocean coverage, and are associated with the NEMO model. The ``grid`` format is case-insensitive, in the formats::
 
-     ORCAXXX
-     ORCAXXX_[FTUVW]
-     eORCAYYY
-     eORCAYYY_[FTUVW]
+    ORCAXXX_[FTUVW]
+    eORCAYYY_[FTUVW]
 
-where the first letter stands for *extended* indicating coverage closer to the South pole. *T*, *U*, *V* or *W* define the point location respective to the supporting mesh elements, respectively in cell-centred, vertex and ``u``/``v`` edges point arrangements. The default arrangement is cell-centred or *F*.
+where the first letter stands for *extended* indicating coverage closer to the South pole. The suffix is required: *F*, *T*, *U*, *V* or *W*. These letters define the point location respective to the supporting mesh elements, respectively in cell-centred, vertex and ``u``/``v`` edges point arrangements. Use *F* for the cell-centred arrangement.
 
 Horizontal resolution numbers *XXX* and *YYY* are in increasing order *2* (*XXX* only), *1*, *025*, *12*, approximately corresponding to resolution in degrees 2°, 1°, 0.25° and 1/12°.
 
@@ -98,4 +133,4 @@ Examples:
 .. code-block::
 
     {"grid": "eORCA025_T"}
-    {"grid": "ORCA1"}
+    {"grid": "ORCA1_F"}
