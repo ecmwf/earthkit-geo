@@ -6,7 +6,7 @@ authors = [
   {name = "European Centre for Medium-Range Weather Forecasts (ECMWF)", email = "software.support@ecmwf.int"}
 ]
 classifiers = [
-  "Development Status :: 4 - Beta",
+  "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Developers",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3 :: Only",
@@ -19,9 +19,9 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy"
 ]
 dependencies = [
-  "eckit==2.0.6.17",
+  "eckit==2.1.0.21",
   "filelock",
-  "mir-python==1.28.1.17",
+  "mir-python==1.29.0.21",
   "multiurl",
   "pyproj",
   "pyyaml",
@@ -38,8 +38,8 @@ requires-python = ">=3.10"
 optional-dependencies.all = ["cartopy"]
 optional-dependencies.cartography = ["cartopy"]
 optional-dependencies.ci = [
-  "earthkit-utils>=1.0.0rc0",
-  "earthkit-data>=1.0.0rc11",
+  "earthkit-utils",
+  "earthkit-data",
   "pytest",
   "pytest-cov",
   "requests",
@@ -65,8 +65,8 @@ optional-dependencies.docs = [
   "sphinx-issues"
 ]
 optional-dependencies.test = [
-  "earthkit-utils>=1.0.0rc0",
-  "earthkit-data>=1.0.0rc11",
+  "earthkit-utils",
+  "earthkit-data",
   "pytest",
   "pytest-cov"
 ]
