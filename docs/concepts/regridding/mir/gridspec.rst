@@ -56,6 +56,43 @@ Example:
     {"grid": [0.1, 0.1]}
 
 
+Arakawa C-grids
+---------------
+
+Two related ``type``-based gridspecs describing Arakawa C-grids are supported:
+
+- ``arakawa_c_um`` for Met Office Unified Model grids.
+- ``arakawa_c`` for general equirectangular projection-based grids.
+
+The ``arakawa_c_um`` type is specific to UM and supports a range of UM *N* values, including::
+
+    N48, N96, N144, N216, N320, N400, N512, N640, N768, N1280
+
+For both types, ``arrangement`` can be ``T``, ``U`` or ``V`` (case-insensitive). The default arrangement is ``T``.
+
+The ``arakawa_c`` type provides a compact way to define an Arakawa C-grid on a regular latitude-longitude geometry. This is useful when you want explicit control of the grid construction while keeping the C-grid arrangement semantics.
+
+The two types map to progressively more foundational descriptions:
+
+- ``arakawa_c_um`` -> ``arakawa_c`` (with explicit UM-specific grid stretching and order)
+- ``arakawa_c`` -> ``regular_ll`` (with explicit ``grid`` and ``reference``)
+
+Example equivalent constructions (for UM N96, arrangement ``T``):
+
+.. code-block::
+
+    {"type": "arakawa_c_um", "N": 96}
+    {"type": "arakawa_c", "N": 96, "grid_factor": [2, 1.3333333333], "order": "i+j+"}
+    {"grid": [1.875, 1.25], "reference": [0.9375, 0.625], "order": "i+j+"}
+
+You can then explore related grids by setting ``arrangement``.
+    
+References:
+
+- `Met Office Unified Model <https://www.metoffice.gov.uk/research/approach/modelling-systems/unified-model>`_
+- `Arakawa grids overview <https://en.wikipedia.org/wiki/Arakawa_grids>`_
+
+
 
 HEALPix grids
 -------------
