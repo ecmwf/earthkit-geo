@@ -84,12 +84,10 @@ ORCA grids
 
 These grids are designed for global ocean coverage, and are associated with the NEMO model. The ``grid`` format is case-insensitive, in the formats::
 
-     ORCAXXX
-     ORCAXXX_[FTUVW]
-     eORCAYYY
-     eORCAYYY_[FTUVW]
+    ORCAXXX_[FTUVW]
+    eORCAYYY_[FTUVW]
 
-where the first letter stands for *extended* indicating coverage closer to the South pole. *T*, *U*, *V* or *W* define the point location respective to the supporting mesh elements, respectively in cell-centred, vertex and ``u``/``v`` edges point arrangements. The default arrangement is cell-centred or *F*.
+where the first letter stands for *extended* indicating coverage closer to the South pole. The suffix is required: *F*, *T*, *U*, *V* or *W*. These letters define the point location respective to the supporting mesh elements, respectively in cell-centred, vertex and ``u``/``v`` edges point arrangements. Use *F* for the cell-centred arrangement.
 
 Horizontal resolution numbers *XXX* and *YYY* are in increasing order *2* (*XXX* only), *1*, *025*, *12*, approximately corresponding to resolution in degrees 2°, 1°, 0.25° and 1/12°.
 
@@ -98,4 +96,4 @@ Examples:
 .. code-block::
 
     {"grid": "eORCA025_T"}
-    {"grid": "ORCA1"}
+    {"grid": "ORCA1_F"}
