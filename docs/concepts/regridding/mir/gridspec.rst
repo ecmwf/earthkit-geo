@@ -86,7 +86,7 @@ Example equivalent constructions (for UM N96, arrangement ``T``):
     {"grid": [1.875, 1.25], "reference": [0.9375, 0.625], "order": "i+j+"}
 
 You can then explore related grids by setting ``arrangement``.
-    
+
 References:
 
 - `Met Office Unified Model <https://www.metoffice.gov.uk/research/approach/modelling-systems/unified-model>`_
