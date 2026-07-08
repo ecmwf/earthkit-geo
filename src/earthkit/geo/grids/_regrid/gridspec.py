@@ -160,9 +160,9 @@ class _EckitGridSpec(_GridSpec):
     def inventory_docs_spec(self):
         # return a dict spec that can be used for inventory matching
         spec = dict(self.spec)
-        if self.grid_type == "healpix" and "order" not in spec:
+        if self.grid_type in {"healpix", "HEALPix"} and "order" not in spec:
             spec["order"] = "ring"
-        if self.grid_type == "reduced-gg" and "octahedral" not in spec:
+        if self.grid_type in {"reduced-gg", "reduced_gg"} and "octahedral" not in spec:
             spec["octahedral"] = True if self["grid"][0].lower() == "o" else False
         spec["_type"] = self.grid_type
         return spec

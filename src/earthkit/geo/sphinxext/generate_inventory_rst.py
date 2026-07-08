@@ -132,10 +132,12 @@ This page contains all the available target gridspecs for a given
         source = v.source
         target = v.target
 
-        if source.inventory_docs_spec["_type"] != grid["type"]:
+        # print(f"Matching {source.inventory_docs_spec} to {grid}\n")
+        if source.inventory_docs_spec["_type"] not in grid["type"]:
             continue
 
         if match(source, grid):
+            # print(f". -> Matched\n")
             # print(f"->{source=}\n")
             # for t in target:
             # print(f"    {t=}\n")
@@ -181,23 +183,23 @@ def execute(*args):
 
     gs = {}
     if grid_type == "reduced_gg_o":
-        gs["type"] = "reduced-gg"
+        gs["type"] = set(["reduced-gg", "reduced_gg"])
         gs["octahedral"] = True
     elif grid_type == "reduced_gg":
-        gs["type"] = "reduced-gg"
+        gs["type"] = set(["reduced-gg", "reduced_gg"])
         gs["octahedral"] = False
     elif grid_type == "healpix_ring":
-        gs["type"] = "healpix"
+        gs["type"] = set(["healpix", "HEALPix"])
         gs["order"] = "ring"
     elif grid_type == "healpix_nested":
-        gs["type"] = "healpix"
+        gs["type"] = set(["healpix", "HEALPix"])
         gs["order"] = "nested"
     elif grid_type == "regular_ll":
-        gs["type"] = "regular-ll"
+        gs["type"] = set(["regular-ll", "regular_ll"])
     elif grid_type == "orca":
-        gs["type"] = "ORCA"
+        gs["type"] = set(["ORCA", "orca"])
     else:
-        gs["type"] = grid_type
+        gs["type"] = set([grid_type])
 
     if len(args) >= 2:
         long_name = " ".join(args[1:])
