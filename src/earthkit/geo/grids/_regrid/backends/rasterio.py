@@ -85,6 +85,13 @@ class RasterioBackend(Backend):
 
     def regrid(self, data, in_grid, out_grid, interpolation="linear"):
 
+        assert isinstance(in_grid, dict) and set(in_grid.keys()) <= {"grid", "area"} and len(in_grid["grid"]) == 2, (
+            "inputted gridspec not supported for rasterio backend"
+        )
+        assert isinstance(out_grid, dict) and set(out_grid.keys()) <= {"grid", "area"} and len(out_grid["grid"]) == 2, (
+            "inputted gridspec not supported for rasterio backend"
+        )
+
         from rasterio.enums import Resampling
         from rasterio.warp import reproject
 
