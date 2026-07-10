@@ -8,3 +8,4 @@ Regridding
 
    mir/index
    precomputed/index
+   gridspec
