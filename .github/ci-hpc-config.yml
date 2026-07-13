@@ -7,6 +7,9 @@ build:
   - ecmwf/eckit@develop
   - ecmwf/atlas@develop
   - ecmwf/mir@develop
+  - ecmwf/odc@develop
+  - ecmwf/metkit@develop
+  - ecmwf/fdb@develop
   dependency_cmake_options:
   - "ecmwf/eccodes: '-DENABLE_ECKIT_GEO=ON'"
   python_dependencies:
