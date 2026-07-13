@@ -19,3 +19,6 @@ build:
   pytest_cmd: |
     pytest --cov=./ --cov-report=xml
     python -m coverage report
+  env:
+    - ECCODES_SAMPLES_PATH=$ECCODES_DIR/share/eccodes/samples
+    - ECCODES_DEFINITION_PATH=$ECCODES_DIR/share/eccodes/definitions
