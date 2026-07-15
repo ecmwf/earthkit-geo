@@ -74,6 +74,8 @@ def modules_installed(*modules):
     return True
 
 
+IN_GITHUB = os.environ.get("GITHUB_WORKFLOW") is not None
+
 NO_EKD = not modules_installed("earthkit.data")
 
 try:
