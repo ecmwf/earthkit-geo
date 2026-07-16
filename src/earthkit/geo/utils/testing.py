@@ -97,6 +97,12 @@ def compare_global_ll_results(v_res, v_ref, interpolation, **kwargs):
         np.testing.assert_allclose(v_res[0].flatten(), v_ref[0].flatten(), rtol=10, verbose=False)
         np.testing.assert_allclose(v_res[-1].flatten(), v_ref[0].flatten(), rtol=10, verbose=False)
         np.testing.assert_allclose(v_res[1:-1].flatten(), v_ref[1:-1].flatten(), verbose=False, **kwargs)
+    elif interpolation == "linear" and getattr(v_res, "ndim", 0) == 2:
+        # Exclude pole rows from the numeric check for linear interpolation.
+        # The pole values can differ across platforms due to machine-dependent
+        # behaviour in the underlying interpolation library.
+        v_ref = v_ref.reshape(v_res.shape)
+        np.testing.assert_allclose(v_res[1:-1].flatten(), v_ref[1:-1].flatten(), verbose=False, **kwargs)
     else:
         np.testing.assert_allclose(v_res.flatten(), v_ref.flatten(), verbose=False, **kwargs)
 
@@ -160,3 +166,11 @@ def compare_dim_size(ds, dims):
     for name, v in dims.items():
         assert name in ds.sizes, f"{name=} not in {ds.sizes}"
         assert ds.sizes[name] == v, f"{name=} {ds.sizes[name]} != {v}"
+
+
+def proportion_close(v1, v2, proportion):
+    """Returns the proportion (0-1) of values that are np.isclose to the reference"""
+
+    close_mask = np.isclose(v1, v2)
+    prop_close = np.sum(close_mask) / close_mask.size
+    return prop_close
