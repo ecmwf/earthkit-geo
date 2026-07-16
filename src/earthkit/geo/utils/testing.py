@@ -170,7 +170,6 @@ def compare_dim_size(ds, dims):
 
 def proportion_close(v1, v2, proportion):
     """Returns the proportion (0-1) of values that are np.isclose to the reference"""
-
     close_mask = np.isclose(v1, v2)
     prop_close = np.sum(close_mask) / close_mask.size
     return prop_close
