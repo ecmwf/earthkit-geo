@@ -14,6 +14,7 @@ from earthkit.geo.utils.testing import (
     NO_MIR,  # noqa: E402
     compare_global_ll_results,
     get_test_data,
+    proportion_close,
 )
 
 BASE_INTERPOLATIONS = ["linear", "nearest-neighbour"]
@@ -260,7 +261,15 @@ def test_regrid_healpix_ring_to_ll(interpolation, in_grid):
     )
 
     assert v_res.shape == (19, 36)
-    np.testing.assert_allclose(v_res.flatten(), v_ref, verbose=False)
+
+    # nearest-neighbour can produce machine-dependent results, so allow for a few
+    # values to be different
+    if interpolation == "nearest-neighbour":
+        allowable_prop_close = 0.99
+        prop_close = proportion_close(v_res.flatten(), v_ref, allowable_prop_close)
+        assert prop_close >= allowable_prop_close, f"Only {prop_close:.1%} values are close"
+    else:
+        np.testing.assert_allclose(v_res.flatten(), v_ref, verbose=False)
 
     v_ref = v_ref.reshape(v_res.shape)
 
