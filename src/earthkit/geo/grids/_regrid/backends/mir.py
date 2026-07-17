@@ -56,6 +56,7 @@ class MirBackend(Backend):
         interpolation="linear",
     ):
         import mir
+        import numpy as np
 
         kwargs = {
             "interpolation": interpolation,
@@ -65,6 +66,10 @@ class MirBackend(Backend):
         out_grid = self.get_grid_spec(out_grid)
 
         out_grid, kwargs = self.adjust_options(out_grid, {})
+
+        # mir.ArrayInput requires a C-contiguous array but apply_ufunc's dim
+        # reordering can produce non-contiguous views. No-op if already contiguous.
+        data = np.ascontiguousarray(data)
 
         input = mir.ArrayInput(data, in_grid)
         out = mir.ArrayOutput()
