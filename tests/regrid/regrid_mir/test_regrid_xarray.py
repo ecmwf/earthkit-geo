@@ -111,6 +111,35 @@ def test_regrid_xarray_from_h_nested(out_grid, out_grid_ref, dims):
 @pytest.mark.skipif(NO_MIR, reason="No mir available")
 @pytest.mark.skipif(NO_EKD, reason="No earthkit.data available")
 @pytest.mark.parametrize(
+    "sample,out_grid,out_grid_ref,dims",
+    [
+        ("H8_nested_t2.grib2", {"grid": "N32"}, {"grid": "N32"}, {"step": 2, "values": 6114}),
+        (
+            "test.grib",
+            {"grid": [10, 10]},
+            {"grid": [10, 10], "area": [70, -20, 40, 40]},
+            {"latitude": 4, "longitude": 7},
+        ),
+    ],
+)
+def test_regrid_xarray_transposed_dims(sample, out_grid, out_grid_ref, dims):
+    ds_in = from_source("sample", sample).to_fieldlist()
+
+    ds = ds_in.to_xarray()
+    da = ds["2t"].transpose("longitude", "latitude", "values", "step", missing_dims="ignore")
+
+    r = regrid(da, out_grid=out_grid, interpolation="linear")  # transposed dims (non-contiguous array)
+    r_ref = regrid(ds["2t"], out_grid=out_grid, interpolation="linear")  # original dim order (reference)
+
+    compare_dims(r, dims, sizes=True)
+
+    assert r.earthkit.grid_spec == out_grid_ref
+    np.testing.assert_allclose(r.transpose(*r_ref.dims).values, r_ref.values)
+
+
+@pytest.mark.skipif(NO_MIR, reason="No mir available")
+@pytest.mark.skipif(NO_EKD, reason="No earthkit.data available")
+@pytest.mark.parametrize(
     "out_grid,out_grid_ref,dims",
     REFS,
 )
