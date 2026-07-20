@@ -190,15 +190,23 @@ class XarrayGeographyBuilder:
 
 def xr_geo_dims(ds):
     """Determine the geographical dimensions of the dataset/dataarray."""
-    dims = list(ds.sizes.keys())
-    if len(ds.dims) >= 1:
-        if dims[-1] == "values":
-            return ["values"]
-    if len(dims) >= 2:
-        if dims[-2] == "latitude" and dims[-1] == "longitude":
-            return ["latitude", "longitude"]
+    dims = set(ds.sizes)
+    has_values = "values" in dims
+    has_latlon = {"latitude", "longitude"} <= dims
 
-    raise ValueError("Dataset geography is not supported.")
+    if has_values and has_latlon:
+        raise ValueError(
+            "Dataset geography is ambiguous: found both a 'values' dimension and 'latitude'/'longitude' dimensions."
+        )
+    if has_values:
+        return ["values"]
+    if has_latlon:
+        return ["latitude", "longitude"]
+
+    raise ValueError(
+        "Dataset geography is not supported. Expected dimensions ['values'] "
+        f"or ['latitude', 'longitude'], but found {sorted(dims)}."
+    )
 
 
 class XarrayDataHandler(DataHandler):
