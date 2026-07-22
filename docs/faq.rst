@@ -1,4 +1,4 @@
-Frequently asked questions
+Frequently Asked Questions
 ==========================
 
 How can I interpolate data from O2560 to O1280 grid?
