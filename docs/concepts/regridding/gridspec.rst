@@ -13,6 +13,64 @@ A gridspec is earthkit's way of describing a spatial grid. It takes the form of 
 
     Not all gridspecs are supported for all backends. Please read :ref:`here <precomputed_inventory>` for information regarding support for the precomputed backend.
 
+Summary of support
+------------------
+
+.. list-table:: Currently supported grids in earthkit-geo
+    :widths: 10 30 10 10
+    :header-rows: 1
+    :stub-columns: 1
+
+    * - Gridspec
+      - Description
+      - MIR Support
+      - Precomputed Support
+    * - OXXX
+      - Global octahedral reduced Gaussian grid
+      - ✔
+      - ✔
+    * - NXXX
+      - Global non-octahedral reduced Gaussian grid
+      - ✔
+      - ✔
+    * - FXXX
+      - Regular Gaussian grid
+      - ✔
+      - ✘
+    * - [DLON, DLAT]
+      - Regular latitude-longitude grid
+      - ✔
+      - ✔
+    * - arakawa_c
+      - General equirectangular projection-based grids
+      - ✔
+      - ✘
+    * - arakawa_c_um
+      - Met Office Unified Model grids
+      - ✔
+      - ✘
+    * - HXXX
+      - HEALPix grid
+      - ✔
+      - ✔
+    * - HRXXX
+      - Ring HEALPix grid
+      - ✔
+      - ✘
+    * - HNXXX
+      - Nested HEALPix grid
+      - ✔
+      - ✘
+    * - ORCAXXX_[FTUVW]
+      - ORCA grid
+      - ✔
+      - ✘
+    * - eORCAYYY_[FTUVW]
+      - Extended ORCA grid
+      - ✔
+      - ✔
+
+Read below for further information on any of these grid types.
 
 Gaussian grids
 --------------
@@ -24,9 +82,9 @@ Longitudinally there are two descriptions: regular with constant number of point
 
 There are three patterns for ``grid``, case-insensitive::
 
-    1. OXXX (global octahedral reduced Gaussian grid). Backends: Mir ✅ Precomputed ✅
-    2. NXXX (global non-octahedral reduced Gaussian grid). Backends: Mir ✅ Precomputed ✅
-    3. FXXX (regular Gaussian grid). Backends: Mir ✅ Precomputed ❌
+    1. OXXX (global octahedral reduced Gaussian grid)
+    2. NXXX (global non-octahedral reduced Gaussian grid)
+    3. FXXX (regular Gaussian grid)
 
 where *XXX* is known as the Gaussian number, and represents the number of latitude lines between the pole and equator.
 For details about these grids, see `here <https://confluence.ecmwf.int/display/FCST/Gaussian+grids>`_ and `here <https://confluence.ecmwf.int/spaces/FCST/pages/47300374/Introducing+the+octahedral+reduced+Gaussian+grid>`_.
@@ -52,7 +110,7 @@ Regular latitude-longitude grids
 
 The ``grid`` format is::
 
-    [DLON, DLAT]. Backends: Mir ✅ Precomputed ✅
+    [DLON, DLAT]
 
 where *DLON* and *DLAT* are the increments in degrees in longitudes and latitudes, respectively. This grid is global and includes the origin (0°, 0°), and the ECMWF's default scan mode: first point at North-West with longitude the fastest index from West to East.
 
@@ -69,8 +127,8 @@ Arakawa C-grids
 
 Two related ``type``-based gridspecs describing Arakawa C-grids are supported:
 
-- ``arakawa_c_um`` for Met Office Unified Model grids. Backends: Mir ✅ Precomputed ❌
-- ``arakawa_c`` for general equirectangular projection-based grids. Backends: Mir ✅ Precomputed ❌
+- ``arakawa_c_um`` for Met Office Unified Model grids
+- ``arakawa_c`` for general equirectangular projection-based grids
 
 The ``arakawa_c_um`` type is specific to UM and supports a range of UM *N* values, including::
 
@@ -107,9 +165,9 @@ HEALPix grids
 
 The ``grid`` is case-insensitive, in the format::
 
-    1. HXXX. Backends: Mir ✅ Precomputed ✅
-    2. HRXXX. Backends: Mir ✅ Precomputed ❌
-    3. HNXXX. Backends: Mir ✅ Precomputed ❌
+    1. HXXX
+    2. HRXXX
+    3. HNXXX
 
 The HEALPix grid is a global, hierarchical equal area isolatitude pixelisation of the sphere, where *XXX* is the HEALPix *Nside* representing the number of points per pixel side.
 There are 12 base pixels, so the total number of points is :math:`12 N_\mathrm{side}^2`.
@@ -131,8 +189,8 @@ ORCA grids
 
 These grids are designed for global ocean coverage, and are associated with the NEMO model. The ``grid`` format is case-insensitive, in the formats::
 
-    1. ORCAXXX_[FTUVW]. Backends: Mir ✅ Precomputed ❌
-    2. eORCAYYY_[FTUVW]. Backends: Mir ✅ Precomputed ✅
+    1. ORCAXXX_[FTUVW]
+    2. eORCAYYY_[FTUVW]
 
 where the first letter stands for *extended* indicating coverage closer to the South pole.
 The suffix is required: *F*, *T*, *U*, *V* or *W*. These letters define the point location respective to the supporting mesh elements, respectively in cell-centred, vertex and ``u``/``v`` edges point arrangements.
