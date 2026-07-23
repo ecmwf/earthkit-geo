@@ -68,7 +68,8 @@ optional-dependencies.test = [
   "earthkit-utils",
   "earthkit-data",
   "pytest",
-  "pytest-cov"
+  "pytest-cov",
+  "pytest-xdist"
 ]
 urls.Documentation = "https://earthkit-geo.readthedocs.io/"
 urls.Homepage = "https://github.com/ecmwf/earthkit-geo/"
