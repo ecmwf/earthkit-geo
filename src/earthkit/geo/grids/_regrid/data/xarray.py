@@ -284,10 +284,13 @@ class XarrayDataHandler(DataHandler):
         if "_earthkit" in ds.attrs:
             has_earthkit = True
         else:
-            for var in ds.data_vars.values():
-                if "_earthkit" in var.attrs:
-                    has_earthkit = True
-                    break
+            import xarray as xr
+
+            if isinstance(ds, xr.Dataset):
+                for var in ds.data_vars.values():
+                    if "_earthkit" in var.attrs:
+                        has_earthkit = True
+                        break
 
         if has_earthkit:
             if hasattr(ds, "earthkit"):
@@ -371,6 +374,7 @@ class XarrayDataHandler(DataHandler):
                     "allow_rechunk": True,
                 },
                 output_dtypes=[da.dtype],
+                keep_attrs="identical",
             )
 
         if isinstance(values, xr.Dataset):
