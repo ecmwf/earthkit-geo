@@ -21,7 +21,7 @@ Summary of support
     :header-rows: 1
     :stub-columns: 1
 
-    * - Gridspec
+    * - Grid
       - Description
       - MIR Support
       - Precomputed Support
@@ -50,7 +50,7 @@ Summary of support
       - ✔
       - ✘
     * - HXXX
-      - HEALPix grid
+      - Ring HEALPix grid
       - ✔
       - ✔
     * - HRXXX
