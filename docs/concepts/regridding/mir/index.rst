@@ -10,4 +10,3 @@ Regridding with the MIR backend.
 
    regrid_high
    regrid_array
-   gridspec
