@@ -3,6 +3,20 @@
 Version 1.1 Updates
 /////////////////////////
 
+
+Version 1.1.2
+===============
+
+Fixes
+++++++++++++++++
+
+- Fixed an issue in Xarray :ref:`regridding <regridding>` where the operation
+  failed when the earthkit accessor on the result could not be updated with the
+  new gridspec. Instead of raising an exception, the earthkit accessor is now
+  removed from the result, since keeping it would describe the input grid rather
+  than the output grid (:pr:`106`).
+
+
 Version 1.1.1
 ===============
 
