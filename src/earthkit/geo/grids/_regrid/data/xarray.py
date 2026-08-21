@@ -105,8 +105,6 @@ class XarrayGeographyBuilder:
         self.grid = GridWrapper(grid_spec)
         self.grid_spec = grid_spec
 
-        print(f"XarrayGeographyBuilder: grid_spec={grid_spec} grid={self.grid} shape={self.grid.shape}")
-
     @property
     def shape(self):
         return self.grid.shape
