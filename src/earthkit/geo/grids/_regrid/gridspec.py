@@ -17,6 +17,40 @@ LOG = logging.getLogger(__name__)
 HEALPIX_PATTERN = re.compile(r"[Hh]\d+")
 
 
+def normalise_grid_spec(grid_spec):
+    """Return a normalised grid spec.
+
+    Raises
+    ------
+    ValueError
+        If a "reference" value is a str that cannot be converted to float.
+
+    Notes
+    -----
+        The "reference" values are converted to float when they are given as str.
+
+    """
+    if not isinstance(grid_spec, dict):
+        return grid_spec
+
+    grid_spec = grid_spec.copy()
+    reference = grid_spec.get("reference", None)
+    if isinstance(reference, (list, tuple)):
+        r = []
+        for i, v in enumerate(reference):
+            if isinstance(v, str):
+                try:
+                    v = float(v)
+                except ValueError:
+                    raise ValueError(
+                        f"Invalid value={v!r} at index={i} in grid_spec['reference']={reference!r}. "
+                        "Cannot be converted to float."
+                    )
+            r.append(v)
+        grid_spec["reference"] = r
+    return grid_spec
+
+
 class ShapeDoesNotMatchError(Exception):
     pass
 
