@@ -298,14 +298,17 @@ class XarrayDataHandler(DataHandler):
 
         if has_earthkit:
             if hasattr(ds, "earthkit"):
-                # TODO: this is a temporary workaround to when setting the
-                # grid_spec attribute fails. This can happen when the dataset
                 try:
                     ds = ds.earthkit.set({"geography.grid_spec": out_geo.grid_spec})
                 except Exception:
-                    # when setting the attribute fails, as a safeguard we remove the
-                    # _earthkit attribute so that the dataset/array. This should be done
-                    # via a method in the earthkit.data.xr_engine.accessor module, but for now we do it here.
+                    # TODO: temporary workaround for when storing the new grid spec
+                    # fails (e.g. the accessor cannot serialise it). Leaving the
+                    # original _earthkit attribute in place would be worse than
+                    # having none at all, since it still describes the input grid
+                    # and would make the regridded result look like it was on the
+                    # source grid. As a safeguard we drop the attribute instead.
+                    # This should be revisited once the grid spec is handled
+                    # properly in xarray.
                     if isinstance(ds, xr.Dataset):
                         for var in ds.data_vars.values():
                             if "_earthkit" in var.attrs:
