@@ -11,6 +11,7 @@ import functools
 import logging
 from math import prod
 
+from earthkit.geo.grids._regrid.gridspec import normalise_grid_spec
 from earthkit.geo.utils import ensure_list
 
 from .handler import DataHandler
@@ -100,6 +101,7 @@ class GridWrapper:
 # TODO: move this code to earthkit-geo
 class XarrayGeographyBuilder:
     def __init__(self, grid_spec):
+        grid_spec = normalise_grid_spec(grid_spec)
         self.grid = GridWrapper(grid_spec)
         self.grid_spec = grid_spec
 
@@ -294,7 +296,25 @@ class XarrayDataHandler(DataHandler):
 
         if has_earthkit:
             if hasattr(ds, "earthkit"):
-                ds = ds.earthkit.set({"geography.grid_spec": out_geo.grid_spec})
+                try:
+                    ds = ds.earthkit.set({"geography.grid_spec": out_geo.grid_spec})
+                except Exception:
+                    # TODO: temporary workaround for when storing the new grid spec
+                    # fails (e.g. the accessor cannot serialise it). Leaving the
+                    # original _earthkit attribute in place would be worse than
+                    # having none at all, since it still describes the input grid
+                    # and would make the regridded result look like it was on the
+                    # source grid. As a safeguard we drop the attribute instead.
+                    # This should be revisited once the grid spec is handled
+                    # properly in xarray.
+                    if isinstance(ds, xr.Dataset):
+                        for var in ds.data_vars.values():
+                            if "_earthkit" in var.attrs:
+                                del var.attrs["_earthkit"]
+
+                    elif isinstance(ds, xr.DataArray):
+                        if "_earthkit" in ds.attrs:
+                            del ds.attrs["_earthkit"]
 
         return ds
 
@@ -387,7 +407,8 @@ class XarrayDataHandler(DataHandler):
 
         # The output geography might have changed, so we need to create a new geography builder
         # with the new grid spec
-        out_geo = XarrayGeographyBuilder(method.out_grid)
+        res_out_grid = method.out_grid.copy() if method.out_grid is not None else method.out_grid
+        out_geo = XarrayGeographyBuilder(res_out_grid)
 
         ds_out = self.add_geo_coords(ds_out, out_geo)
         ds_out = self.update_attributes(ds_out, out_geo)
