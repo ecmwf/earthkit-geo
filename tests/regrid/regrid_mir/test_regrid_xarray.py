@@ -258,7 +258,7 @@ def test_regrid_xarray_2d_2(lat_name, lon_name):
     ds_in = xr.Dataset(v, coords=coords)
 
     in_grid = {
-        "type": "unstructured",
+        "type": "unstructured_ll",
         "latitudes": [50.0, 50.0, 40.0, 40.0, 30.0, 30.0],
         "longitudes": [0.0, 10.0, 0.0, 10.0, 0.0, 10.0],
     }
@@ -317,7 +317,7 @@ def test_regrid_xarray_1d_1(lat_name, lon_name):
     ds_in = xr.Dataset(v, coords=coords)
 
     in_grid = {
-        "type": "unstructured",
+        "type": "unstructured_ll",
         "latitudes": [50.0, 50.0, 50.0, 40.0, 40.0, 40.0, 30.0, 30.0, 30.0],
         "longitudes": [0.0, 10.0, 20.0, 0.0, 10.0, 20.0, 0.0, 10.0, 20.0],
     }
