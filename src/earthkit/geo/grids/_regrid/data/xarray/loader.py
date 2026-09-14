@@ -95,10 +95,6 @@ def grid_from_xr_grid(xr_grid):
     from eckit.geo import Grid
 
     lat, lon = xr_grid.latlons
-    # NOTE: {"grid": "unstructured_ll", ...} must not be used here: eckit.geo.Grid
-    # caches grids built from that spec form keyed only by the "grid" name, so a
-    # second call with different latitudes/longitudes silently returns the first
-    # grid's points. {"type": "unstructured", ...} does not have this problem.
     grid_spec = {"type": "unstructured", "latitudes": lat.flatten().tolist(), "longitudes": lon.flatten().tolist()}
     return Grid(grid_spec)
 
@@ -215,19 +211,6 @@ def variables(ds, user_ek_grid=None):
 
         variable_dims = xr_grid.variable_dims
         variable_dims = adjust_variable_dim_order(variable_dims, coordinates)
-
-        # if variable_dims and len(variable_dims) == 2:
-        #     order = [None, None]
-        #     for c in coordinates:
-        #         for i in range(2):
-        #             if c.name == variable_dims[i]:
-        #                 if c.is_lat:
-        #                     order[i] = "lat"
-        #                 elif c.is_lon:
-        #                     order[i] = "lon"
-
-        #     if order == ["lon", "lat"]:
-        #         variable_dims = [variable_dims[1], variable_dims[0]]
 
         def _check_values_geo() -> None:
             """Handle the case where lat, lon is a coordinate but not a dimension and their
