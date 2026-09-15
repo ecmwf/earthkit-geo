@@ -216,6 +216,37 @@ def test_xarray_grid_netcdf_ll_2():
     assert lon.shape == (points_num,)
 
 
+@pytest.mark.long_test
+@pytest.mark.download
+@pytest.mark.timeout(90)
+def test_xarray_grid_laea():
+    path = get_test_data("efas.nc", subfolder="xr")
+    ds = xr.open_dataset(path)
+
+    variable_grid_dims = ("y", "x")
+    points_num = 950 * 1000
+
+    variables = get_variables(ds)
+
+    assert len(variables) == 3
+    v = variables[0]
+    assert v.name == "dis06"
+
+    ek_grid = v.ek_grid
+    assert ek_grid.type == "unstructured_ll"
+    assert ek_grid.shape == (points_num,)
+
+    xr_grid = v.xr_grid
+    assert xr_grid.variable_dims == variable_grid_dims
+
+    lat, lon = xr_grid.latlons
+    assert lat.shape == (points_num,)
+    assert lon.shape == (points_num,)
+    assert np.allclose(lat, ds["latitude"].values.flatten())
+    assert np.allclose(lon, ds["longitude"].values.flatten())
+
+
+@pytest.mark.download
 def test_xarray_grid_cordex():
     path = get_test_data("cordex.nc", subfolder="xr")
     ds = xr.open_dataset(path)
@@ -244,6 +275,7 @@ def test_xarray_grid_cordex():
     assert np.allclose(lon, ds["lon"].values.flatten())
 
 
+@pytest.mark.download
 @pytest.mark.skipif(NO_COVJSON, reason="No covjsonkit available")
 def test_xarray_grid_covjson_points():
     path = get_test_data("points.covjson", subfolder="xr")

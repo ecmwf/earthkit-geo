@@ -401,6 +401,70 @@ def test_regrid_xarray_from_netcdf_ll_to_ll_1(in_grid):
     assert np.allclose(r.longitude.values, ref_lon)
 
 
+@pytest.mark.long_test
+@pytest.mark.download
+@pytest.mark.timeout(90)
+def test_regrid_xarray_laea_to_ll():
+    path = get_test_data("efas.nc", subfolder="xr")
+    ds = xr.open_dataset(path)
+
+    da = ds["dis06"]
+
+    out_grid = {"grid": [10, 10]}
+    r = regrid(da, out_grid=out_grid, interpolation="nn")
+
+    assert isinstance(r, xr.DataArray)
+
+    out_dims = {"latitude": 19, "longitude": 36}
+    compare_dims(r, out_dims, sizes=True)
+
+    ref_data = np.array([
+        np.nan,
+        2.35173828e02,
+        1.15234375e-01,
+        4.24804688e-01,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+    ])
+
+    ref_lat = np.linspace(90.0, -90.0, 19)
+    ref_lon = np.linspace(0.0, 350.0, 36)
+
+    assert np.allclose(r["dis06"].to_numpy()[3], ref_data, equal_nan=True)
+    assert np.allclose(r.latitude.values, ref_lat)
+    assert np.allclose(r.longitude.values, ref_lon)
+
+
 def test_regrid_xarray_cordex_rotated_ll_to_ll():
     path = get_test_data("cordex.nc", subfolder="xr")
     ds = xr.open_dataset(path)
