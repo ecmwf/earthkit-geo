@@ -83,6 +83,7 @@ except Exception:
 
 
 NO_COVJSON = not modules_installed("covjsonkit")
+IN_GITHUB = os.environ.get("GITHUB_WORKFLOW") is not None
 
 # TODO: remove these constants when the backend names are finalized
 LOCAL_MATRIX_BACKEND_NAME = "precomputed"

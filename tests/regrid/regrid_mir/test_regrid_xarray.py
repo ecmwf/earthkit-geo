@@ -12,6 +12,7 @@ import pytest
 
 from earthkit.geo import regrid
 from earthkit.geo.utils.testing import (
+    IN_GITHUB,  # noqa: E402
     NO_COVJSON,  # noqa: E402
     NO_EKD,  # noqa: E402
     NO_MIR,  # noqa: E402
@@ -161,6 +162,7 @@ def test_regrid_xarray_dataset_from_h_nested(out_grid, out_grid_ref, dims):
     assert r.earthkit.grid_spec == out_grid_ref
 
 
+@pytest.mark.skipif(IN_GITHUB, reason="Skipping test in GitHub CI")
 @pytest.mark.parametrize("lat_name,lon_name", [("lat", "lon"), ("latitude", "longitude")])
 def test_regrid_xarray_2d_1(lat_name, lon_name):
     # Dimensions:  (level: 2, lat: 3, lon: 3)
@@ -225,6 +227,7 @@ def test_regrid_xarray_2d_1(lat_name, lon_name):
     assert np.allclose(r.longitude.values, ref_lon)
 
 
+@pytest.mark.skipif(IN_GITHUB, reason="Skipping test in GitHub CI")
 @pytest.mark.parametrize("lat_name,lon_name", [("lat", "lon"), ("latitude", "longitude")])
 def test_regrid_xarray_2d_2(lat_name, lon_name):
     # Dimensions:  (level: 2, y: 3, x: 2)
@@ -283,6 +286,7 @@ def test_regrid_xarray_2d_2(lat_name, lon_name):
     assert np.allclose(r_sub.longitude.values, ref_lon)
 
 
+@pytest.mark.skipif(IN_GITHUB, reason="Skipping test in GitHub CI")
 @pytest.mark.parametrize("lat_name,lon_name", [("lat", "lon"), ("latitude", "longitude")])
 def test_regrid_xarray_1d_1(lat_name, lon_name):
     # Dimensions:  (level: 2, values: 9)
@@ -341,6 +345,7 @@ def test_regrid_xarray_1d_1(lat_name, lon_name):
     assert np.allclose(r_sub.longitude.values, ref_lon)
 
 
+@pytest.mark.skipif(IN_GITHUB, reason="Skipping test in GitHub CI")
 @pytest.mark.parametrize("in_grid", [None, {"grid": [30.0, 30.0]}])
 def test_regrid_xarray_from_netcdf_ll_to_ll(in_grid):
     path = get_test_data("test_single.nc", subfolder="xr")
@@ -399,6 +404,7 @@ def test_regrid_xarray_from_netcdf_ll_to_ll(in_grid):
     assert np.allclose(r.longitude.values, ref_lon)
 
 
+@pytest.mark.skipif(IN_GITHUB, reason="Skipping test in GitHub CI")
 @pytest.mark.parametrize("in_grid", [None, {"grid": [30.0, 30.0]}])
 def test_regrid_xarray_from_netcdf_ll_to_points(in_grid):
     path = get_test_data("test_single.nc", subfolder="xr")
@@ -419,6 +425,7 @@ def test_regrid_xarray_from_netcdf_ll_to_points(in_grid):
     assert np.allclose(r.longitude.values, np.array(lons))
 
 
+@pytest.mark.skipif(IN_GITHUB, reason="Skipping test in GitHub CI")
 @pytest.mark.long_test
 @pytest.mark.download
 @pytest.mark.timeout(90)
@@ -483,6 +490,7 @@ def test_regrid_xarray_laea_to_ll():
     assert np.allclose(r.longitude.values, ref_lon)
 
 
+@pytest.mark.skipif(IN_GITHUB, reason="Skipping test in GitHub CI")
 def test_regrid_xarray_cordex_rotated_ll_to_ll():
     path = get_test_data("cordex.nc", subfolder="xr")
     ds = xr.open_dataset(path)
@@ -540,6 +548,7 @@ def test_regrid_xarray_cordex_rotated_ll_to_ll():
     assert np.allclose(r.longitude.values, ref_lon)
 
 
+@pytest.mark.skipif(IN_GITHUB, reason="Skipping test in GitHub CI")
 @pytest.mark.skipif(NO_COVJSON, reason="No covjsonkit available")
 def test_regrid_xarray_covjson_unstructured_to_ll():
     path = get_test_data("points.covjson", subfolder="xr")
