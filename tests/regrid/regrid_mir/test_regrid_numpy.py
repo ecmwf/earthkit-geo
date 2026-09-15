@@ -370,6 +370,6 @@ def test_regrid_numpy_any_to_points(interpolation, in_grid, in_shape):
 
     lats = [40.0, 50.0]
     lons = [10.0, 20.0]
-    out_grid = {"type": "unstructured_ll", "latitudes": lats, "longitudes": lons}
+    out_grid = {"latitudes": lats, "longitudes": lons}
     res_v, _ = regrid_array(values, in_grid=in_grid, out_grid=out_grid, interpolation=interpolation)
     assert res_v.shape == (len(lats),), f"Expected shape {(len(lats), len(lons))}, got {res_v.shape}"

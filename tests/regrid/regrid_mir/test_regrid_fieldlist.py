@@ -199,7 +199,7 @@ def test_regrid_fieldlist_to_points(field_type):
 
     lats = [40.0, 50.0]
     lons = [10.0, 20.0]
-    out_grid = {"type": "unstructured_ll", "latitudes": lats, "longitudes": lons}
+    out_grid = {"latitudes": lats, "longitudes": lons}
     r = regrid(ds, out_grid=out_grid, interpolation="nn")
 
     metadata_ref = ds.metadata(["param", "level", "date", "time", "edition"])
