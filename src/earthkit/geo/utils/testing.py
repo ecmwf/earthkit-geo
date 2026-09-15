@@ -81,6 +81,9 @@ try:
 except Exception:
     NO_MIR = True
 
+
+NO_COVJSON = not modules_installed("covjsonkit")
+
 # TODO: remove these constants when the backend names are finalized
 LOCAL_MATRIX_BACKEND_NAME = "precomputed"
 SYSTEM_MATRIX_BACKEND_NAME = "precomputed"
@@ -173,3 +176,19 @@ def proportion_close(v1, v2, proportion):
     close_mask = np.isclose(v1, v2)
     prop_close = np.sum(close_mask) / close_mask.size
     return prop_close
+
+
+def covjson_to_xarray(path):
+    try:
+        from covjsonkit.api import Covjsonkit
+    except ImportError:
+        raise ImportError("covjson handling requires 'covjsonkit' to be installed")
+
+    import json
+
+    with open(path, "r") as f:
+        d = json.load(f)
+        decoder = Covjsonkit().decode(d)
+        return decoder.to_xarray()
+
+    return None

@@ -12,14 +12,19 @@ import pytest
 
 from earthkit.geo import regrid
 from earthkit.geo.utils.testing import (
+    NO_COVJSON,  # noqa: E402
     NO_EKD,  # noqa: E402
     NO_MIR,  # noqa: E402
     compare_dims,
+    covjson_to_xarray,
+    get_test_data,
 )
 
 if not NO_EKD:
     from earthkit.data import from_source  # noqa
 
+
+xr = pytest.importorskip("xarray")
 
 REFS = [
     ({"grid": [10, 10]}, {"grid": [10, 10]}, {"step": 2, "latitude": 19, "longitude": 36}),
@@ -154,3 +159,422 @@ def test_regrid_xarray_dataset_from_h_nested(out_grid, out_grid_ref, dims):
     compare_dims(r, dims, sizes=True)
 
     assert r.earthkit.grid_spec == out_grid_ref
+
+
+@pytest.mark.parametrize("lat_name,lon_name", [("lat", "lon"), ("latitude", "longitude")])
+def test_regrid_xarray_2d_1(lat_name, lon_name):
+    # Dimensions:  (level: 2, lat: 3, lon: 3)
+    # Coordinates:
+    #   * level    (level) int64 16B 700 500
+    #   * lat      (lat) int64 24B 50 40 30
+    #   * lon      (lon) int64 24B 0 10 20
+    # Data variables:
+    #     a        (level, lat, lon) int64 144B 11 12 13 21 22 23 ... 25 26 34 35 36
+
+    import xarray as xr
+
+    dims = {"level": 2, lat_name: 3, lon_name: 3}
+    coords = {
+        "level": np.array([700, 500]),
+        lat_name: np.array([50, 40, 30]),
+        lon_name: np.array([0, 10, 20]),
+    }
+
+    data = np.array(
+        [
+            [[11, 12, 13], [21, 22, 23], [31, 32, 33]],
+            [[14, 15, 16], [24, 25, 26], [34, 35, 36]],
+        ],
+        dtype=np.float64,
+    )
+
+    a = xr.Variable(dims, data)
+    v = {"a": a}
+    ds_in = xr.Dataset(v, coords=coords)
+
+    in_grid = {"grid": [10, 10], "area": [50, 0, 30, 20]}
+    out_grid = {"grid": [5, 5]}
+
+    r = regrid(ds_in["a"], in_grid=in_grid, out_grid=out_grid, interpolation="linear")
+
+    out_dims = {"level": 2, "latitude": 5, "longitude": 5}
+    compare_dims(r, out_dims, sizes=True)
+
+    ref_data = np.array([
+        [
+            [11.0, 11.60916513, 12.0, 12.60709173, 13.0],
+            [16.0, 16.64829292, 17.0, 17.56959565, 18.0],
+            [21.0, 21.60735172, 22.0, 22.60876203, 23.0],
+            [26.0, 26.57403598, 27.0, 27.63057889, 28.0],
+            [31.0, 31.5, 32.0, 32.5, 33.0],
+        ],
+        [
+            [14.0, 14.60916513, 15.0, 15.60709173, 16.0],
+            [19.0, 19.64829292, 20.0, 20.56959565, 21.0],
+            [24.0, 24.60735172, 25.0, 25.60876203, 26.0],
+            [29.0, 29.57403598, 30.0, 30.63057889, 31.0],
+            [34.0, 34.5, 35.0, 35.5, 36.0],
+        ],
+    ])
+
+    ref_lat = np.array([50.0, 45.0, 40.0, 35.0, 30.0])
+    ref_lon = np.array([0.0, 5.0, 10.0, 15.0, 20.0])
+
+    assert np.allclose(r.values, ref_data)
+    assert np.allclose(r.latitude.values, ref_lat)
+    assert np.allclose(r.longitude.values, ref_lon)
+
+
+@pytest.mark.parametrize("lat_name,lon_name", [("lat", "lon"), ("latitude", "longitude")])
+def test_regrid_xarray_2d_2(lat_name, lon_name):
+    # Dimensions:  (level: 2, y: 3, x: 2)
+    # Coordinates:
+    #   * level    (level) int64 16B 700 500
+    #     lat      (y, x) int64 48B 50 50 40 40 30 30
+    #     lon      (y, x) int64 48B 0 10 0 10 0 10
+    # Dimensions without coordinates: y, x
+    # Data variables:
+    #     a        (level, y, x) int64 96B 11 12 21 22 31 32 14 15 24 25 34 35
+
+    import xarray as xr
+
+    dims = {"level": 2, "y": 3, "x": 2}
+    coords = {
+        "level": np.array([700, 500]),
+        lat_name: (["y", "x"], np.array([[50, 50], [40, 40], [30, 30]])),
+        lon_name: (["y", "x"], np.array([[0, 10], [0, 10], [0, 10]])),
+    }
+
+    data = np.array(
+        [
+            [[11, 12], [21, 22], [31, 32]],
+            [[14, 15], [24, 25], [34, 35]],
+        ],
+        dtype=np.float64,
+    )
+
+    a = xr.Variable(dims, data)
+    v = {"a": a}
+    ds_in = xr.Dataset(v, coords=coords)
+
+    in_grid = {
+        "type": "unstructured_ll",
+        "latitudes": [50.0, 50.0, 40.0, 40.0, 30.0, 30.0],
+        "longitudes": [0.0, 10.0, 0.0, 10.0, 0.0, 10.0],
+    }
+    out_grid = {"grid": [5, 5]}
+
+    r = regrid(ds_in["a"], in_grid=in_grid, out_grid=out_grid, interpolation="linear")
+
+    out_dims = {"level": 2, "latitude": 37, "longitude": 72}
+    compare_dims(r, out_dims, sizes=True)
+
+    ref_data = np.array([
+        [[11.0, 12.0], [21.0, 22.0], [31.0, 32.0]],
+        [[14.0, 15.0], [24.0, 25.0], [34.0, 35.0]],
+    ])
+
+    ref_lat = np.array([50.0, 40.0, 30.0])
+    ref_lon = np.array([0.0, 10.0])
+
+    r_sub = r.sel(latitude=ref_lat, longitude=ref_lon)
+
+    assert np.allclose(r_sub.values, ref_data)
+    assert np.allclose(r_sub.latitude.values, ref_lat)
+    assert np.allclose(r_sub.longitude.values, ref_lon)
+
+
+@pytest.mark.parametrize("lat_name,lon_name", [("lat", "lon"), ("latitude", "longitude")])
+def test_regrid_xarray_1d_1(lat_name, lon_name):
+    # Dimensions:  (level: 2, values: 9)
+    # Coordinates:
+    #   * level    (level) int64 16B 700 500
+    #     lat      (values) int64 72B 50 50 50 40 40 40 30 30 30
+    #     lon      (values) int64 72B 0 10 20 0 10 20 0 10 20
+    # Dimensions without coordinates: values
+    # Data variables:
+    #     a        (level, values) int64 144B 11 12 13 21 22 23 ... 24 25 26 34 35 36
+
+    import xarray as xr
+
+    dims = {"level": 2, "values": 9}
+    coords = {
+        "level": np.array([700, 500]),
+        lat_name: ("values", np.array([50, 50, 50, 40, 40, 40, 30, 30, 30])),
+        lon_name: ("values", np.array([0, 10, 20, 0, 10, 20, 0, 10, 20])),
+    }
+
+    data = np.array(
+        [
+            [11, 12, 13, 21, 22, 23, 31, 32, 33],
+            [14, 15, 16, 24, 25, 26, 34, 35, 36],
+        ],
+        dtype=np.float64,
+    )
+
+    a = xr.Variable(dims, data)
+    v = {"a": a}
+    ds_in = xr.Dataset(v, coords=coords)
+
+    in_grid = {
+        "type": "unstructured_ll",
+        "latitudes": [50.0, 50.0, 50.0, 40.0, 40.0, 40.0, 30.0, 30.0, 30.0],
+        "longitudes": [0.0, 10.0, 20.0, 0.0, 10.0, 20.0, 0.0, 10.0, 20.0],
+    }
+    out_grid = {"grid": [5, 5]}
+
+    r = regrid(ds_in["a"], in_grid=in_grid, out_grid=out_grid, interpolation="linear")
+
+    out_dims = {"level": 2, "latitude": 37, "longitude": 72}
+    compare_dims(r, out_dims, sizes=True)
+
+    ref_data = np.array([
+        [[11.0, 12.0, 13.0], [21.0, 22.30354886, 23.0], [31.0, 32.0, 33.0]],
+        [[14.0, 15.0, 16.0], [24.0, 25.30354886, 26.0], [34.0, 35.0, 36.0]],
+    ])
+
+    ref_lat = np.array([50.0, 40.0, 30.0])
+    ref_lon = np.array([0.0, 10.0, 20.0])
+
+    r_sub = r.sel(latitude=ref_lat, longitude=ref_lon)
+
+    assert np.allclose(r_sub.values, ref_data)
+    assert np.allclose(r_sub.latitude.values, ref_lat)
+    assert np.allclose(r_sub.longitude.values, ref_lon)
+
+
+@pytest.mark.parametrize("in_grid", [None, {"grid": [30.0, 30.0]}])
+def test_regrid_xarray_from_netcdf_ll_to_ll_1(in_grid):
+    path = get_test_data("test_single.nc", subfolder="xr")
+    ds = xr.open_dataset(path)
+    da = ds["t2m"]
+
+    out_grid = {"grid": [10, 10]}
+    r = regrid(da, in_grid=in_grid, out_grid=out_grid, interpolation="nn")
+
+    out_dims = {"latitude": 19, "longitude": 36}
+    compare_dims(r, out_dims, sizes=True)
+
+    ref_data = np.array([
+        280.8106,
+        280.8106,
+        277.0606,
+        277.0606,
+        277.0606,
+        284.4356,
+        284.4356,
+        284.4356,
+        292.3106,
+        292.3106,
+        292.3106,
+        274.8106,
+        274.8106,
+        274.8106,
+        272.1856,
+        272.1856,
+        272.1856,
+        273.9356,
+        273.9356,
+        273.9356,
+        270.3106,
+        270.3106,
+        270.3106,
+        272.8106,
+        272.8106,
+        272.8106,
+        261.1856,
+        261.1856,
+        261.1856,
+        264.3106,
+        264.3106,
+        264.3106,
+        275.8106,
+        275.8106,
+        275.8106,
+        280.8106,
+    ])
+    ref_lat = np.linspace(90.0, -90.0, 19)
+    ref_lon = np.linspace(0.0, 350.0, 36)
+
+    assert np.allclose(r.to_numpy()[2], ref_data)
+    assert np.allclose(r.latitude.values, ref_lat)
+    assert np.allclose(r.longitude.values, ref_lon)
+
+
+@pytest.mark.long_test
+@pytest.mark.download
+@pytest.mark.timeout(90)
+def test_regrid_xarray_laea_to_ll():
+    path = get_test_data("efas.nc", subfolder="xr")
+    ds = xr.open_dataset(path)
+
+    da = ds["dis06"]
+
+    out_grid = {"grid": [10, 10]}
+    r = regrid(da, out_grid=out_grid, interpolation="nn")
+
+    assert isinstance(r, xr.DataArray)
+
+    out_dims = {"latitude": 19, "longitude": 36}
+    compare_dims(r, out_dims, sizes=True)
+
+    ref_data = np.array([
+        np.nan,
+        2.35173828e02,
+        1.15234375e-01,
+        4.24804688e-01,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+    ])
+
+    ref_lat = np.linspace(90.0, -90.0, 19)
+    ref_lon = np.linspace(0.0, 350.0, 36)
+
+    assert np.allclose(r["dis06"].to_numpy()[3], ref_data, equal_nan=True)
+    assert np.allclose(r.latitude.values, ref_lat)
+    assert np.allclose(r.longitude.values, ref_lon)
+
+
+def test_regrid_xarray_cordex_rotated_ll_to_ll():
+    path = get_test_data("cordex.nc", subfolder="xr")
+    ds = xr.open_dataset(path)
+
+    out_grid = {"grid": [10, 10]}
+    r = regrid(ds, out_grid=out_grid, interpolation="nn")
+
+    out_dims = {"time": 2, "latitude": 19, "longitude": 36}
+    compare_dims(r, out_dims, sizes=True)
+
+    ref_data = np.array([
+        np.nan,
+        4.9234657,
+        np.nan,
+        np.nan,
+        3.0825672,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+        np.nan,
+    ])
+
+    ref_lat = np.linspace(90.0, -90.0, 19)
+    ref_lon = np.linspace(0.0, 350.0, 36)
+
+    assert np.allclose(r["sfcWind"].to_numpy()[0][5], ref_data, equal_nan=True)
+    assert np.allclose(r.latitude.values, ref_lat)
+    assert np.allclose(r.longitude.values, ref_lon)
+
+
+@pytest.mark.skipif(NO_COVJSON, reason="No covjsonkit available")
+def test_regrid_xarray_covjson_unstructured_to_ll():
+    path = get_test_data("points.covjson", subfolder="xr")
+    ds = covjson_to_xarray(path)
+
+    out_grid = {"grid": [10, 10]}
+    r = regrid(ds, out_grid=out_grid, interpolation="nn")
+
+    out_dims = {"datetimes": 1, "number": 1, "steps": 1, "latitude": 19, "longitude": 36}
+    compare_dims(r, out_dims, sizes=True)
+
+    ref_data = np.array([
+        7.43803024,
+        6.08695602,
+        6.08695602,
+        6.08695602,
+        6.08695602,
+        6.08695602,
+        6.08695602,
+        6.08695602,
+        6.08695602,
+        6.08695602,
+        6.08695602,
+        6.08695602,
+        6.08695602,
+        6.08695602,
+        6.08695602,
+        6.08695602,
+        6.08695602,
+        6.08695602,
+        6.08695602,
+        7.43803024,
+        7.43803024,
+        7.43803024,
+        7.43803024,
+        7.43803024,
+        7.43803024,
+        7.43803024,
+        7.43803024,
+        7.43803024,
+        7.43803024,
+        7.43803024,
+        7.43803024,
+        7.43803024,
+        7.43803024,
+        7.43803024,
+        7.43803024,
+        7.43803024,
+    ])
+
+    ref_lat = np.linspace(90.0, -90.0, 19)
+    ref_lon = np.linspace(0.0, 350.0, 36)
+
+    assert np.allclose(r["10u"].to_numpy()[0][0][0][2], ref_data, equal_nan=True)
+    assert np.allclose(r.latitude.values, ref_lat)
+    assert np.allclose(r.longitude.values, ref_lon)
