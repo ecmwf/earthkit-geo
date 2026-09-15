@@ -349,3 +349,27 @@ def test_regrid_numpy_any_to_any(interpolation, in_grid, in_shape, out_grid, res
     values = np.random.random(in_shape)
     res_v, _ = regrid_array(values, in_grid=in_grid, out_grid=out_grid, interpolation=interpolation)
     assert res_v.shape == res_shape, f"Expected shape {res_shape}, got {res_v.shape}"
+
+
+@pytest.mark.skipif(NO_MIR, reason="No mir available")
+@pytest.mark.parametrize("interpolation", ["nn"])
+@pytest.mark.parametrize(
+    "in_grid,in_shape",
+    [
+        ({"grid": [5, 5]}, (37, 72)),
+        ({"grid": "O32"}, (5248,)),
+        ({"grid": "N32"}, (6114,)),
+        ({"grid": "F48"}, (96, 192)),
+        ({"grid": "H8", "order": "ring"}, (768,)),
+        ({"grid": "H8", "order": "nested"}, (768,)),
+        # ({"grid": "eORCA025_T"}, (1442, 1207)), # this test is too slow for now
+    ],
+)
+def test_regrid_numpy_any_to_points(interpolation, in_grid, in_shape):
+    values = np.random.random(in_shape)
+
+    lats = [40.0, 50.0]
+    lons = [10.0, 20.0]
+    out_grid = {"type": "unstructured_ll", "latitudes": lats, "longitudes": lons}
+    res_v, _ = regrid_array(values, in_grid=in_grid, out_grid=out_grid, interpolation=interpolation)
+    assert res_v.shape == (len(lats),), f"Expected shape {(len(lats), len(lons))}, got {res_v.shape}"

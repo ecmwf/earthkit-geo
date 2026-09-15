@@ -188,3 +188,26 @@ def test_regrid_fieldlist_deprec_grid_kwarg():
     for f in r:
         for k, v in grid_ref.items():
             assert np.isclose(f.metadata(k), v), k
+
+
+@pytest.mark.skip("Skipping test_regrid_fieldlist_to_points for now")
+@pytest.mark.skipif(NO_MIR, reason="No mir available")
+@pytest.mark.skipif(NO_EKD, reason="No access to earthkit-data")
+@pytest.mark.parametrize("field_type", ["grib", "array"])
+def test_regrid_fieldlist_to_points(field_type):
+    ds = _create_fieldlist("5x5.grib", field_type)
+
+    lats = [40.0, 50.0]
+    lons = [10.0, 20.0]
+    out_grid = {"type": "unstructured_ll", "latitudes": lats, "longitudes": lons}
+    r = regrid(ds, out_grid=out_grid, interpolation="nn")
+
+    metadata_ref = ds.metadata(["param", "level", "date", "time", "edition"])
+
+    points_num = 2
+    ref_vals = np.array([295.76901245, 285.79244995])
+
+    assert len(r) == 1
+    assert r[0].shape == (points_num,)
+    assert np.allclose(r[0].values, ref_vals)
+    assert r.metadata(["param", "level", "date", "time"]) == metadata_ref
