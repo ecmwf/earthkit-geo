@@ -95,7 +95,7 @@ def grid_from_xr_grid(xr_grid):
     from eckit.geo import Grid
 
     lat, lon = xr_grid.latlons
-    grid_spec = {"type": "unstructured_ll", "latitudes": lat.flatten().tolist(), "longitudes": lon.flatten().tolist()}
+    grid_spec = {"latitudes": lat.flatten().tolist(), "longitudes": lon.flatten().tolist()}
     return Grid(grid_spec)
 
 
