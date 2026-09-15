@@ -114,6 +114,11 @@ def adjust_variable_dim_order(variable_dims, coordinates):
     -------
     List[str]
         The dimension names, reordered to ``(lat, lon)`` if needed.
+
+    Notes
+    -----
+    This is needed to ensure the order is (lat, lon) when data is passed to
+    MIR. When scanning mode support will be added, this function may not be needed.
     """
     if variable_dims and len(variable_dims) == 2:
         order = [None, None]
