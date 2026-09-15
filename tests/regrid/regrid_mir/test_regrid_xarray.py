@@ -344,7 +344,7 @@ def test_regrid_xarray_1d_1(lat_name, lon_name):
 
 
 @pytest.mark.parametrize("in_grid", [None, {"grid": [30.0, 30.0]}])
-def test_regrid_xarray_from_netcdf_ll_to_ll_1(in_grid):
+def test_regrid_xarray_from_netcdf_ll_to_ll(in_grid):
     path = get_test_data("test_single.nc", subfolder="xr")
     ds = xr.open_dataset(path)
     da = ds["t2m"]
@@ -399,6 +399,26 @@ def test_regrid_xarray_from_netcdf_ll_to_ll_1(in_grid):
     assert np.allclose(r.to_numpy()[2], ref_data)
     assert np.allclose(r.latitude.values, ref_lat)
     assert np.allclose(r.longitude.values, ref_lon)
+
+
+@pytest.mark.parametrize("in_grid", [None, {"grid": [30.0, 30.0]}])
+def test_regrid_xarray_from_netcdf_ll_to_points(in_grid):
+    path = get_test_data("test_single.nc", subfolder="xr")
+    ds = xr.open_dataset(path)
+    da = ds["t2m"]
+
+    lats = [40.0, 50.0]
+    lons = [10.0, 20.0]
+    out_grid = {"type": "unstructured_ll", "latitudes": lats, "longitudes": lons}
+    r = regrid(da, in_grid=in_grid, out_grid=out_grid, interpolation="nn")
+
+    out_dims = {"values": len(lats)}
+    compare_dims(r, out_dims, sizes=True)
+
+    ref_data = np.array([307.1856, 277.0606])
+    assert np.allclose(r.to_numpy(), ref_data)
+    assert np.allclose(r.latitude.values, np.array(lats))
+    assert np.allclose(r.longitude.values, np.array(lons))
 
 
 @pytest.mark.long_test
