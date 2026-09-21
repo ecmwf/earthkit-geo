@@ -24,7 +24,8 @@ import logging
 from earthkit.geo.utils import ensure_list
 
 from ..handler import DataHandler
-from .builder import XarrayGeographyBuilder
+from ..utils import create_grid_object
+from .output import XarrayOutputGeographyBuilder
 
 LOG = logging.getLogger(__name__)
 
@@ -60,19 +61,9 @@ class XarrayDataHandler(DataHandler):
             return False
 
     @staticmethod
-    def get_out_geo(grid):
-        """Get the output geography from the out_grid."""
-        out_grid = grid
-        if out_grid is None:
-            raise ValueError("grid must be provided")
-
-        out_geo = XarrayGeographyBuilder(out_grid)
-        return out_geo
-
-    @staticmethod
-    def add_geo_coords(ds, out_geo):
+    def add_geo_coords(ds, out_coords):
         """Add the geographical coordinates to the dataset."""
-        dims, coords, coords_dim = out_geo.coords()
+        dims, coords, coords_dim = out_coords
 
         import xarray as xr
 
@@ -83,7 +74,7 @@ class XarrayDataHandler(DataHandler):
         return ds
 
     @staticmethod
-    def update_attributes(ds, out_geo):
+    def update_attributes(ds, out_grid):
         """Update the earthkit grid_spec attribute of a regridded dataset/array, if present."""
         # TODO: this is a temporary workaround to only set the grid_spec attribute
         # for datasets/arrays created from earthkit-data. The problem is that
@@ -109,7 +100,7 @@ class XarrayDataHandler(DataHandler):
         if has_earthkit:
             if hasattr(ds, "earthkit"):
                 try:
-                    ds = ds.earthkit.set({"geography.grid_spec": out_geo.grid_spec})
+                    ds = ds.earthkit.set({"geography.grid_spec": out_grid.spec})
                 except Exception:
                     # TODO: temporary workaround for when storing the new grid spec
                     # fails (e.g. the accessor cannot serialise it). Leaving the
@@ -161,10 +152,15 @@ class XarrayDataHandler(DataHandler):
             If the input grid or input dimensions cannot be determined and are not provided.
         """
         ds = values
-
         kwargs = kwargs.copy()
-        in_grid_arg = in_grid
-        out_grid_arg = out_grid
+
+        backend = self.backend_from_kwargs(kwargs)
+        in_grid = create_grid_object(in_grid)
+        out_grid = create_grid_object(out_grid)
+
+        if out_grid is None:
+            raise ValueError("out_grid must be specified")
+
         in_dims_arg = kwargs.pop("in_dims", None)
         out_dims_arg = kwargs.pop("out_dims", None)
 
@@ -176,19 +172,17 @@ class XarrayDataHandler(DataHandler):
         if not input_is_dataset:
             ds = ds.to_dataset()
 
-        variables = get_variables(ds, user_ek_grid=in_grid_arg)
+        variables = get_variables(ds, user_ek_grid=in_grid)
 
         for v in variables:
             if v.ek_grid is None:
-                if in_grid_arg is None:
+                if in_grid is None:
                     raise ValueError(
                         f"Could not determine grid for variable {v.name} from dataset. Please provide an "
                         f"'in_grid' argument."
                     )
                 else:
-                    raise ValueError(
-                        f"Could not determine grid for variable {v.name} from dataset or from 'in_grid' argument."
-                    )
+                    raise ValueError("Could not determine grid from 'in_grid' argument.")
             if not v.geo_dims:
                 if in_dims_arg is None:
                     raise ValueError(
@@ -197,13 +191,11 @@ class XarrayDataHandler(DataHandler):
                     )
                 else:
                     raise ValueError(
-                        f"Could not determine grid dimensions for variable {v.name} from dataset and "
-                        "'in_dims' argument is provided but invalid."
+                        f"Dimensions for variable {v.name} from dataset do not match the provided 'in_dims' argument."
                     )
 
         # the output geography builder which can provide the output grid and the output coordinates
-        out_geo = self.get_out_geo(out_grid_arg)
-        out_grid = out_geo.grid._grid
+        out_geo = XarrayOutputGeographyBuilder(out_grid)
 
         out_dims = out_dims_arg
         if out_dims is None:
@@ -218,7 +210,9 @@ class XarrayDataHandler(DataHandler):
 
         res_out_grid = None
         for v in variables:
-            ds_out[v.name], res_out_grid_v = self._regrid_variable(v, out_geo, in_dims_arg, out_dims, **kwargs)
+            ds_out[v.name], res_out_grid_v = self._regrid_variable(
+                backend, v, out_grid, in_dims_arg, out_dims, **kwargs
+            )
             if res_out_grid is None:
                 res_out_grid = res_out_grid_v
 
@@ -228,22 +222,24 @@ class XarrayDataHandler(DataHandler):
 
         # The output geography might have changed, so we need to create a new geography builder
         # with the new grid spec
-        out_geo = XarrayGeographyBuilder(res_out_grid)
-
-        ds_out = self.add_geo_coords(ds_out, out_geo)
-        ds_out = self.update_attributes(ds_out, out_geo)
+        out_grid = create_grid_object(res_out_grid)
+        out_geo = XarrayOutputGeographyBuilder(out_grid)
+        ds_out = self.add_geo_coords(ds_out, out_geo.coords())
+        ds_out = self.update_attributes(ds_out, out_grid)
 
         return ds_out
 
-    def _regrid_variable(self, variable, out_geo, in_dims_arg, out_dims, **kwargs):
+    def _regrid_variable(self, backend, variable, out_grid, in_dims_arg, out_dims, **kwargs):
         """Regrid a single variable using ``xarray.apply_ufunc``.
 
         Parameters
         ----------
+        backend : Any
+            The backend providing the ``regrid`` method.
         variable : Variable
             The variable to regrid, as produced by :func:`~.loader.variables`.
-        out_geo : XarrayGeographyBuilder
-            The output geography.
+        out_grid : Any
+            The output grid.
         in_dims_arg : Optional[List[str]]
             Fallback input grid dimension names, used when they cannot be
             determined from ``variable``.
@@ -251,7 +247,7 @@ class XarrayDataHandler(DataHandler):
             The output grid dimension names.
         **kwargs
             Extra keyword arguments forwarded to
-            ``NumpyDataHandler.regrid``.
+            ``XarrayDataHandler.regrid``.
 
         Returns
         -------
@@ -259,7 +255,6 @@ class XarrayDataHandler(DataHandler):
             The regridded ``xr.DataArray`` and the (possibly updated) output
             grid spec as returned by the point-to-point regrid method.
         """
-        from ..numpy import NumpyDataHandler
 
         # regrid() can change the specified output gridspec.
         # This is a workaround to get the returned output gridscpec from regrid().
@@ -267,7 +262,7 @@ class XarrayDataHandler(DataHandler):
             def __init__(self, in_grid, out_grid, **kwargs):
                 self.out_grid = out_grid
                 self.method = functools.partial(
-                    NumpyDataHandler().regrid,
+                    backend.regrid,
                     in_grid=in_grid,
                     out_grid=out_grid,
                     **kwargs,
@@ -291,7 +286,7 @@ class XarrayDataHandler(DataHandler):
 
         in_grid = variable.ek_grid
 
-        method = _RegridMethod(in_grid.spec, out_geo.grid_spec, **kwargs)
+        method = _RegridMethod(in_grid, out_grid, **kwargs)
 
         import xarray as xr
 
@@ -304,7 +299,7 @@ class XarrayDataHandler(DataHandler):
             vectorize=True,
             dask="parallelized",
             dask_gufunc_kwargs={
-                "output_sizes": {dim: out_geo.shape[i] for i, dim in enumerate(out_dims)},
+                "output_sizes": {dim: out_grid.shape[i] for i, dim in enumerate(out_dims)},
                 "allow_rechunk": True,
             },
             output_dtypes=[var.dtype],

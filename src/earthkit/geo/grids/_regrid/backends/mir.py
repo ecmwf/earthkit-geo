@@ -9,10 +9,10 @@
 
 from warnings import warn
 
-from . import Backend
+from . import SimpleBackend
 
 
-class MirBackend(Backend):
+class MirBackend(SimpleBackend):
     name = "mir"
 
     @staticmethod

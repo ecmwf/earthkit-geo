@@ -16,6 +16,7 @@ from earthkit.geo.utils.testing import SYSTEM_MATRIX_BACKEND_NAME, get_test_data
 INTERPOLATIONS = ["linear", "nearest-neighbour"]
 
 
+@pytest.mark.matrix_db
 @pytest.mark.download
 @pytest.mark.tmp_cache
 @pytest.mark.parametrize(
@@ -79,6 +80,7 @@ def _ll_to_ll(interpolation):
     assert np.allclose(v_res.flatten(), v_ref), 2
 
 
+@pytest.mark.matrix_db
 @pytest.mark.download
 @pytest.mark.tmp_cache
 @pytest.mark.parametrize("interpolation", INTERPOLATIONS)
@@ -86,12 +88,14 @@ def test_regrid_matrix_ll_to_ll(interpolation):
     _ll_to_ll(interpolation)
 
 
+@pytest.mark.matrix_db
 @pytest.mark.download
 @pytest.mark.parametrize("interpolation", INTERPOLATIONS)
 def test_regrid_matrix_ll_to_ll_user_cache(interpolation):
     _ll_to_ll(interpolation)
 
 
+@pytest.mark.matrix_db
 @pytest.mark.download
 @pytest.mark.tmp_cache
 @pytest.mark.parametrize("interpolation", INTERPOLATIONS)
@@ -114,6 +118,7 @@ def test_regrid_matrix_ogg_to_ll(interpolation):
     assert np.allclose(v_res.flatten(), v_ref)
 
 
+@pytest.mark.matrix_db
 @pytest.mark.download
 @pytest.mark.tmp_cache
 @pytest.mark.parametrize("interpolation", INTERPOLATIONS)
@@ -136,6 +141,7 @@ def test_regrid_matrix_ngg_to_ll(interpolation):
     assert np.allclose(v_res.flatten(), v_ref)
 
 
+@pytest.mark.matrix_db
 @pytest.mark.download
 @pytest.mark.tmp_cache
 @pytest.mark.parametrize("interpolation", INTERPOLATIONS)
@@ -158,6 +164,7 @@ def test_regrid_matrix_healpix_ring_to_ll(interpolation):
     assert np.allclose(v_res.flatten(), v_ref)
 
 
+@pytest.mark.matrix_db
 @pytest.mark.download
 @pytest.mark.tmp_cache
 @pytest.mark.parametrize("interpolation", INTERPOLATIONS)
@@ -180,6 +187,7 @@ def test_regrid_matrix_healpix_nested_to_ll(interpolation):
     assert np.allclose(v_res.flatten(), v_ref)
 
 
+@pytest.mark.matrix_db
 @pytest.mark.tmp_cache
 def test_regrid_matrix_unsupported_input_grid() -> None:
     a = np.ones(91 * 180)
@@ -193,6 +201,7 @@ def test_regrid_matrix_unsupported_input_grid() -> None:
         )
 
 
+@pytest.mark.matrix_db
 @pytest.mark.tmp_cache
 def test_regrid_matrix_unsupported_output_grid() -> None:
     a = np.ones(181 * 360)

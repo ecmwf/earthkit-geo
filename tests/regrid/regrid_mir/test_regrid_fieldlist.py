@@ -190,10 +190,10 @@ def test_regrid_fieldlist_deprec_grid_kwarg():
             assert np.isclose(f.metadata(k), v), k
 
 
-@pytest.mark.skip("Skipping test_regrid_fieldlist_to_points for now")
 @pytest.mark.skipif(NO_MIR, reason="No mir available")
 @pytest.mark.skipif(NO_EKD, reason="No access to earthkit-data")
-@pytest.mark.parametrize("field_type", ["grib", "array"])
+# @pytest.mark.parametrize("field_type", ["grib", "array"])
+@pytest.mark.parametrize("field_type", ["grib"])
 def test_regrid_fieldlist_to_points(field_type):
     ds = _create_fieldlist("5x5.grib", field_type)
 
@@ -202,12 +202,15 @@ def test_regrid_fieldlist_to_points(field_type):
     out_grid = {"latitudes": lats, "longitudes": lons}
     r = regrid(ds, out_grid=out_grid, interpolation="nn")
 
-    metadata_ref = ds.metadata(["param", "level", "date", "time", "edition"])
+    metadata_ref = ds.get(["parameter.variable", "vertical.level", "time.valid_datetime", "time.step"])
 
     points_num = 2
     ref_vals = np.array([295.76901245, 285.79244995])
 
     assert len(r) == 1
     assert r[0].shape == (points_num,)
+    lats_res, lons_res = r[0].geography.latlons()
+    assert np.allclose(lats_res, lats)
+    assert np.allclose(lons_res, lons)
     assert np.allclose(r[0].values, ref_vals)
-    assert r.metadata(["param", "level", "date", "time"]) == metadata_ref
+    assert r.get(["parameter.variable", "vertical.level", "time.valid_datetime", "time.step"]) == metadata_ref

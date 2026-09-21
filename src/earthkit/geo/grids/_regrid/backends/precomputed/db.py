@@ -14,7 +14,7 @@ from abc import ABCMeta, abstractmethod
 
 from scipy.sparse import load_npz
 
-from earthkit.geo.grids._regrid.gridspec import _GridSpec
+from earthkit.geo.grids._regrid.backends.precomputed.gridspec import _GridWrapper
 from earthkit.geo.utils import no_progress_bar
 from earthkit.geo.utils.download import download_and_cache
 from earthkit.geo.utils.url import join_url_path
@@ -313,8 +313,8 @@ class MatrixIndex(dict):
                 # gridspecs type, but a given earthkit-geo version is not
                 # yet supporting it. In this case loading the index should not crash.
                 try:
-                    in_gs = _GridSpec.from_dict(entry["input"])
-                    out_gs = _GridSpec.from_dict(entry["output"])
+                    in_gs = _GridWrapper.from_dict(entry["input"])
+                    out_gs = _GridWrapper.from_dict(entry["output"])
                     raw = entry
                     entry = dict(**entry)
                     entry["input"] = in_gs
@@ -372,8 +372,8 @@ class MatrixIndex(dict):
         return os.path.join(MatrixIndex.matrix_dir_name(item), item["_name"] + ".npz")
 
     def find(self, gridspec_in, gridspec_out, method):
-        gridspec_in = _GridSpec.from_any(gridspec_in)
-        gridspec_out = _GridSpec.from_any(gridspec_out)
+        gridspec_in = _GridWrapper.from_any(gridspec_in)
+        gridspec_out = _GridWrapper.from_any(gridspec_out)
 
         if gridspec_in is None or gridspec_out is None:
             return None
@@ -427,6 +427,13 @@ class MatrixIndex(dict):
 
 
 class MatrixDb:
+    # Parsing the index file builds a real eckit.geo.Grid per entry, which is
+    # expensive (thousands of entries). Cache the parsed MatrixIndex per
+    # (path, mtime, size), so re-loading an unchanged index file (e.g. after
+    # _clear_index()) is free. Keyed the same way test_remote_index.py itself
+    # detects whether an index file was actually re-downloaded.
+    _INDEX_CACHE: dict = {}
+
     def __init__(self, accessor):
         self._index = None
         self._accessor = accessor
@@ -438,9 +445,18 @@ class MatrixDb:
         return self._index
 
     def _load_index(self):
-        self._index = MatrixIndex()
         path = self._accessor.index_path()
-        self._index.load(path)
+
+        st = os.stat(path)
+        key = (path, st.st_mtime_ns, st.st_size)
+
+        index = MatrixDb._INDEX_CACHE.get(key)
+        if index is None:
+            index = MatrixIndex()
+            index.load(path)
+            MatrixDb._INDEX_CACHE[key] = index
+
+        self._index = index
 
     def _method_alias(self, method):
         for k, v in _METHOD_ALIAS.items():
@@ -457,8 +473,8 @@ class MatrixDb:
     ):
 
         try:
-            gridspec_in = _GridSpec.from_any(gridspec_in)
-            gridspec_out = _GridSpec.from_any(gridspec_out)
+            gridspec_in = _GridWrapper.from_any(gridspec_in)
+            gridspec_out = _GridWrapper.from_any(gridspec_out)
         except Exception as e:
             LOG.warning(f"Cannot parse gridspecs with eckit.geo: {e}")
             gridspec_in = None
