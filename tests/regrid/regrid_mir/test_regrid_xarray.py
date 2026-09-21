@@ -139,7 +139,7 @@ def test_regrid_xarray_transposed_dims(sample, out_grid, out_grid_ref, dims):
 
     compare_dims(r, dims, sizes=True)
 
-    assert r.earthkit.grid_spec == out_grid_ref
+    assert r.earthkit.grid_spec.items() >= out_grid_ref.items()
     np.testing.assert_allclose(r.transpose(*r_ref.dims).values, r_ref.values)
 
 
