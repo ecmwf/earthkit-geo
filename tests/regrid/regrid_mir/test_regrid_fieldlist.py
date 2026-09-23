@@ -6,6 +6,7 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
+import datetime
 
 import numpy as np
 import pytest
@@ -193,21 +194,30 @@ def test_regrid_fieldlist_deprec_grid_kwarg():
 
 @pytest.mark.skipif(NO_MIR, reason="No mir available")
 @pytest.mark.skipif(NO_EKD, reason="No access to earthkit-data")
-# @pytest.mark.parametrize("field_type", ["grib", "array"])
 @pytest.mark.parametrize("field_type", ["grib"])
-def test_regrid_grib_1_fieldlist_ll_to_points(field_type):
+def test_regrid_grib_1_fieldlist_ll_to_points_round_trip(field_type):
     ds = _create_fieldlist("5x5_multi.grib1", subfolder="grib", field_type=field_type)
 
-    lats = [40.0, 50.0]
-    lons = [10.0, 20.0]
-    out_grid = {"latitudes": lats, "longitudes": lons}
+    # Regrid from lat-lon to points
+    lats = [40.0, 40.0, 40.0, 30.0, 30.0, 30.0]
+    lons = [10.0, 20.0, 30.0, 10.0, 20.0, 30.0]
+    out_grid_points = {"latitudes": lats, "longitudes": lons}
 
-    r = regrid(ds, out_grid=out_grid, interpolation="nn")
+    r = regrid(ds, out_grid=out_grid_points, interpolation="nn")
 
-    metadata_ref = ds.get(["parameter.variable", "vertical.level", "time.valid_datetime", "time.step"])
-    points_num = 2
+    # mir turns grib1 to grib2 internally for unstructured input grids
+    metadata_keys = ["parameter.variable", "vertical.level", "time.valid_datetime", "time.step"]
+    metadata_ref = [
+        ["2t", 2, datetime.datetime(2024, 3, 23, 12, 0), datetime.timedelta(0)],
+        ["2t", 2, datetime.datetime(2024, 3, 24, 0, 0), datetime.timedelta(seconds=43200)],
+    ]
 
-    ref_vals = np.array([[288.44410706, 291.83082581], [289.20581055, 277.6784668]])
+    points_num = 6
+
+    ref_vals = np.array([
+        [288.44410706, 286.67457581, 281.93043518, 299.01246643, 293.30152893, 292.03785706],
+        [289.20581055, 278.41088867, 271.97143555, 288.99291992, 285.8347168, 284.30932617],
+    ])
 
     assert len(r) == 2
 
@@ -218,7 +228,40 @@ def test_regrid_grib_1_fieldlist_ll_to_points(field_type):
         assert np.allclose(lons_res, lons)
         assert np.allclose(f.values, ref_vals[i])
 
-    assert r.get(["parameter.variable", "vertical.level", "time.valid_datetime", "time.step"]) == metadata_ref
+    assert r.get(metadata_keys) == metadata_ref
+
+    # Encode each regridded field to a new GRIB message and create a new fieldlist from them
+    fields = []
+    for f in r:
+        f_grib = from_source("memory", f.sync().message()).to_fieldlist()[0]
+        fields.append(f_grib)
+
+    ds_r = create_fieldlist(fields)
+
+    assert len(ds_r) == 2
+    for i, f in enumerate(ds_r):
+        assert f.shape == (points_num,)
+        # TODO: this is currently failing
+        lats_res, lons_res = f.geography.latlons()
+        assert lats_res is None
+        assert lons_res is None
+        assert np.allclose(f.values, ref_vals[i])
+
+    assert ds_r.get(metadata_keys) == metadata_ref
+    assert ds_r.metadata("edition") == [2, 2]
+
+    # Regrid from points back to lat-lon
+    out_grid_ll = {"grid": [5, 5]}
+
+    r_ll = regrid(ds_r, in_grid=out_grid_points, out_grid=out_grid_ll, interpolation="nn")
+
+    assert len(r_ll) == 2
+    for i, f in enumerate(r_ll):
+        assert f.shape == (37, 72)
+        assert f.geography.grid_spec().items() >= out_grid_ll.items()
+        lats_res, lons_res = f.geography.latlons()
+        assert lats_res.shape == (37, 72)
+        assert lons_res.shape == (37, 72)
 
 
 @pytest.mark.skipif(NO_MIR, reason="No mir available")
@@ -229,16 +272,24 @@ def test_regrid_grib_2_fieldlist_ll_to_points_round_trip(field_type):
     ds = _create_fieldlist("5x5_multi.grib2", subfolder="grib", field_type=field_type)
 
     # Regrid from lat-lon to points
-    lats = [40.0, 50.0]
-    lons = [10.0, 20.0]
+    lats = [40.0, 40.0, 40.0, 30.0, 30.0, 30.0]
+    lons = [10.0, 20.0, 30.0, 10.0, 20.0, 30.0]
     out_grid_points = {"latitudes": lats, "longitudes": lons}
 
     r = regrid(ds, out_grid=out_grid_points, interpolation="nn")
 
-    metadata_ref = ds.get(["parameter.variable", "vertical.level", "time.valid_datetime", "time.step"])
-    points_num = 2
+    metadata_keys = ["parameter.variable", "vertical.level", "time.valid_datetime", "time.step"]
+    metadata_ref = [
+        ["2t", 2, datetime.datetime(2024, 3, 23, 12, 0), datetime.timedelta(0)],
+        ["2t", 2, datetime.datetime(2024, 3, 24, 0, 0), datetime.timedelta(seconds=43200)],
+    ]
 
-    ref_vals = np.array([[288.44410706, 291.83082581], [289.20581055, 277.6784668]])
+    points_num = 6
+
+    ref_vals = np.array([
+        [288.44410706, 286.67457581, 281.93043518, 299.01246643, 293.30152893, 292.03785706],
+        [289.20581055, 278.41088867, 271.97143555, 288.99291992, 285.8347168, 284.30932617],
+    ])
 
     assert len(r) == 2
 
@@ -249,37 +300,37 @@ def test_regrid_grib_2_fieldlist_ll_to_points_round_trip(field_type):
         assert np.allclose(lons_res, lons)
         assert np.allclose(f.values, ref_vals[i])
 
-    assert r.get(["parameter.variable", "vertical.level", "time.valid_datetime", "time.step"]) == metadata_ref
+    assert r.get(metadata_keys) == metadata_ref
 
     # Encode each regridded field to a new GRIB message and create a new fieldlist from them
-    # TODO: this is currently failing
-    # fields = []
-    # for f in r:
-    #     f_grib = from_source("memory", f.sync().message()).to_fieldlist()[0]
-    #     fields.append(f_grib)
+    fields = []
+    for f in r:
+        f_grib = from_source("memory", f.sync().message()).to_fieldlist()[0]
+        fields.append(f_grib)
 
-    # ds_r = create_fieldlist(fields)
+    ds_r = create_fieldlist(fields)
 
-    # assert len(ds_r) == 2
-    # for i, f in enumerate(ds_r):
-    #     assert f.shape == (points_num,)
-    #     # TODO: this is currently failing
-    #     # lats_res, lons_res = f.geography.latlons()
-    #     # assert np.allclose(lats_res, lats)
-    #     # assert np.allclose(lons_res, lons)
-    #     assert np.allclose(f.values, ref_vals[i])
+    assert len(ds_r) == 2
+    for i, f in enumerate(ds_r):
+        assert f.shape == (points_num,)
+        # TODO: this is currently failing
+        lats_res, lons_res = f.geography.latlons()
+        assert lats_res is None
+        assert lons_res is None
+        assert np.allclose(f.values, ref_vals[i])
 
-    # assert ds_r.get(["parameter.variable", "vertical.level", "time.valid_datetime", "time.step"]) == metadata_ref
+    assert ds_r.get(metadata_keys) == metadata_ref
+    assert ds_r.metadata("edition") == [2, 2]
 
-    # TODO: this is currently failing
     # Regrid from points back to lat-lon
+    out_grid_ll = {"grid": [5, 5]}
 
-    # r_ll = regrid(ds_r, in_grid=out_grid_points, out_grid={"grid": [5,5]}, interpolation="nn")
+    r_ll = regrid(ds_r, in_grid=out_grid_points, out_grid=out_grid_ll, interpolation="nn")
 
-    # assert len(r_ll) == 2
-    # for i, f in enumerate(r_ll):
-    #     assert f.shape == (5, 5)
-    #     lats_res, lons_res = f.geography.latlons()
-    #     # assert np.allclose(lats_res, np.linspace(40.0, 50.0, 5)[:, None])
-    #     # assert np.allclose(lons_res, np.linspace(10.0, 20.0, 5)[None, :])
-    #     # assert np.allclose(f.values, ref_vals[i].reshape(5, 5))
+    assert len(r_ll) == 2
+    for i, f in enumerate(r_ll):
+        assert f.shape == (37, 72)
+        assert f.geography.grid_spec().items() >= out_grid_ll.items()
+        lats_res, lons_res = f.geography.latlons()
+        assert lats_res.shape == (37, 72)
+        assert lons_res.shape == (37, 72)

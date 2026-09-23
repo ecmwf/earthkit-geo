@@ -8,6 +8,13 @@
 #
 
 
+"""Precomputed-matrix regrid backend.
+
+Exposes :data:`backend`, the :class:`~.precomputed.MatrixBackend` class used
+to interpolate values with precomputed sparse interpolation matrices from
+the regrid matrix inventory (see :mod:`.db`).
+"""
+
 from .precomputed import MatrixBackend
 
 backend = MatrixBackend

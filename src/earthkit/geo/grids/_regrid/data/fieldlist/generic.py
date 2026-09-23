@@ -12,6 +12,35 @@ from .grid import get_grid
 
 
 def regrid_generic_field(field, index, in_grid=None, out_grid=None, backend=None, **kwargs):
+    """Regrid a non-GRIB ``earthkit.data`` field via array-based interpolation.
+
+    Parameters
+    ----------
+    field : earthkit.data.Field
+        The field to regrid.
+    index : int
+        Position of ``field`` in its parent :class:`~earthkit.data.FieldList`, used
+        only for error/log messages.
+    in_grid : eckit.geo.Grid or earthkit.geo.grids.Grid, optional
+        Input grid. When not provided it is determined from ``field``'s metadata.
+    out_grid : eckit.geo.Grid or earthkit.geo.grids.Grid
+        Output grid. Must be provided.
+    backend : object
+        Regrid backend exposing a ``regrid(values, in_grid, out_grid, **kwargs)`` method.
+    **kwargs : dict
+        Additional keyword arguments passed to ``backend.regrid``.
+
+    Returns
+    -------
+    earthkit.data.Field
+        A new field with the regridded values and updated grid spec.
+
+    Raises
+    ------
+    ValueError
+        If ``in_grid`` cannot be determined, ``out_grid`` is not provided, or the
+        backend produces an invalid output grid.
+    """
     if in_grid is None:
         in_grid = get_grid(field, index)
 

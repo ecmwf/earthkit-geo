@@ -13,6 +13,27 @@ LOG = logging.getLogger(__name__)
 
 
 def create_grid_object(grid):
+    """Convert a grid or grid spec into a ``Grid`` object.
+
+    Parameters
+    ----------
+    grid : eckit.geo.Grid, earthkit.geo.grids.Grid, dict, str or None
+        The grid or grid spec to convert. Left unchanged if already a
+        ``Grid`` instance.
+
+    Returns
+    -------
+    eckit.geo.Grid, earthkit.geo.grids.Grid or None
+        ``grid`` unchanged if it is already a ``Grid`` instance, None if
+        ``grid`` is None, otherwise a new ``Grid`` built from the
+        (normalised) grid spec.
+
+    Raises
+    ------
+    Exception
+        Whatever ``eckit.geo.Grid`` raises if ``grid`` cannot be parsed
+        (logged before being re-raised).
+    """
     if grid is None:
         return None
 
@@ -31,6 +52,20 @@ def create_grid_object(grid):
 
 
 def get_grid_spec(grid):
+    """Return the grid spec dict for a grid or grid spec.
+
+    Parameters
+    ----------
+    grid : eckit.geo.Grid, earthkit.geo.grids.Grid, dict, str or None
+        The grid or grid spec to inspect.
+
+    Returns
+    -------
+    dict or None
+        None if ``grid`` is None, ``grid.spec`` if ``grid`` is a ``Grid``
+        instance, otherwise the normalised grid spec (see
+        :func:`normalise_grid_spec`).
+    """
     if grid is None:
         return None
 

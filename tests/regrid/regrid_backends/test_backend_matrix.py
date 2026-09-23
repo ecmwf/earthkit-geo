@@ -144,8 +144,11 @@ def test_regrid_matrix_ngg_to_ll(interpolation):
 @pytest.mark.matrix_db
 @pytest.mark.download
 @pytest.mark.tmp_cache
+@pytest.mark.parametrize(
+    "in_grid", [{"grid": "H4", "order": "ring"}, {"grid": "H4"}, {"grid": "H4", "ordering": "ring"}]
+)
 @pytest.mark.parametrize("interpolation", INTERPOLATIONS)
-def test_regrid_matrix_healpix_ring_to_ll(interpolation):
+def test_regrid_matrix_healpix_ring_to_ll(in_grid, interpolation):
     f_in, f_out = get_test_data(["in_H4_ring.npz", f"out_H4_ring_10x10_{interpolation}.npz"])
 
     v_in = np.load(f_in)["arr_0"]
@@ -153,7 +156,7 @@ def test_regrid_matrix_healpix_ring_to_ll(interpolation):
     out_grid = {"grid": [10, 10]}
     v_res, grid_res = regrid_array(
         v_in,
-        {"grid": "H4", "order": "ring"},
+        in_grid,
         out_grid=out_grid,
         interpolation=interpolation,
         backend=SYSTEM_MATRIX_BACKEND_NAME,
@@ -167,8 +170,9 @@ def test_regrid_matrix_healpix_ring_to_ll(interpolation):
 @pytest.mark.matrix_db
 @pytest.mark.download
 @pytest.mark.tmp_cache
+@pytest.mark.parametrize("in_grid", [{"grid": "H4", "order": "nested"}, {"grid": "H4", "ordering": "nested"}])
 @pytest.mark.parametrize("interpolation", INTERPOLATIONS)
-def test_regrid_matrix_healpix_nested_to_ll(interpolation):
+def test_regrid_matrix_healpix_nested_to_ll(in_grid, interpolation):
     f_in, f_out = get_test_data(["in_H4_nested.npz", f"out_H4_nested_10x10_{interpolation}.npz"])
 
     v_in = np.load(f_in)["arr_0"]
@@ -176,7 +180,7 @@ def test_regrid_matrix_healpix_nested_to_ll(interpolation):
     out_grid = {"grid": [10, 10]}
     v_res, grid_res = regrid_array(
         v_in,
-        {"grid": "H4", "order": "nested"},
+        in_grid,
         out_grid=out_grid,
         interpolation=interpolation,
         backend=SYSTEM_MATRIX_BACKEND_NAME,

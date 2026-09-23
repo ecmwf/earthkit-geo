@@ -90,67 +90,6 @@ class Backend(metaclass=ABCMeta):
         """
         pass
 
-    @abstractmethod
-    def prepare_grid_object(self, grid_spec: GridSpec) -> EckitGeoGrid | None:
-        """Normalise a grid spec into a concrete into an object the backend will work with.
-
-        Parameters
-        ----------
-        grid_spec : dict, str, eckit.geo.Grid or earthkit.geo.grids.Grid
-            The grid specification to convert.
-
-        Returns
-        -------
-        eckit.geo.Grid or None
-            The corresponding ``Grid`` object, or None if ``grid_spec`` is
-            None.
-        """
-        pass
-
-
-class SimpleBackend(Backend):
-    """:class:`Backend` mixin providing a straightforward, ``eckit.geo``-based
-    implementation of :meth:`Backend.prepare_grid_object`.
-    """
-
-    def prepare_grid_object(self, grid_spec: GridSpec) -> EckitGeoGrid | None:
-        """Convert ``grid_spec`` into an ``eckit.geo.Grid`` object.
-
-        Parameters
-        ----------
-        grid_spec : dict, str, eckit.geo.Grid or earthkit.geo.grids.Grid
-            The grid specification to convert. Left as-is if already an
-            ``eckit.geo.Grid`` instance.
-
-        Returns
-        -------
-        eckit.geo.Grid or None
-            None is returned in all cases (see Notes).
-
-        Raises
-        ------
-        Exception
-            Whatever ``eckit.geo.Grid`` raises if ``grid_spec`` cannot be
-            converted (logged before being re-raised).
-
-        Notes
-        -----
-        The converted ``Grid`` is built but never returned — the function
-        always returns None, even for a non-None ``grid_spec``. This looks
-        like an unintentional bug rather than the contract implied by
-        :meth:`Backend.prepare_grid_object`, but is documented here as-is.
-        """
-        from eckit.geo import Grid
-
-        if grid_spec is not None and not isinstance(grid_spec, Grid):
-            try:
-                grid_spec = Grid(grid_spec)
-            except Exception as e:
-                LOG.exception(f"Cannot create Grid from grid_spec: {e}")
-                raise
-
-        return grid_spec
-
 
 class BackendLoader:
     """Loads a backend class from a module or a plugin entry point."""

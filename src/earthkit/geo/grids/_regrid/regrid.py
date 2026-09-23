@@ -28,6 +28,7 @@ ArrayLike: TypeAlias = Any
 
 
 def _is_array(values):  # IGNORE
+    """Return True if ``values`` is a NumPy ``ndarray``."""
     import numpy as np
 
     return isinstance(values, np.ndarray)  # IGNORE

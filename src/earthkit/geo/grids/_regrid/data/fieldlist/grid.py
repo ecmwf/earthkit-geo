@@ -15,6 +15,24 @@ LOG = logging.getLogger(__name__)
 
 
 def get_grid(field, index):
+    """Determine the grid of an ``earthkit.data`` field.
+
+    Tries the field's grid spec first, falling back to its latitude/longitude
+    values when no grid spec is available.
+
+    Parameters
+    ----------
+    field : earthkit.data.Field
+        The field to inspect.
+    index : int
+        Position of ``field`` in its parent :class:`~earthkit.data.FieldList`, used
+        only for log messages.
+
+    Returns
+    -------
+    eckit.geo.Grid or None
+        The field's grid, or None if it could not be determined.
+    """
     try:
         grid_spec = field.geography.grid_spec()
     except Exception as e:
@@ -23,7 +41,7 @@ def get_grid(field, index):
 
     if grid_spec is None:
         try:
-            lat, lon = field.geography.latlon()
+            lat, lon = field.geography.latlons()
             if lat is not None and lon is not None:
                 grid_spec = {"latitudes": lat.tolist(), "longitudes": lon.tolist()}
         except Exception as e:

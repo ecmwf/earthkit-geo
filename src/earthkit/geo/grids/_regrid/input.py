@@ -8,6 +8,26 @@
 
 
 def get_input(backend, in_grid, out_grid):
+    """Normalise ``in_grid``/``out_grid`` into the objects expected by ``backend``.
+
+    Parameters
+    ----------
+    backend : Backend
+        The regrid backend the grids will be used with.
+    in_grid : dict, str, eckit.geo.Grid or None
+        The input grid spec.
+    out_grid : dict, str, eckit.geo.Grid or None
+        The output grid spec.
+
+    Returns
+    -------
+    Tuple[Any, Any]
+        The normalised ``(in_grid, out_grid)``: a pair of
+        :class:`~earthkit.geo.grids._regrid.backends.precomputed.gridspec._GridWrapper`
+        when ``backend.name == "precomputed"`` (to match the matrix
+        inventory items), otherwise a pair of ``eckit.geo.Grid`` objects
+        (left as None where the input was None).
+    """
     # for precomputed backend we need to build a special gridspec object
     # to match the matrix inventory items
     # TODO: remove this limitation

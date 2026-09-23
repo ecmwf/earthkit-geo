@@ -7,6 +7,17 @@
 # nor does it submit to any jurisdiction.
 #
 
+"""Precomputed interpolation matrix inventory for the "precomputed" regrid backend.
+
+Defines :class:`MatrixDb`, which looks up a precomputed sparse
+interpolation matrix for a given input/output grid pair and interpolation
+method. The inventory is described by an ``index.json`` file (loaded into a
+:class:`MatrixIndex`) plus one ``.npz`` sparse-matrix file per entry, either
+stored locally (:class:`LocalAccessor`) or fetched and cached from a remote
+URL (:class:`UrlAccessor`/:class:`SystemAccessor`). :data:`SYS_DB` is the
+built-in system inventory.
+"""
+
 import json
 import logging
 import os
@@ -56,6 +67,19 @@ def is_gridbox_default(inter):
 
 
 def make_sha(data):
+    """Compute the SHA-256 hex digest of ``data``.
+
+    Parameters
+    ----------
+    data : str or Any
+        The data to hash. A str is hashed as-is (UTF-8 encoded); anything
+        else is first JSON-serialised (with sorted keys).
+
+    Returns
+    -------
+    str
+        The hex digest.
+    """
     import hashlib
 
     m = hashlib.sha256()
@@ -67,62 +91,140 @@ def make_sha(data):
 
 
 class MatrixAccessor(metaclass=ABCMeta):
+    """Abstract base class giving access to the files of a matrix inventory.
+
+    A ``MatrixAccessor`` knows where the inventory's ``index.json`` file and
+    ``.npz`` matrix files live (locally or remotely) and how to fetch/reload
+    them.
+    """
+
     @abstractmethod
     def path(self):
+        """Return the accessor's location (a local path or URL)."""
         pass
 
     @abstractmethod
     def is_local(self):
+        """Return True if the inventory is stored locally."""
         pass
 
     @abstractmethod
     def index_path(self):
+        """Return the local filesystem path of the inventory's index file."""
         pass
 
     @abstractmethod
     def matrix_path(self, name):
+        """Return the local filesystem path of the named matrix file.
+
+        Parameters
+        ----------
+        name : str
+            The matrix file's relative path within the inventory, as given
+            by :meth:`MatrixIndex.matrix_path`.
+
+        Returns
+        -------
+        str
+            The local filesystem path of the file.
+        """
         pass
 
     @abstractmethod
     def reload(self, strict=False):
+        """Force the index file to be (re-)fetched.
+
+        Parameters
+        ----------
+        strict : bool, default=False
+            Accessor-specific flag controlling how strictly the reload
+            behaves.
+        """
         pass
 
     def checked_remote(self):
+        """Return True if the remote index has already been checked for updates."""
         return False
 
     @abstractmethod
     def reset(self):
+        """Clear any cached state so the index is looked up afresh."""
         pass
 
 
 class UrlAccessor(MatrixAccessor):
+    """:class:`MatrixAccessor` fetching and caching the inventory from a URL."""
+
     def __init__(self, url):
+        """Initialise the accessor with the inventory's base URL.
+
+        Parameters
+        ----------
+        url : str
+            The base URL the index and matrix files are served from.
+        """
         self._url = url
         self._index_path = None
         self._checked_remote = False
 
     def path(self):
+        """str: The base URL of the inventory."""
         return self._url
 
     def is_local(self):
+        """bool: Always False."""
         False
 
     def checked_remote(self):
+        """bool: Whether the remote index has already been checked for updates in this session."""
         return self._checked_remote
 
     def reset(self):
+        """Clear the cached index path and remote-checked flag."""
         self._index_path = None
         self._checked_remote = False
 
     def reload(self, force=False):
+        """Re-fetch the index file, checking the remote for updates.
+
+        Parameters
+        ----------
+        force : bool, default=False
+            When True, force re-downloading the remote checksum and index
+            file even if a cached copy exists.
+        """
         self._index_path = self._get_index(check_remote=True, force=force)
 
     def index_path(self):
+        """Return the local (downloaded and cached) path of the index file.
+
+        Returns
+        -------
+        str
+            The local path of the index file, downloading and caching it
+            first if not already available.
+        """
         if self._index_path is None or not os.path.exists(self._index_path):
             self._index_path = self._get_index()
         return self._index_path
 
     def _get_index(self, check_remote=False, force=False):
+        """Download (if needed) and return the local path of the uncompressed index file.
+
+        Parameters
+        ----------
+        check_remote : bool, default=False
+            If True, compare the local cached checksum against the remote
+            one and re-download the index file if they differ.
+        force : bool, default=False
+            If True, unconditionally re-download the remote checksum and
+            index file.
+
+        Returns
+        -------
+        str
+            The local path of the uncompressed index file.
+        """
         from earthkit.geo.utils.caching import cache_file
 
         url = join_url_path(self._url, _INDEX_FILENAME)
@@ -206,6 +308,19 @@ class UrlAccessor(MatrixAccessor):
         return path
 
     def _remote_sha(self):
+        """Download and return the remote index file's expected SHA-256 checksum.
+
+        Returns
+        -------
+        str
+            The checksum read from the remote ``.sha256`` file.
+
+        Raises
+        ------
+        Exception
+            If the checksum file cannot be downloaded (logged before being
+            re-raised).
+        """
         try:
             url = join_url_path(self._url, _INDEX_SHA_FILENAME)
             path = download_and_cache(
@@ -229,6 +344,18 @@ class UrlAccessor(MatrixAccessor):
         return sha
 
     def _gzip_file(self):
+        """Download and return the local path of the gzipped remote index file.
+
+        Returns
+        -------
+        str
+            The local (cached) path of the downloaded ``.json.gz`` file.
+
+        Raises
+        ------
+        Exception
+            If the file cannot be downloaded (logged before being re-raised).
+        """
         try:
             url = join_url_path(self._url, _INDEX_GZ_FILENAME)
             LOG.info(f"Download gzipped index file={url}")
@@ -251,6 +378,23 @@ class UrlAccessor(MatrixAccessor):
         return path
 
     def matrix_path(self, name):
+        """Download (if needed) and return the local path of a matrix file.
+
+        Parameters
+        ----------
+        name : str
+            The matrix file's relative path within the inventory.
+
+        Returns
+        -------
+        str
+            The local (cached) path of the downloaded matrix file.
+
+        Raises
+        ------
+        Exception
+            If the file cannot be downloaded (logged before being re-raised).
+        """
         try:
             url = join_url_path(self._url, name)
             path = download_and_cache(
@@ -272,30 +416,59 @@ class UrlAccessor(MatrixAccessor):
 
 
 class LocalAccessor(MatrixAccessor):
+    """:class:`MatrixAccessor` reading the inventory from a local directory."""
+
     def __init__(self, path):
+        """Initialise the accessor with the inventory's local directory.
+
+        Parameters
+        ----------
+        path : str
+            The local directory the index and matrix files live under.
+        """
         self._path = path
 
     def path(self):
+        """str: The local directory of the inventory."""
         return self._path
 
     def is_local(self):
+        """bool: Always True."""
         True
 
     def index_path(self):
+        """str: The local path of the index file."""
         return os.path.join(self._path, _INDEX_FILENAME)
 
     def matrix_path(self, name):
+        """Return the local path of a matrix file.
+
+        Parameters
+        ----------
+        name : str
+            The matrix file's relative path within the inventory.
+
+        Returns
+        -------
+        str
+            The local path of the matrix file.
+        """
         return os.path.join(self._path, name)
 
     def reload(self, strict=False):
+        """No-op: a local inventory never needs reloading."""
         pass
 
     def reset(self):
+        """No-op: a local inventory has no cached state to reset."""
         pass
 
 
 class SystemAccessor(UrlAccessor):
+    """:class:`UrlAccessor` for the built-in system matrix inventory."""
+
     def __init__(self):
+        """Initialise the accessor pointing at the system inventory URL."""
         super().__init__(_SYSTEM_URL)
 
 
@@ -303,6 +476,19 @@ class MatrixIndex(dict):
     """In-memory representation of the matrix inventory index file."""
 
     def load(self, path):
+        """Load and parse an ``index.json`` inventory file into this dict.
+
+        Parameters
+        ----------
+        path : str
+            Local path of the index file to load.
+
+        Raises
+        ------
+        ValueError
+            If the index file's ``"version"`` does not match the expected
+            :data:`VERSION`.
+        """
         with open(path, "r") as f:
             index = json.load(f)
             version = index.get("version", None)
@@ -327,6 +513,24 @@ class MatrixIndex(dict):
 
     @staticmethod
     def interpolation_method_name(item):
+        """Return the interpolation method name of an inventory entry.
+
+        Parameters
+        ----------
+        item : dict
+            A matrix inventory entry.
+
+        Returns
+        -------
+        str
+            The method name: ``item["interpolation"]["method"]`` if it is a
+            string, or its ``"type"`` if it is a dict.
+
+        Raises
+        ------
+        ValueError
+            If the method is neither a string nor a dict.
+        """
         inter = item["interpolation"]
         method = inter["method"]
         if isinstance(method, str):
@@ -338,10 +542,26 @@ class MatrixIndex(dict):
 
     @staticmethod
     def interpolation_method(item):
+        """Return the raw ``"method"`` value (str or dict) of an inventory entry."""
         return item["interpolation"]["method"]
 
     @staticmethod
     def make_interpolation_uid(item):
+        """Compute a unique id for an inventory entry's interpolation options.
+
+        Parameters
+        ----------
+        item : dict
+            A matrix inventory entry.
+
+        Returns
+        -------
+        str
+            The method name itself when the interpolation options are the
+            default ``"grid-box-average"`` options or contain only
+            ``"method"``/``"engine"``/``"version"``, otherwise a SHA-256
+            digest of the interpolation options (see :func:`make_sha`).
+        """
         inter = item["interpolation"]
         method = MatrixIndex.interpolation_method_name(item)
         # TODO: remove this when MIR is fixed
@@ -357,6 +577,18 @@ class MatrixIndex(dict):
 
     @staticmethod
     def matrix_dir_name(item):
+        """Return the subdirectory name a matrix inventory entry's file is stored under.
+
+        Parameters
+        ----------
+        item : dict
+            A matrix inventory entry.
+
+        Returns
+        -------
+        str
+            ``"{engine}_{version}_{method_name}"``.
+        """
         # TODO: review this logic when non-default interpolation options will
         # be available for a given method
         inter = item["interpolation"]
@@ -369,9 +601,39 @@ class MatrixIndex(dict):
 
     @staticmethod
     def matrix_path(item):
+        """Return an inventory entry's matrix file path, relative to the inventory root.
+
+        Parameters
+        ----------
+        item : dict
+            A matrix inventory entry.
+
+        Returns
+        -------
+        str
+            ``"<matrix_dir_name>/<entry name>.npz"``.
+        """
         return os.path.join(MatrixIndex.matrix_dir_name(item), item["_name"] + ".npz")
 
     def find(self, gridspec_in, gridspec_out, method):
+        """Find the inventory entry matching a grid pair and interpolation method.
+
+        Parameters
+        ----------
+        gridspec_in : Any
+            The input grid spec, in a form accepted by
+            :meth:`~.gridspec._GridWrapper.from_any`.
+        gridspec_out : Any
+            The output grid spec, in the same form as ``gridspec_in``.
+        method : str
+            The interpolation method name.
+
+        Returns
+        -------
+        dict or None
+            The matching entry, or None if ``gridspec_in``/``gridspec_out``
+            could not be parsed or no entry matches.
+        """
         gridspec_in = _GridWrapper.from_any(gridspec_in)
         gridspec_out = _GridWrapper.from_any(gridspec_out)
 
@@ -385,6 +647,25 @@ class MatrixIndex(dict):
 
     @staticmethod
     def match(item, gs_in, gs_out, method):
+        """Check whether an inventory entry matches a grid pair and method.
+
+        Parameters
+        ----------
+        item : dict
+            A matrix inventory entry.
+        gs_in : _GridWrapper
+            The input grid to match against ``item["input"]``.
+        gs_out : _GridWrapper
+            The output grid to match against ``item["output"]``.
+        method : str
+            The interpolation method name to match.
+
+        Returns
+        -------
+        bool
+            True if the entry's method, input grid and output grid all
+            match, False otherwise.
+        """
         if (
             MatrixIndex.interpolation_method_name(item) == method
             and item["input"] == gs_in
@@ -395,9 +676,34 @@ class MatrixIndex(dict):
 
     @staticmethod
     def matrix_filename(item):
+        """Return an inventory entry's matrix filename (without directory)."""
         return item["_name"] + ".npz"
 
     def subset(self, filters, fail_on_missing=True, raw=False):
+        """Build a new :class:`MatrixIndex` with only the entries matching ``filters``.
+
+        Parameters
+        ----------
+        filters : List[dict]
+            A list of filter dicts, each with ``"input"``, ``"output"`` grid
+            specs and an optional ``"method"`` (default ``"linear"``).
+        fail_on_missing : bool, default=True
+            If True, raise when a filter matches no entry; otherwise skip it
+            with a warning.
+        raw : bool, default=False
+            If True, store each matched entry's raw (un-parsed) form instead
+            of its parsed form.
+
+        Returns
+        -------
+        MatrixIndex
+            The subset index containing the matched entries.
+
+        Raises
+        ------
+        ValueError
+            If ``fail_on_missing`` is True and a filter matches no entry.
+        """
         res = MatrixIndex()
 
         for i, item in enumerate(filters):
@@ -420,6 +726,13 @@ class MatrixIndex(dict):
         return res
 
     def to_raw(self):
+        """Convert this index back to the raw ``index.json``-shaped dict.
+
+        Returns
+        -------
+        dict
+            ``{"version": VERSION, "matrix": {name: raw_entry, ...}}``.
+        """
         res = dict(version=VERSION, matrix={})
         for _, entry in self.items():
             res["matrix"][entry["_name"]] = entry["_raw"]
@@ -427,6 +740,14 @@ class MatrixIndex(dict):
 
 
 class MatrixDb:
+    """Interpolation matrix inventory for the "precomputed" regrid backend.
+
+    Wraps a :class:`MatrixAccessor` (local directory or remote URL) and its
+    parsed :class:`MatrixIndex`, and finds/loads the precomputed sparse
+    interpolation matrix for a given input/output grid pair and
+    interpolation method (see :meth:`find`).
+    """
+
     # Parsing the index file builds a real eckit.geo.Grid per entry, which is
     # expensive (thousands of entries). Cache the parsed MatrixIndex per
     # (path, mtime, size), so re-loading an unchanged index file (e.g. after
@@ -435,16 +756,25 @@ class MatrixDb:
     _INDEX_CACHE: dict = {}
 
     def __init__(self, accessor):
+        """Initialise the matrix inventory with the given accessor.
+
+        Parameters
+        ----------
+        accessor : MatrixAccessor
+            Gives access to the inventory's index and matrix files.
+        """
         self._index = None
         self._accessor = accessor
 
     @property
     def index(self):
+        """MatrixIndex: The parsed inventory index, loaded lazily on first access."""
         if self._index is None:
             self._load_index()
         return self._index
 
     def _load_index(self):
+        """Load (using the process-wide cache when possible) the accessor's index file."""
         path = self._accessor.index_path()
 
         st = os.stat(path)
@@ -459,6 +789,20 @@ class MatrixDb:
         self._index = index
 
     def _method_alias(self, method):
+        """Return the canonical interpolation method name for a known alias.
+
+        Parameters
+        ----------
+        method : str
+            The interpolation method name, possibly an alias (see
+            :data:`_METHOD_ALIAS`).
+
+        Returns
+        -------
+        str
+            The canonical method name, or ``method`` unchanged if it is not
+            a known alias.
+        """
         for k, v in _METHOD_ALIAS.items():
             if method in v:
                 return k
@@ -471,7 +815,29 @@ class MatrixDb:
         method,
         **kwargs,
     ):
+        """Find (loading and caching in memory if needed) a precomputed matrix.
 
+        Parameters
+        ----------
+        gridspec_in : Any
+            The input grid spec, in a form accepted by
+            :meth:`~.gridspec._GridWrapper.from_any`.
+        gridspec_out : Any
+            The output grid spec, in the same form as ``gridspec_in``.
+        method : str
+            The interpolation method name (or a known alias, see
+            :data:`_METHOD_ALIAS`).
+        **kwargs : dict
+            Additional keyword arguments forwarded to the in-memory cache
+            lookup (``earthkit.geo.grids.utils.memcache.MEMORY_CACHE``).
+
+        Returns
+        -------
+        Tuple[scipy.sparse.spmatrix or None, Tuple[int, ...] or None]
+            The interpolation matrix and the output grid's shape, or
+            ``(None, None)`` if the grid specs could not be parsed or no
+            matching entry was found.
+        """
         try:
             gridspec_in = _GridWrapper.from_any(gridspec_in)
             gridspec_out = _GridWrapper.from_any(gridspec_out)
@@ -496,15 +862,65 @@ class MatrixDb:
         )
 
     def _create_matrix(self, gridspec_in, gridspec_out, method):
+        """Find the matching inventory entry and load its matrix.
+
+        Parameters
+        ----------
+        gridspec_in : Any
+            The input grid spec.
+        gridspec_out : Any
+            The output grid spec.
+        method : str
+            The interpolation method name.
+
+        Returns
+        -------
+        Tuple[scipy.sparse.spmatrix or None, Tuple[int, ...] or None]
+            See :meth:`_create_matrix_from_entry`.
+        """
         return self._create_matrix_from_entry(self.find_entry(gridspec_in, gridspec_out, method))
 
     def _create_matrix_from_entry(self, entry):
+        """Load an inventory entry's matrix and its output shape.
+
+        Parameters
+        ----------
+        entry : dict or None
+            A matrix inventory entry, or None.
+
+        Returns
+        -------
+        Tuple[scipy.sparse.spmatrix or None, Tuple[int, ...] or None]
+            The loaded matrix and the output grid's shape, or
+            ``(None, None)`` if ``entry`` is None.
+        """
         if entry is not None:
             z = self.load_matrix(entry)
             return z, entry["output"].shape
         return None, None
 
     def find_entry(self, gridspec_in, gridspec_out, method):
+        """Find the inventory entry for a grid pair and method, reloading the index if needed.
+
+        If no entry is found and the accessor is remote and has not yet
+        checked for updates, forces a reload of the remote index and
+        retries once.
+
+        Parameters
+        ----------
+        gridspec_in : Any
+            The input grid spec, already wrapped (or wrappable) via
+            :meth:`~.gridspec._GridWrapper.from_any`.
+        gridspec_out : Any
+            The output grid spec, in the same form as ``gridspec_in``.
+        method : str
+            The interpolation method name (or a known alias).
+
+        Returns
+        -------
+        dict or None
+            The matching entry, or None if none is found.
+        """
         method = self._method_alias(method)
         entry = self.index.find(gridspec_in, gridspec_out, method)
         if entry is None and not self._accessor.is_local() and not self._accessor.checked_remote():
@@ -517,23 +933,80 @@ class MatrixDb:
         return entry
 
     def load_matrix(self, entry):
+        """Load an inventory entry's sparse interpolation matrix from disk.
+
+        Parameters
+        ----------
+        entry : dict
+            A matrix inventory entry.
+
+        Returns
+        -------
+        scipy.sparse.spmatrix
+            The loaded matrix.
+        """
         path = self._matrix_fs_path(entry)
         z = load_npz(path)
         return z
 
     def _matrix_index_filename(self, entry):
+        """Return an inventory entry's matrix filename (without directory)."""
         return self.index.matrix_filename(entry)
 
     def _matrix_index_path(self, entry):
+        """Return an inventory entry's matrix path, relative to the inventory root."""
         return self.index.matrix_path(entry)
 
     def _matrix_fs_path(self, entry):
+        """Return an inventory entry's local filesystem matrix path."""
         return self._accessor.matrix_path(self._matrix_index_path(entry))
 
     def subset_index(self, filters, **kwargs):
+        """Build a subset :class:`MatrixIndex` matching the given filters.
+
+        Parameters
+        ----------
+        filters : List[dict]
+            See :meth:`MatrixIndex.subset`.
+        **kwargs : dict
+            Additional keyword arguments forwarded to
+            :meth:`MatrixIndex.subset`.
+
+        Returns
+        -------
+        MatrixIndex
+            The subset index.
+        """
         return self.index.subset(filters, **kwargs)
 
     def copy_matrix_file(self, entry, out_dir, exist_ok=False, dry_run=False):
+        """Copy an inventory entry's matrix file into a local directory.
+
+        Parameters
+        ----------
+        entry : dict
+            A matrix inventory entry.
+        out_dir : str
+            The destination directory root (the entry's subdirectory
+            structure is preserved under it).
+        exist_ok : bool, default=False
+            If False, raise when the target file already exists.
+        dry_run : bool, default=False
+            If True, do not actually copy the file (only compute and return
+            the target path, logging a warning instead of raising if it
+            already exists).
+
+        Returns
+        -------
+        str
+            The target file path.
+
+        Raises
+        ------
+        FileExistsError
+            If the target file already exists, ``exist_ok`` is False and
+            ``dry_run`` is False.
+        """
         import shutil
 
         matrix_index_path = self._matrix_index_path(entry)
@@ -555,20 +1028,45 @@ class MatrixDb:
         return target_file
 
     def index_file_path(self):
+        """str: The local path of the inventory's index file."""
         return self._accessor.index_path()
 
     def matrix_source(self):
+        """str: The inventory's location (a local path or URL)."""
         return self._accessor.path()
 
     @staticmethod
     def from_path(path):
+        """Build a :class:`MatrixDb` backed by a local directory.
+
+        Parameters
+        ----------
+        path : str
+            The local directory the inventory is stored in.
+
+        Returns
+        -------
+        MatrixDb
+        """
         return MatrixDb(LocalAccessor(path))
 
     @staticmethod
     def from_url(url):
+        """Build a :class:`MatrixDb` backed by a remote URL.
+
+        Parameters
+        ----------
+        url : str
+            The base URL the inventory is served from.
+
+        Returns
+        -------
+        MatrixDb
+        """
         return MatrixDb(UrlAccessor(url))
 
     def __len__(self):
+        """Return the number of entries in the inventory index."""
         return len(self.index)
 
     def _clear_index(self):

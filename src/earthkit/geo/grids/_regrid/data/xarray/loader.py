@@ -169,6 +169,16 @@ def variables(ds, user_ek_grid=None):
     skip = set()
 
     def _skip_attr(v: Any, attr_name: str) -> None:
+        """Add the whitespace-separated names in ``v``'s ``attr_name`` attribute to ``skip``.
+
+        Parameters
+        ----------
+        v : Any
+            The xarray variable to inspect.
+        attr_name : str
+            The name of the attribute to read (e.g. ``"coordinates"``,
+            ``"bounds"``).
+        """
         attr_val: str = getattr(v, attr_name, "")
         if isinstance(attr_val, str):
             v = attr_val.split()

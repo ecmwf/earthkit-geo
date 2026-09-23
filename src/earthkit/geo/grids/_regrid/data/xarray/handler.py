@@ -259,7 +259,27 @@ class XarrayDataHandler(DataHandler):
         # regrid() can change the specified output gridspec.
         # This is a workaround to get the returned output gridscpec from regrid().
         class _RegridMethod:
+            """Callable wrapping ``backend.regrid`` that records the returned output grid.
+
+            ``xarray.apply_ufunc`` only returns the regridded values, so this
+            wrapper is used to also capture the (possibly backend-adjusted)
+            output grid spec via its ``out_grid`` attribute, updated on each
+            call.
+            """
+
             def __init__(self, in_grid, out_grid, **kwargs):
+                """Initialise the wrapper.
+
+                Parameters
+                ----------
+                in_grid : Any
+                    The input grid, bound to ``backend.regrid``.
+                out_grid : Any
+                    The output grid, bound to ``backend.regrid`` and used as
+                    the initial value of :attr:`out_grid`.
+                **kwargs : dict
+                    Extra keyword arguments bound to ``backend.regrid``.
+                """
                 self.out_grid = out_grid
                 self.method = functools.partial(
                     backend.regrid,
@@ -269,6 +289,18 @@ class XarrayDataHandler(DataHandler):
                 )
 
             def __call__(self, vals):
+                """Regrid ``vals``, updating :attr:`out_grid` with the backend's result.
+
+                Parameters
+                ----------
+                vals : numpy.ndarray
+                    The values to regrid.
+
+                Returns
+                -------
+                numpy.ndarray
+                    The regridded values.
+                """
                 # TODO: ensure it is thread safe
                 vals, self.out_grid = self.method(vals)
                 return vals
