@@ -200,7 +200,8 @@ def test_regrid_grib_1_fieldlist_ll_to_points_round_trip(field_type):
 
     # Regrid from lat-lon to points
     lats = [40.0, 40.0, 40.0, 30.0, 30.0, 30.0]
-    lons = [10.0, 20.0, 30.0, 10.0, 20.0, 30.0]
+    lons = [10.0, 20.0, 30.0, 5.0, 25.0, 35.0]
+
     out_grid_points = {"latitudes": lats, "longitudes": lons}
 
     r = regrid(ds, out_grid=out_grid_points, interpolation="nn")
@@ -215,8 +216,8 @@ def test_regrid_grib_1_fieldlist_ll_to_points_round_trip(field_type):
     points_num = 6
 
     ref_vals = np.array([
-        [288.44410706, 286.67457581, 281.93043518, 299.01246643, 293.30152893, 292.03785706],
-        [289.20581055, 278.41088867, 271.97143555, 288.99291992, 285.8347168, 284.30932617],
+        [288.44410706, 286.67457581, 281.93043518, 303.16481018, 292.76637268, 293.47926331],
+        [289.20581055, 278.41088867, 271.97143555, 294.8894043, 285.50463867, 283.16674805],
     ])
 
     assert len(r) == 2
@@ -273,7 +274,7 @@ def test_regrid_grib_2_fieldlist_ll_to_points_round_trip(field_type):
 
     # Regrid from lat-lon to points
     lats = [40.0, 40.0, 40.0, 30.0, 30.0, 30.0]
-    lons = [10.0, 20.0, 30.0, 10.0, 20.0, 30.0]
+    lons = [10.0, 20.0, 30.0, 5.0, 25.0, 35.0]
     out_grid_points = {"latitudes": lats, "longitudes": lons}
 
     r = regrid(ds, out_grid=out_grid_points, interpolation="nn")
@@ -287,8 +288,8 @@ def test_regrid_grib_2_fieldlist_ll_to_points_round_trip(field_type):
     points_num = 6
 
     ref_vals = np.array([
-        [288.44410706, 286.67457581, 281.93043518, 299.01246643, 293.30152893, 292.03785706],
-        [289.20581055, 278.41088867, 271.97143555, 288.99291992, 285.8347168, 284.30932617],
+        [288.44410706, 286.67457581, 281.93043518, 303.16481018, 292.76637268, 293.47926331],
+        [289.20581055, 278.41088867, 271.97143555, 294.8894043, 285.50463867, 283.16674805],
     ])
 
     assert len(r) == 2
