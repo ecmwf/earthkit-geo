@@ -178,6 +178,8 @@ class XarrayDataHandler(DataHandler):
 
         variables = get_variables(ds, user_ek_grid=in_grid_arg)
 
+        print("variables:", variables)
+
         for v in variables:
             if v.ek_grid is None:
                 if in_grid_arg is None:
@@ -225,6 +227,8 @@ class XarrayDataHandler(DataHandler):
         # for a DataArray input will return a single DataArray instead of a Dataset
         if not input_is_dataset:
             ds_out = ds_out[list(ds.keys())[0]]
+
+        print("res_out_grid:", res_out_grid)
 
         # The output geography might have changed, so we need to create a new geography builder
         # with the new grid spec
