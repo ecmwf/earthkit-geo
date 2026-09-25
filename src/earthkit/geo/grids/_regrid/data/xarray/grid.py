@@ -29,14 +29,32 @@ LOG = logging.getLogger(__name__)
 
 
 class XarrayGrid:
-    """Grid class for latitude and longitude coordinates."""
+    """Top-level grid combining an optional lat/lon grid and/or x/y grid.
+
+    Wraps the :class:`LatLonGrid` and/or :class:`XYGrid` derived for a
+    variable, preferring the lat/lon grid where both are available.
+    """
 
     def __init__(self, latlon_grid=None, xy_grid=None) -> None:
+        """Initialise the wrapper.
+
+        Parameters
+        ----------
+        latlon_grid : LatLonGrid, optional
+            The variable's lat/lon grid, if available.
+        xy_grid : XYGrid, optional
+            The variable's x/y grid, if available.
+        """
         self.latlon_grid = latlon_grid
         self.xy_grid = xy_grid
 
     @property
     def latlons(self):
+        """Tuple[Any, Any]: The flat ``(lat, lon)`` point arrays.
+
+        From :attr:`latlon_grid` if available, otherwise from
+        :attr:`xy_grid`.
+        """
         if self.latlon_grid is not None:
             return self.latlon_grid.latlons
         else:
@@ -44,6 +62,13 @@ class XarrayGrid:
 
     @property
     def xys(self):
+        """Tuple[Any, Any]: The flat ``(x, y)`` point arrays, from :attr:`xy_grid`.
+
+        Raises
+        ------
+        NotImplementedError
+            If no ``xy_grid`` is available.
+        """
         if self.xy_grid is not None:
             return self.xy_grid.xys
         else:
@@ -52,6 +77,7 @@ class XarrayGrid:
     # Properly implement it for all grid types
     @thread_safe_cached_property
     def bbox(self):
+        """Tuple[float, float, float, float]: The ``(north, south, east, west)`` bounding box."""
         lat, lon = self.latlons
         lat = lat.flatten()
         lon = lon.flatten()
@@ -65,7 +91,7 @@ class XarrayGrid:
 
     @property
     def grid_type(self) -> str:
-        """str: Get the eckit-geo grid type."""
+        """Str or None: The eckit-geo grid type, from :attr:`latlon_grid` when available."""
         if self.latlon_grid is not None:
             return self.latlon_grid.grid_type
         else:
@@ -73,6 +99,11 @@ class XarrayGrid:
 
     @property
     def variable_dims(self):
+        """Tuple[str, ...] or None: The variable's grid dimension names.
+
+        From :attr:`latlon_grid` if available, otherwise from
+        :attr:`xy_grid`'s grid, or None if neither is available.
+        """
         if self.latlon_grid is not None:
             return self.latlon_grid.variable_dims
         elif self.xy_grid is not None:
@@ -150,6 +181,7 @@ class XYGrid(Grid):
 
     @property
     def grid_type(self):
+        """None: X/Y grids have no known eckit-geo grid type."""
         return None
 
 
@@ -158,7 +190,14 @@ class MeshedGrid(LatLonGrid):
 
     @thread_safe_cached_property
     def latlons(self) -> Tuple[Any, Any]:
-        """Get the grid points for the meshed grid."""
+        """Get the grid points for the meshed grid.
+
+        Raises
+        ------
+        NotImplementedError
+            If ``variable_dims`` is not ``(lon_name, lat_name)`` or
+            ``(lat_name, lon_name)``.
+        """
         if self.variable_dims == (self.lon.variable.name, self.lat.variable.name):
             lat, lon = np.meshgrid(
                 self.lat.variable.values,
@@ -177,6 +216,7 @@ class MeshedGrid(LatLonGrid):
 
     @property
     def grid_type(self):
+        """str: Always ``"regular-ll"``."""
         return "regular-ll"
 
 
@@ -226,6 +266,7 @@ class UnstructuredGrid(LatLonGrid):
 
     @property
     def grid_type(self):
+        """str: Always ``"unstructured"``."""
         return "unstructured"
 
 

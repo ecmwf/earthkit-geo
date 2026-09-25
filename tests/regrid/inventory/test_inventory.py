@@ -8,10 +8,11 @@
 
 import pytest
 
-from earthkit.geo.grids._regrid.backends.db import SYS_DB
-from earthkit.geo.grids._regrid.gridspec import _GridSpec
+from earthkit.geo.grids._regrid.backends.precomputed.db import SYS_DB
+from earthkit.geo.grids._regrid.backends.precomputed.gridspec import _GridWrapper
 
 
+@pytest.mark.matrix_db
 @pytest.mark.parametrize(
     "gs_in, gs_out, docs_in, docs_out",
     [
@@ -41,8 +42,8 @@ def test_inventory_build(gs_in, gs_out, docs_in, docs_out):
 
     assert r
 
-    r_in = _GridSpec.from_dict(r["input"]).inventory_docs_spec
-    r_out = _GridSpec.from_dict(r["output"]).inventory_docs_spec
+    r_in = _GridWrapper.from_dict(r["input"]).inventory_docs_spec
+    r_out = _GridWrapper.from_dict(r["output"]).inventory_docs_spec
 
     assert r_in
     for k, v in docs_in.items():

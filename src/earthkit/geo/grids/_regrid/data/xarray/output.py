@@ -9,12 +9,12 @@
 
 import logging
 
-from earthkit.geo.grids._regrid.gridspec import normalise_grid_spec
+from ..utils import create_grid_object
 
 LOG = logging.getLogger(__name__)
 
 
-# TODO: This is a temporary wrapper for the Grid interface
+# This is a temporary wrapper for the Grid interface
 class GridWrapper:
     """Thin wrapper around an ``eckit.geo.Grid`` used to build output geography.
 
@@ -23,7 +23,7 @@ class GridWrapper:
     lat/lon arrays for a given field shape.
     """
 
-    def __init__(self, grid_spec):
+    def __init__(self, grid):
         """Initialise the wrapper.
 
         Parameters
@@ -31,13 +31,7 @@ class GridWrapper:
         grid_spec : Any
             A grid spec (dict/str) or an existing ``eckit.geo.Grid`` instance.
         """
-        from eckit.geo import Grid
-
-        if isinstance(grid_spec, Grid):
-            self._grid = grid_spec
-        else:
-            self._grid = Grid(grid_spec)
-        self._grid_spec = grid_spec
+        self._grid = create_grid_object(grid)
 
     def __getattr__(self, name):
         """Delegate unknown attribute access to the wrapped ``Grid``."""
@@ -55,13 +49,6 @@ class GridWrapper:
 
         lat, lon = self._grid.to_latlons()
         return np.array(lat), np.array(lon)
-
-    @property
-    def grid_spec(self):
-        """Any: The original grid spec passed to the wrapper."""
-        # TODO: for grid specs like {'grid': 'O32', 'area': [87.863799, 0.0, -87.863799, 357.5]}
-        # The Grid.spec is not correct so we cannot return self.spec
-        return self._grid_spec
 
     def is_spectral(self):
         """bool: Whether the grid is spectral (always False here)."""
@@ -156,7 +143,7 @@ class GridWrapper:
         return None
 
 
-class XarrayGeographyBuilder:
+class XarrayOutputGeographyBuilder:
     """Builds output geography (dims/coords) for a regridded xarray variable.
 
     Wraps an output grid spec and derives the dimension names, coordinate
@@ -164,17 +151,15 @@ class XarrayGeographyBuilder:
     result.
     """
 
-    def __init__(self, grid_spec):
-        """Initialise the builder.
+    def __init__(self, grid):
+        """Initialise the builder with the given output grid.
 
         Parameters
         ----------
-        grid_spec : Any
+        grid : Any
             The output grid spec (dict/str) or an ``eckit.geo.Grid`` instance.
         """
-        grid_spec = normalise_grid_spec(grid_spec)
-        self.grid = GridWrapper(grid_spec)
-        self.grid_spec = grid_spec
+        self.grid = GridWrapper(grid)
 
     @property
     def shape(self):

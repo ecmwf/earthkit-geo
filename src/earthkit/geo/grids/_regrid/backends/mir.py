@@ -7,16 +7,43 @@
 # nor does it submit to any jurisdiction.
 #
 
+"""MIR-backed regrid backend.
+
+Provides :class:`MirBackend`, which delegates point-to-point interpolation
+(of arrays and GRIB messages) to the MIR C++ library via its Python bindings.
+"""
+
 from warnings import warn
 
 from . import Backend
 
 
 class MirBackend(Backend):
+    """Regrid backend delegating interpolation to the MIR library."""
+
     name = "mir"
 
     @staticmethod
     def normalise_area(area):
+        """Normalise an ``area`` value into the string format MIR expects.
+
+        Parameters
+        ----------
+        area : str, list or tuple
+            The area, either already a string, or a 4-element
+            ``[north, west, south, east]`` sequence.
+
+        Returns
+        -------
+        str
+            ``area`` unchanged if it was already a string, otherwise its
+            4 elements joined with ``"/"``.
+
+        Raises
+        ------
+        ValueError
+            If ``area`` is neither a string nor a 4-element list/tuple.
+        """
         if isinstance(area, str):
             return area
         if isinstance(area, (list, tuple)):
@@ -27,6 +54,25 @@ class MirBackend(Backend):
 
     @staticmethod
     def adjust_options(grid, kwargs):
+        """Move a temporary ``"area"`` grid-spec key into the MIR job options.
+
+        This is a temporary workaround for representing ``area`` in a grid
+        spec: MIR expects it as a job option, not a grid-spec key.
+
+        Parameters
+        ----------
+        grid : dict
+            The (output) grid spec, possibly containing an ``"area"`` key.
+        kwargs : dict
+            The extra MIR job options to update.
+
+        Returns
+        -------
+        Tuple[dict, dict]
+            ``(grid, kwargs)`` unchanged if ``grid`` has no ``"area"`` key,
+            otherwise copies of both with ``"area"`` removed from ``grid``
+            and added (normalised via :meth:`normalise_area`) to ``kwargs``.
+        """
         # TODO: remove this once we have a better way to handle area in gridspec
         if "area" in grid:
             warn(
@@ -42,6 +88,19 @@ class MirBackend(Backend):
 
     @staticmethod
     def get_grid_spec(grid):
+        """Return the grid spec dict for ``grid``.
+
+        Parameters
+        ----------
+        grid : eckit.geo.Grid or dict
+            The grid, either as a ``Grid`` object or an already-plain spec.
+
+        Returns
+        -------
+        dict
+            ``grid.spec`` if ``grid`` is a ``Grid`` instance, otherwise
+            ``grid`` unchanged.
+        """
         from eckit.geo import Grid
 
         if isinstance(grid, Grid):
@@ -55,6 +114,26 @@ class MirBackend(Backend):
         out_grid,
         interpolation="linear",
     ):
+        """Interpolate an array from ``in_grid`` onto ``out_grid`` via MIR.
+
+        Parameters
+        ----------
+        data : numpy.ndarray
+            The values to interpolate, defined on ``in_grid``.
+        in_grid : eckit.geo.Grid or dict
+            The input grid spec.
+        out_grid : eckit.geo.Grid or dict
+            The output grid spec.
+        interpolation : str, default="linear"
+            The interpolation method (e.g. ``"linear"``, ``"grid-box-average"``,
+            ``"nearest-neighbour"``).
+
+        Returns
+        -------
+        Tuple[numpy.ndarray, dict]
+            The interpolated values and the resulting output grid spec, as
+            reported by MIR.
+        """
         import mir
         import numpy as np
 
@@ -91,6 +170,22 @@ class MirBackend(Backend):
         out_grid,
         interpolation="linear",
     ):
+        """Interpolate a GRIB message directly onto ``out_grid`` via MIR.
+
+        Parameters
+        ----------
+        message : eccodes GRIB message
+            The GRIB message to interpolate.
+        out_grid : eckit.geo.Grid or dict
+            The output grid spec.
+        interpolation : str, default="linear"
+            The interpolation method.
+
+        Returns
+        -------
+        bytes
+            The regridded output, encoded as a new GRIB message.
+        """
         from io import BytesIO
 
         import mir

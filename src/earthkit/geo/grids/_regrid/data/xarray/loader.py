@@ -21,6 +21,8 @@ import itertools
 import logging
 from typing import Any
 
+from ..utils import create_grid_object
+
 LOG = logging.getLogger(__name__)
 
 
@@ -72,10 +74,7 @@ def grid_from_earthkit(ds):
     """
     if hasattr(ds, "earthkit") and hasattr(ds.earthkit, "grid_spec"):
         gs = ds.earthkit.grid_spec
-        if gs is not None:
-            from eckit.geo import Grid
-
-            return Grid(gs)
+        return create_grid_object(gs)
     return None
 
 
@@ -161,12 +160,7 @@ def variables(ds, user_ek_grid=None):
         The geographical variables found, each with its ``ek_grid``,
         ``xr_grid`` and ``geo_dims`` populated.
     """
-    ek_grid = None
-
-    if user_ek_grid is not None:
-        from eckit.geo import Grid
-
-        ek_grid = Grid(user_ek_grid)
+    # ek_grid = None
 
     from .guesser import DefaultCoordinateGuesser
 
@@ -175,6 +169,16 @@ def variables(ds, user_ek_grid=None):
     skip = set()
 
     def _skip_attr(v: Any, attr_name: str) -> None:
+        """Add the whitespace-separated names in ``v``'s ``attr_name`` attribute to ``skip``.
+
+        Parameters
+        ----------
+        v : Any
+            The xarray variable to inspect.
+        attr_name : str
+            The name of the attribute to read (e.g. ``"coordinates"``,
+            ``"bounds"``).
+        """
         attr_val: str = getattr(v, attr_name, "")
         if isinstance(attr_val, str):
             v = attr_val.split()
@@ -247,13 +251,9 @@ def variables(ds, user_ek_grid=None):
 
         _check_values_geo()
 
-        ek_grid = None
-        if user_ek_grid is not None:
-            if not isinstance(user_ek_grid, Grid):
-                ek_grid = Grid(user_ek_grid)
-            else:
-                ek_grid = user_ek_grid
-        else:
+        ek_grid = create_grid_object(user_ek_grid)
+
+        if ek_grid is None:
             ek_grid = grid_from_earthkit(ds)
             if ek_grid is None:
                 ek_grid = grid_from_xr_grid(xr_grid)

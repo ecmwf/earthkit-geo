@@ -9,6 +9,13 @@
 #
 
 
+"""Array-oriented entry point for the regrid point-to-point interpolation.
+
+Exposes :func:`regrid`, which dispatches a raw NumPy array to the
+``numpy`` :mod:`~earthkit.geo.grids._regrid.data` handler for
+point-to-point interpolation onto a target grid.
+"""
+
 from __future__ import annotations
 
 from typing import (
