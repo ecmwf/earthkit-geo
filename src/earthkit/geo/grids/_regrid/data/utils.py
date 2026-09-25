@@ -106,9 +106,9 @@ def normalise_grid_spec(grid_spec):
     if not isinstance(grid_spec, dict):
         return grid_spec
 
-    grid_spec = grid_spec.copy()
     reference = grid_spec.get("reference", None)
     if isinstance(reference, (list, tuple)):
+        grid_spec = grid_spec.copy()
         r = []
         for i, v in enumerate(reference):
             if isinstance(v, str):

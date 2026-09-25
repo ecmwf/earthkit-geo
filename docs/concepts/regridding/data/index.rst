@@ -1,4 +1,4 @@
-. _regrid-data:
+.. _regrid-data:
 
 Data used for regridding
 ===============================

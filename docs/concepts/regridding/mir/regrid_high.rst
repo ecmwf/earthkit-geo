@@ -10,12 +10,12 @@ regrid (high-level) with MIR
 
     The ``backend`` parameter is set to "mir" by default so it is not necessary to specify it explicitly.
 
-    :param data: The data to be regridded. The following input data types are supported (see :ref:`regrid-data <regrid-data>` for more details):
+    :param data: The data to be regridded. The following input data types are supported:
 
-        - earthkit-data :py:class:`~earthkit.data.core.fieldlist.FieldList`
-        - earthkit-data :py:class:`~earthkit.data.core.field.Field`
-        - :class:`xarray.DataArray` or :class:`xarray.Dataset`
-        - GRIB message as a bytes or :class:`io.BytesIO` object
+        - earthkit-data :py:class:`~earthkit.data.core.fieldlist.FieldList` (see details :ref:`here <regrid-fieldlist>`)
+        - earthkit-data :py:class:`~earthkit.data.core.field.Field` (see details :ref:`here <regrid-fieldlist>`)
+        - :class:`xarray.DataArray` or :class:`xarray.Dataset` (see details :ref:`here <regrid-xarray>`)
+        - GRIB message as a bytes or :class:`io.BytesIO` object (see details :ref:`here <regrid-grib-message>`)
 
     :type data: :py:class:`~earthkit.data.core.fieldlist.FieldList`, :py:class:`~earthkit.data.core.field.Field`, :class:`xarray.DataArray`, :class:`xarray.Dataset`, bytes, :class:`io.BytesIO`
     :param in_grid: The :ref:`gridspec <gridspec>` describing the input grid. When None (the default), the input grid is inferred from the input data if possible. If grid information cannot be inferred, but the latitudes and longitudes are available the input grid is treated as an unstructured lat/lon grid. For the list of supported grids, please refer to the :ref:`gridspec <gridspec>` documentation. Ignored when ``data`` is a GRIB message.
