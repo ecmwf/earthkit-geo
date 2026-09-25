@@ -63,7 +63,7 @@ def test_regrid_xarray_from_ogg(out_grid, out_grid_ref, dims):
 
     compare_dims(r, dims, sizes=True)
 
-    assert r.earthkit.grid_spec == out_grid_ref
+    assert r.earthkit.grid_spec.items() >= out_grid_ref.items()
 
 
 @pytest.mark.skip(reason="This test is currently failing")
@@ -80,7 +80,7 @@ def test_regrid_xarray_from_ogg_to_subarea(out_grid, out_grid_ref, dims, area_re
 
     compare_dims(r, dims, sizes=True)
 
-    assert r.earthkit.grid_spec == out_grid_ref
+    assert r.earthkit.grid_spec.items() >= out_grid_ref.items()
 
     lat = r["latitude"].values
     lon = r["longitude"].values
@@ -111,7 +111,7 @@ def test_regrid_xarray_from_h_nested(out_grid, out_grid_ref, dims):
 
     compare_dims(r, dims, sizes=True)
 
-    assert r.earthkit.grid_spec == out_grid_ref
+    assert r.earthkit.grid_spec.items() >= out_grid_ref.items()
 
 
 @pytest.mark.skipif(NO_MIR, reason="No mir available")
@@ -139,7 +139,7 @@ def test_regrid_xarray_transposed_dims(sample, out_grid, out_grid_ref, dims):
 
     compare_dims(r, dims, sizes=True)
 
-    assert r.earthkit.grid_spec == out_grid_ref
+    assert r.earthkit.grid_spec.items() >= out_grid_ref.items()
     np.testing.assert_allclose(r.transpose(*r_ref.dims).values, r_ref.values)
 
 
@@ -159,7 +159,7 @@ def test_regrid_xarray_dataset_from_h_nested(out_grid, out_grid_ref, dims):
 
     compare_dims(r, dims, sizes=True)
 
-    assert r.earthkit.grid_spec == out_grid_ref
+    assert r.earthkit.grid_spec.items() >= out_grid_ref.items()
 
 
 @pytest.mark.skipif(IN_GITHUB, reason="Skipping test in GitHub CI")

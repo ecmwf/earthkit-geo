@@ -33,7 +33,9 @@ def earthkit_test_data_path(*args):
 def simple_download(url, target):
     import requests
 
-    r = requests.get(url, allow_redirects=True)
+    # Without a timeout a stalled/unresponsive server hangs the request (and the
+    # test) forever instead of failing.
+    r = requests.get(url, allow_redirects=True, timeout=30)
     r.raise_for_status()
     open(target, "wb").write(r.content)
 

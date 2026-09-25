@@ -57,6 +57,12 @@ LOG = logging.getLogger(__name__)
 
 
 class CoordinateAttributes(DotDict):
+    """Dict-with-attribute-access holding a coordinate's CF-relevant attributes.
+
+    Populated with ``axis``, ``name``, ``long_name``, ``standard_name`` and
+    ``units`` by :meth:`CoordinateGuesser._guess`.
+    """
+
     pass
 
 
@@ -363,6 +369,20 @@ class CoordinateGuesser(ABC):
 
     @abstractmethod
     def _is_point(self, c: xr.DataArray, attributes: CoordinateAttributes) -> PointCoordinate | None:
+        """Check if the coordinate identifies point/station data.
+
+        Parameters
+        ----------
+        c : xr.DataArray
+            The coordinate to check.
+        attributes : CoordinateAttributes
+            The attributes of the coordinate.
+
+        Returns
+        -------
+        Optional[PointCoordinate]
+            The PointCoordinate if matched, else None.
+        """
         pass
 
     @abstractmethod
@@ -452,6 +472,24 @@ class DefaultCoordinateGuesser(CoordinateGuesser):
         super().__init__(ds)
 
     def _is_point(self, c: xr.DataArray, attributes: CoordinateAttributes) -> PointCoordinate | None:
+        """Check if the coordinate identifies point/station data.
+
+        Matches on ``standard_name`` or ``name`` being one of
+        ``"location"``, ``"cell"``, ``"id"``, ``"station"``, ``"poi"`` or
+        ``"point"``.
+
+        Parameters
+        ----------
+        c : xr.DataArray
+            The coordinate to check.
+        attributes : CoordinateAttributes
+            The attributes of the coordinate.
+
+        Returns
+        -------
+        Optional[PointCoordinate]
+            The PointCoordinate if matched, else None.
+        """
         if attributes.standard_name in ["location", "cell", "id", "station", "poi", "point"]:
             return PointCoordinate(c)
 

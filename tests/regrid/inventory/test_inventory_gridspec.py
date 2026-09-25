@@ -8,9 +8,10 @@
 
 import pytest
 
-from earthkit.geo.grids._regrid.backends.db import SYS_DB
+from earthkit.geo.grids._regrid.backends.precomputed.db import SYS_DB
 
 
+@pytest.mark.matrix_db
 @pytest.mark.parametrize(
     "gs_in, gs_out",
     [
@@ -94,6 +95,7 @@ def test_gridspec_ok(gs_in, gs_out):
     assert r, f"gs_in={gs_in} gs_out={gs_out}"
 
 
+@pytest.mark.matrix_db
 @pytest.mark.parametrize(
     "gs_in, gs_out, order",
     [
@@ -110,6 +112,7 @@ def test_gridspec_healpix(gs_in, gs_out, order):
     assert r["input"].spec.get("order") == order
 
 
+@pytest.mark.matrix_db
 @pytest.mark.parametrize(
     "gs_in,gs_out,err",
     [

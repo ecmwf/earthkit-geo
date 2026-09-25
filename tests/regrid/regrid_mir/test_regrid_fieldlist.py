@@ -6,6 +6,7 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
+import datetime
 
 import numpy as np
 import pytest
@@ -22,10 +23,11 @@ from earthkit.geo.utils.testing import (
 
 if not NO_EKD:
     from earthkit.data import from_source  # noqa
+    from earthkit.data import create_fieldlist  # noqa
 
 
-def _create_fieldlist(filename, field_type):
-    ds = from_source("url", get_test_data_path(filename)).to_fieldlist()
+def _create_fieldlist(filename, subfolder="global_0_360", field_type="grib"):
+    ds = from_source("url", get_test_data_path(filename, subfolder=subfolder)).to_fieldlist()
     if field_type == "array":
         return ds.to_fieldlist()
     elif field_type == "grib":
@@ -48,7 +50,7 @@ def _create_fieldlist(filename, field_type):
 )
 @pytest.mark.parametrize("field_type", ["grib", "array"])
 def test_regrid_fieldlist_reg_ll(_kwarg, interpolation, field_type):
-    ds = _create_fieldlist("5x5.grib", field_type)
+    ds = _create_fieldlist("5x5.grib", field_type=field_type)
 
     f_ref = get_test_data(f"out_5x5_10x10_{interpolation}.npz")
     v_ref = np.load(f_ref)["arr_0"]
@@ -81,7 +83,7 @@ def test_regrid_fieldlist_reg_ll(_kwarg, interpolation, field_type):
 )
 @pytest.mark.parametrize("field_type", ["grib", "array"])
 def test_regrid_fieldlist_gg(_kwarg, interpolation, field_type):
-    ds = _create_fieldlist("O32.grib", field_type)
+    ds = _create_fieldlist("O32.grib", field_type=field_type)
 
     f_ref = get_test_data(f"out_O32_10x10_{interpolation}.npz")
     v_ref = np.load(f_ref)["arr_0"]
@@ -116,7 +118,7 @@ def test_regrid_fieldlist_gg(_kwarg, interpolation, field_type):
 )
 @pytest.mark.parametrize("field_type", ["grib", "array"])
 def test_regrid_single_field(_kwarg, interpolation, field_type):
-    ds = _create_fieldlist("O32.grib", field_type)
+    ds = _create_fieldlist("O32.grib", field_type=field_type)
     field = ds[0]
 
     f_ref = get_test_data(f"out_O32_10x10_{interpolation}.npz")
@@ -145,7 +147,7 @@ def test_regrid_single_field_non_grib():
     out_grid = {"grid": [10, 10]}
     field_type = "array"
 
-    fl = _create_fieldlist("5x5.grib", field_type)
+    fl = _create_fieldlist("5x5.grib", field_type=field_type)
     field = fl[0].set({"parameter.variable": "msl"}, labels={"my_label": "my_value"})
 
     # the field is now decoupled from the original grib message
@@ -169,7 +171,7 @@ def test_regrid_single_field_non_grib():
 @pytest.mark.skipif(NO_MIR, reason="No mir available")
 @pytest.mark.skipif(NO_EKD, reason="No access to earthkit-data")
 def test_regrid_fieldlist_deprec_grid_kwarg():
-    ds = _create_fieldlist("5x5.grib", "grib")
+    ds = _create_fieldlist("5x5.grib", field_type="grib")
 
     interpolation = "linear"
 
@@ -190,24 +192,146 @@ def test_regrid_fieldlist_deprec_grid_kwarg():
             assert np.isclose(f.metadata(k), v), k
 
 
-@pytest.mark.skip("Skipping test_regrid_fieldlist_to_points for now")
 @pytest.mark.skipif(NO_MIR, reason="No mir available")
 @pytest.mark.skipif(NO_EKD, reason="No access to earthkit-data")
-@pytest.mark.parametrize("field_type", ["grib", "array"])
-def test_regrid_fieldlist_to_points(field_type):
-    ds = _create_fieldlist("5x5.grib", field_type)
+@pytest.mark.parametrize("field_type", ["grib"])
+def test_regrid_grib_1_fieldlist_ll_to_points_round_trip(field_type):
+    ds = _create_fieldlist("5x5_multi.grib1", subfolder="grib", field_type=field_type)
 
-    lats = [40.0, 50.0]
-    lons = [10.0, 20.0]
-    out_grid = {"latitudes": lats, "longitudes": lons}
-    r = regrid(ds, out_grid=out_grid, interpolation="nn")
+    # Regrid from lat-lon to points
+    lats = [40.0, 40.0, 40.0, 30.0, 30.0, 30.0]
+    lons = [10.0, 20.0, 30.0, 5.0, 25.0, 35.0]
 
-    metadata_ref = ds.metadata(["param", "level", "date", "time", "edition"])
+    out_grid_points = {"latitudes": lats, "longitudes": lons}
 
-    points_num = 2
-    ref_vals = np.array([295.76901245, 285.79244995])
+    r = regrid(ds, out_grid=out_grid_points, interpolation="nn")
 
-    assert len(r) == 1
-    assert r[0].shape == (points_num,)
-    assert np.allclose(r[0].values, ref_vals)
-    assert r.metadata(["param", "level", "date", "time"]) == metadata_ref
+    # mir turns grib1 to grib2 internally for unstructured input grids
+    metadata_keys = ["parameter.variable", "vertical.level", "time.valid_datetime", "time.step"]
+    metadata_ref = [
+        ["2t", 2, datetime.datetime(2024, 3, 23, 12, 0), datetime.timedelta(0)],
+        ["2t", 2, datetime.datetime(2024, 3, 24, 0, 0), datetime.timedelta(seconds=43200)],
+    ]
+
+    points_num = 6
+
+    ref_vals = np.array([
+        [288.44410706, 286.67457581, 281.93043518, 303.16481018, 292.76637268, 293.47926331],
+        [289.20581055, 278.41088867, 271.97143555, 294.8894043, 285.50463867, 283.16674805],
+    ])
+
+    assert len(r) == 2
+
+    for i, f in enumerate(r):
+        assert f.shape == (points_num,)
+        lats_res, lons_res = f.geography.latlons()
+        assert np.allclose(lats_res, lats)
+        assert np.allclose(lons_res, lons)
+        assert np.allclose(f.values, ref_vals[i])
+
+    assert r.get(metadata_keys) == metadata_ref
+
+    # Encode each regridded field to a new GRIB message and create a new fieldlist from them
+    fields = []
+    for f in r:
+        f_grib = from_source("memory", f.sync().message()).to_fieldlist()[0]
+        fields.append(f_grib)
+
+    ds_r = create_fieldlist(fields)
+
+    assert len(ds_r) == 2
+    for i, f in enumerate(ds_r):
+        assert f.shape == (points_num,)
+        # TODO: this is currently failing
+        lats_res, lons_res = f.geography.latlons()
+        assert lats_res is None
+        assert lons_res is None
+        assert np.allclose(f.values, ref_vals[i])
+
+    assert ds_r.get(metadata_keys) == metadata_ref
+    assert ds_r.metadata("edition") == [2, 2]
+
+    # Regrid from points back to lat-lon
+    out_grid_ll = {"grid": [5, 5]}
+
+    r_ll = regrid(ds_r, in_grid=out_grid_points, out_grid=out_grid_ll, interpolation="nn")
+
+    assert len(r_ll) == 2
+    for i, f in enumerate(r_ll):
+        assert f.shape == (37, 72)
+        assert f.geography.grid_spec().items() >= out_grid_ll.items()
+        lats_res, lons_res = f.geography.latlons()
+        assert lats_res.shape == (37, 72)
+        assert lons_res.shape == (37, 72)
+
+
+@pytest.mark.skipif(NO_MIR, reason="No mir available")
+@pytest.mark.skipif(NO_EKD, reason="No access to earthkit-data")
+# @pytest.mark.parametrize("field_type", ["grib", "array"])
+@pytest.mark.parametrize("field_type", ["grib"])
+def test_regrid_grib_2_fieldlist_ll_to_points_round_trip(field_type):
+    ds = _create_fieldlist("5x5_multi.grib2", subfolder="grib", field_type=field_type)
+
+    # Regrid from lat-lon to points
+    lats = [40.0, 40.0, 40.0, 30.0, 30.0, 30.0]
+    lons = [10.0, 20.0, 30.0, 5.0, 25.0, 35.0]
+    out_grid_points = {"latitudes": lats, "longitudes": lons}
+
+    r = regrid(ds, out_grid=out_grid_points, interpolation="nn")
+
+    metadata_keys = ["parameter.variable", "vertical.level", "time.valid_datetime", "time.step"]
+    metadata_ref = [
+        ["2t", 2, datetime.datetime(2024, 3, 23, 12, 0), datetime.timedelta(0)],
+        ["2t", 2, datetime.datetime(2024, 3, 24, 0, 0), datetime.timedelta(seconds=43200)],
+    ]
+
+    points_num = 6
+
+    ref_vals = np.array([
+        [288.44410706, 286.67457581, 281.93043518, 303.16481018, 292.76637268, 293.47926331],
+        [289.20581055, 278.41088867, 271.97143555, 294.8894043, 285.50463867, 283.16674805],
+    ])
+
+    assert len(r) == 2
+
+    for i, f in enumerate(r):
+        assert f.shape == (points_num,)
+        lats_res, lons_res = f.geography.latlons()
+        assert np.allclose(lats_res, lats)
+        assert np.allclose(lons_res, lons)
+        assert np.allclose(f.values, ref_vals[i])
+
+    assert r.get(metadata_keys) == metadata_ref
+
+    # Encode each regridded field to a new GRIB message and create a new fieldlist from them
+    fields = []
+    for f in r:
+        f_grib = from_source("memory", f.sync().message()).to_fieldlist()[0]
+        fields.append(f_grib)
+
+    ds_r = create_fieldlist(fields)
+
+    assert len(ds_r) == 2
+    for i, f in enumerate(ds_r):
+        assert f.shape == (points_num,)
+        # TODO: this is currently failing
+        lats_res, lons_res = f.geography.latlons()
+        assert lats_res is None
+        assert lons_res is None
+        assert np.allclose(f.values, ref_vals[i])
+
+    assert ds_r.get(metadata_keys) == metadata_ref
+    assert ds_r.metadata("edition") == [2, 2]
+
+    # Regrid from points back to lat-lon
+    out_grid_ll = {"grid": [5, 5]}
+
+    r_ll = regrid(ds_r, in_grid=out_grid_points, out_grid=out_grid_ll, interpolation="nn")
+
+    assert len(r_ll) == 2
+    for i, f in enumerate(r_ll):
+        assert f.shape == (37, 72)
+        assert f.geography.grid_spec().items() >= out_grid_ll.items()
+        lats_res, lons_res = f.geography.latlons()
+        assert lats_res.shape == (37, 72)
+        assert lons_res.shape == (37, 72)

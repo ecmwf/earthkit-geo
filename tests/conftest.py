@@ -31,6 +31,38 @@ def pytest_addoption(parser):
     )
 
 
+_ekd_temporary_config = None
+
+
+def pytest_sessionstart(session):
+    global _ekd_temporary_config
+
+    # earthkit-data is an optional dependency: skip if it is not installed.
+    try:
+        from earthkit.data.core.config import CONFIG as EKD_CONFIG
+    except ImportError:
+        return
+
+    # Run the whole test session under a temporary earthkit-data config using
+    # a temporary cache, so tests never touch (or are affected by) the user's
+    # real earthkit-data cache. Also disable the out-of-date check: test
+    # fixtures are static, so there is no need to make a network request to
+    # check for updates every time a cached file is used.
+    _ekd_temporary_config = EKD_CONFIG.temporary({
+        "cache-policy": "temporary",
+        "check-out-of-date-urls": False,
+    })
+    _ekd_temporary_config.__enter__()
+
+
+def pytest_sessionfinish(session, exitstatus):
+    global _ekd_temporary_config
+
+    if _ekd_temporary_config is not None:
+        _ekd_temporary_config.__exit__(None, None, None)
+        _ekd_temporary_config = None
+
+
 def pytest_runtest_setup(item):
     # print(f"config {item.config.option}")
     flag = item.config.getoption("-E")
@@ -47,9 +79,10 @@ def pytest_runtest_setup(item):
         if m in marks_to_skip:
             pytest.skip(f"test is skipped because custom pytest option: -E {flag}")
 
-    from earthkit.geo.grids._regrid.backends.db import SYS_DB
+    if "matrix_db" in marks_in_items:
+        from earthkit.geo.grids._regrid.backends.precomputed.db import SYS_DB
 
-    SYS_DB._clear_index()
+        SYS_DB._clear_index()
 
     tmp_cache = "tmp_cache" in marks_in_items
 
