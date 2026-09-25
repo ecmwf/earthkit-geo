@@ -1,4 +1,4 @@
-.. _regrid-grib:
+.. _regrid-grib-message:
 
 Regridding raw GRIB messages
 =============================

@@ -22,6 +22,7 @@ import logging
 from typing import Any
 
 from ..utils import create_grid_object
+from .patch import patch_dataset
 
 LOG = logging.getLogger(__name__)
 
@@ -104,7 +105,7 @@ def adjust_variable_dim_order(variable_dims, coordinates):
     Parameters
     ----------
     variable_dims : List[str]
-        The two grid dimension names of the variable, in their current order.
+        The two grid dimension names of the variable, in their current order.s
     coordinates : List[Coordinate]
         The variable's guessed coordinates, used to identify which
         dimension is latitude and which is longitude.
@@ -160,7 +161,8 @@ def variables(ds, user_ek_grid=None):
         The geographical variables found, each with its ``ek_grid``,
         ``xr_grid`` and ``geo_dims`` populated.
     """
-    # ek_grid = None
+    patch = {"latlon": None}
+    ds = patch_dataset(ds, patch)
 
     from .guesser import DefaultCoordinateGuesser
 
@@ -243,6 +245,7 @@ def variables(ds, user_ek_grid=None):
             g = [c for c in coordinates if c.is_grid]
 
             for c in coordinates:
+                # LOG.debug("c.name = %s, c.is_dim = %s, c.is_grid = %s", c.name, c.is_dim, c.is_grid)
                 if c.is_dim and isinstance(c, UnsupportedCoordinate):
                     for cx in g:
                         if c.name in cx.variable.sizes:
