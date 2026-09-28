@@ -8,12 +8,12 @@ regrid (high-level) with precomputed weights
 
     Regrid the high-level ``data`` object (with geography information) using precomputed weights.
 
-    :param data:  The data to be regridded. The following input data types are supported (see :ref:`regrid-data <regrid-data>` for more details):
+    :param data:  The data to be regridded. The following input data types are supported:
 
-        - earthkit-data :py:class:`~earthkit.data.core.fieldlist.FieldList`
-        - earthkit-data :py:class:`~earthkit.data.core.field.Field`
-        - :class:`xarray.DataArray` or :class:`xarray.Dataset`
-        - GRIB message as a bytes or :class:`io.BytesIO` object
+        - earthkit-data :py:class:`~earthkit.data.core.fieldlist.FieldList` (see details :ref:`here <regrid-fieldlist>`)
+        - earthkit-data :py:class:`~earthkit.data.core.field.Field` (see details :ref:`here <regrid-fieldlist>`)
+        - :class:`xarray.DataArray` or :class:`xarray.Dataset` (see details :ref:`here <regrid-xarray>`)
+        - GRIB message as a bytes or :class:`io.BytesIO` object (see details :ref:`here <regrid-grib-message>`)
 
     :type data: :py:class:`~earthkit.data.core.fieldlist.FieldList`, :py:class:`~earthkit.data.core.field.Field`, :class:`xarray.DataArray`, :class:`xarray.Dataset`, bytes, :class:`io.BytesIO`
     :param in_grid: The :ref:`gridspec <gridspec>` describing the input grid. When None (the default), the input grid is inferred from the input data if possible. If grid information cannot be inferred, raises a ValueError. For the list of supported grids, please refer to the :ref:`gridspec <gridspec>` documentation.

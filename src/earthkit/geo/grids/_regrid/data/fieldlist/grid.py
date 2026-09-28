@@ -41,7 +41,7 @@ def get_grid(field, index):
 
     if grid_spec is None:
         try:
-            lat, lon = field.geography.latlons()
+            lat, lon = field.geography.latlons(flatten=True)
             if lat is not None and lon is not None:
                 grid_spec = {"latitudes": lat.tolist(), "longitudes": lon.tolist()}
         except Exception as e:

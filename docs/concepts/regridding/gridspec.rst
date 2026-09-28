@@ -69,6 +69,10 @@ Summary of support
       - Extended ORCA grid
       - ✔
       - ✔
+    * - unstructured
+      - Arbitrarily spaced latitude-longitude points
+      - ✔
+      - ✘
 
 Read below for further information on any of these grid types.
 
@@ -204,3 +208,17 @@ Examples:
 
     {"grid": "eORCA025_T"}
     {"grid": "ORCA1_F"}
+
+Unstructured latitude-longitude grids
+--------------------------------------
+
+These grids consist of an arbitrary set of latitudes and longitudes. They are often used to represent observational data or model outputs on non-uniform grids. The ``grid`` in this case is optional and can be omitted from the spec, which takes the following forms::
+
+    {"grid": "unstructured", "latitudes": [LAT1, LAT2, LAT3, ...], "longitudes": [LON1, LON2, LON3, ...]}
+    {"latitudes": [LAT1, LAT2, LAT3, ...], "longitudes": [LON1, LON2, LON3, ...]}
+
+Examples:
+
+.. code-block::
+
+    {"latitudes": [34.05, 36.12, 40.71], "longitudes": [-118.24, -115.17, -74.01]}

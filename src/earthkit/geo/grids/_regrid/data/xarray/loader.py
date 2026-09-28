@@ -22,6 +22,7 @@ import logging
 from typing import Any
 
 from ..utils import create_grid_object
+from .patch import patch_dataset
 
 LOG = logging.getLogger(__name__)
 
@@ -160,7 +161,8 @@ def variables(ds, user_ek_grid=None):
         The geographical variables found, each with its ``ek_grid``,
         ``xr_grid`` and ``geo_dims`` populated.
     """
-    # ek_grid = None
+    patch = {"latlon": None}
+    ds = patch_dataset(ds, patch)
 
     from .guesser import DefaultCoordinateGuesser
 

@@ -296,8 +296,8 @@ class CoordinateGuesser(ABC):
         grid_mapping = variable.attrs.get("grid_mapping", None)
 
         if grid_mapping is None:
-            LOG.warning(f"No 'grid_mapping' attribute provided for '{variable.name}'")
-            LOG.warning("Trying to guess...")
+            LOG.debug(f"No 'grid_mapping' attribute provided for '{variable.name}'")
+            LOG.debug("Trying to guess...")
 
             PROBE = {
                 "prime_meridian_name",
@@ -325,20 +325,20 @@ class CoordinateGuesser(ABC):
                     candidate = v
 
             if candidate:
-                LOG.warning(f"Using '{candidate}' as 'grid_mapping'")
+                LOG.debug(f"Using '{candidate}' as 'grid_mapping'")
                 grid_mapping = candidate
             else:
-                LOG.warning("Could not find a candidate for 'grid_mapping'")
+                LOG.debug("Could not find a candidate for 'grid_mapping'")
 
         if grid_mapping is None:
             if "crs" in self.ds[variable.name].attrs:
                 grid_mapping = self.ds[variable.name].attrs["crs"]
-                LOG.warning(f"Using CRS {grid_mapping} from variable '{variable.name}' attributes")
+                LOG.debug(f"Using CRS {grid_mapping} from variable '{variable.name}' attributes")
 
         if grid_mapping is None:
             if "crs" in self.ds.attrs:
                 grid_mapping = self.ds.attrs["crs"]
-                LOG.warning(f"Using CRS {grid_mapping} from global attributes")
+                LOG.debug(f"Using CRS {grid_mapping} from global attributes")
 
         grid: Optional[Grid] = None
         if grid_mapping is not None:
@@ -349,7 +349,7 @@ class CoordinateGuesser(ABC):
                 else:
                     grid = MeshProjectionGrid(x, y, grid_mapping)
             else:
-                LOG.warning(f"Grid mapping variable '{grid_mapping}' not found in dataset")
+                LOG.debug(f"Grid mapping variable '{grid_mapping}' not found in dataset")
         else:
             if unstructured:
                 grid = UnstructuredXYGrid(x, y, dim_vars)
