@@ -105,7 +105,7 @@ def adjust_variable_dim_order(variable_dims, coordinates):
     Parameters
     ----------
     variable_dims : List[str]
-        The two grid dimension names of the variable, in their current order.s
+        The two grid dimension names of the variable, in their current order.
     coordinates : List[Coordinate]
         The variable's guessed coordinates, used to identify which
         dimension is latitude and which is longitude.
@@ -245,7 +245,6 @@ def variables(ds, user_ek_grid=None):
             g = [c for c in coordinates if c.is_grid]
 
             for c in coordinates:
-                # LOG.debug("c.name = %s, c.is_dim = %s, c.is_grid = %s", c.name, c.is_dim, c.is_grid)
                 if c.is_dim and isinstance(c, UnsupportedCoordinate):
                     for cx in g:
                         if c.name in cx.variable.sizes:
