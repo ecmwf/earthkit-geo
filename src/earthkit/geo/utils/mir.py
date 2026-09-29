@@ -120,8 +120,14 @@ def mir_make_matrix(
 ):
     import mir
 
-    ext = Path(output).suffix if output is not None else None
-    if output is not None and ext not in (".mat", ".npz"):
+    return_matrix = False
+    if output is None:
+        output = mir.cache() + "/tmp-interpolation-matrix.mat"
+        return_matrix = True
+    mat = Path(output)
+    ext = mat.suffix
+    
+    if ext not in (".mat", ".npz"):
         raise ValueError("mir_make_matrix: output must have extension .mat or .npz")
 
     job = mir.Job()
@@ -140,7 +146,6 @@ def mir_make_matrix(
     else:
         raise ValueError("mir_make_matrix: output grid or lats/lons must be provided.")
 
-    mat = Path(output)
     if ext == ".mat":
         job.set("interpolation-matrix", str(mat))
     elif ext == ".npz":
@@ -155,14 +160,15 @@ def mir_make_matrix(
     except Exception as e:
         raise RuntimeError(f"mir_make_matrix: error: {e}.") from e
 
-    if ext and not mat.exists():
+    if not mat.exists():
         raise FileNotFoundError(f"mir_make_matrix: matrix file '{mat}' not found.")
 
     if ext == ".npz":
         mir_cached_matrix_to_file(str(mat), output)
         mat.unlink()
         assert Path(output).exists()
-    elif not ext:
+        
+    if return_matrix:
         return mir_cached_matrix_to_array(mat)
 
 
