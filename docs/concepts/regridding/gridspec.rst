@@ -7,14 +7,14 @@ A gridspec is earthkit's way of describing a spatial grid. It takes the form of 
 
 .. warning::
 
-    The gridspec format is not finalised yet and may change in future releases. Area specification is currently supported only as a provisional feature (subject to change or removal) and may emit deprecation warnings.
+    The gridspec format is not finalised yet and may change in future releases.
 
 .. note::
 
     Not all gridspecs are supported for all backends. Please read :ref:`here <precomputed_inventory>` for information regarding support for the precomputed backend.
 
 Summary of support
-------------------
+-------------------
 
 .. list-table:: Currently supported grids in earthkit-geo
     :widths: 10 30 10 10
@@ -222,3 +222,17 @@ Examples:
 .. code-block::
 
     {"latitudes": [34.05, 36.12, 40.71], "longitudes": [-118.24, -115.17, -74.01]}
+
+
+.. _gridspec-area:
+
+Area specification
+-------------------
+
+The area can be provided via the ``area`` key in the grid specification. Area specification is currently supported only as a provisional feature (subject to change or removal) and may emit deprecation warnings. The area itself takes the form of a list: ``[north, west, south, east]``.
+
+Examples:
+
+.. code-block::
+
+    {"grid": [1,1], "area": [60, -130, 25, -60]}
