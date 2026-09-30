@@ -7,7 +7,7 @@ A gridspec is earthkit's way of describing a spatial grid. It takes the form of 
 
 .. warning::
 
-    The gridspec format is not finalised yet and may change in future releases. :ref:`Area specification <gridspec-area>` is currently supported only as a provisional feature (subject to change or removal) and may emit deprecation warnings.
+    The gridspec format is not finalised yet and may change in future releases.
 
 .. note::
 
