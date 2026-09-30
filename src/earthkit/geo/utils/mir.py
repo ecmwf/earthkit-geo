@@ -126,7 +126,7 @@ def mir_make_matrix(
         return_matrix = True
     mat = Path(output)
     ext = mat.suffix
-    
+
     if ext not in (".mat", ".npz"):
         raise ValueError("mir_make_matrix: output must have extension .mat or .npz")
 
@@ -167,7 +167,7 @@ def mir_make_matrix(
         mir_cached_matrix_to_file(str(mat), output)
         mat.unlink()
         assert Path(output).exists()
-        
+
     if return_matrix:
         return mir_cached_matrix_to_array(mat)
 
