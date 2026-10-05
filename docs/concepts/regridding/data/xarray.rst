@@ -14,7 +14,9 @@ Unless ``in_grid`` is given explicitly, the input grid of each variable is deter
 
 - if the dataset carries an earthkit-data ``"earthkit.grid_spec"`` attribute, that grid spec is used
   as-is ; otherwise
-- as a fallback, the latitude/longitude values of every point are extracted and used to build a generic :ref:`unstructured <gridspec-unstructured>` grid regardless of the original coordinate layout. There are plans to improve this in the future, and automatically extract the grid spec from the coordinates when possible.
+- as a fallback, the latitude/longitude values of every point are extracted and used to build a generic :ref:`unstructured <gridspec-unstructured>` grid regardless of the original coordinate layout. See :ref:`regridding-unstructured` for more details.
+
+There are plans to improve this in the future, and automatically extract the grid spec from the coordinates when possible.
 
 An explicitly provided ``in_grid`` always takes precedence over what can be inferred from the dataset.
 
