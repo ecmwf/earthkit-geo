@@ -18,7 +18,7 @@ regrid (high-level) with MIR
         - GRIB message as a bytes or :class:`io.BytesIO` object (see details :ref:`here <regrid-grib-message>`)
 
     :type data: :py:class:`~earthkit.data.core.fieldlist.FieldList`, :py:class:`~earthkit.data.core.field.Field`, :class:`xarray.DataArray`, :class:`xarray.Dataset`, bytes, :class:`io.BytesIO`
-    :param in_grid: The :ref:`gridspec <gridspec>` describing the input grid. When None (the default), the input grid is inferred from the input data if possible. If grid information cannot be inferred, but the latitudes and longitudes are available the input grid is treated as an unstructured lat/lon grid. For the list of supported grids, please refer to the :ref:`gridspec <gridspec>` documentation. Ignored when ``data`` is a GRIB message.
+    :param in_grid: The :ref:`gridspec <gridspec>` describing the input grid. When None (the default), the input grid is inferred from the input data if possible. If the grid information cannot be inferred, but the latitudes and longitudes are available the input grid is treated as a collection of points, i.e., as an :ref:`unstructured <gridspec-unstructured>` grid. In this case, for performance reasons, it is recommended to use ``interpolation="nearest-neighbour"``. For the list of supported grids, please refer to the :ref:`gridspec <gridspec>` documentation. Ignored when ``data`` is a GRIB message.
     :type in_grid: dict, str, :py:class:`Grid`
     :param out_grid: The :ref:`gridspec <gridspec>` describing the target grid that ``data`` will be interpolated onto. For the list of supported grids, please refer to the :ref:`gridspec <gridspec>` documentation.
     :type out_grid: dict, str, :py:class:`Grid`
@@ -30,7 +30,7 @@ regrid (high-level) with MIR
 
         - "linear": Finite Element based interpolation with linear base functions with supporting triangular mesh
         - "grid-box-average": input/output grid box intersections interpolation preserving input value integrals (conservative interpolation).
-        - "nearest-neighbour": choose a nearest neighbouring input point to define output point value
+        - "nearest-neighbour": choose a nearest neighbouring input point to define output point value. This is the recommended method for :ref:`unstructured <gridspec-unstructured>` grids.
 
     :type interpolation: str
 
