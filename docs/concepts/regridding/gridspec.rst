@@ -209,6 +209,9 @@ Examples:
     {"grid": "eORCA025_T"}
     {"grid": "ORCA1_F"}
 
+
+.. _gridspec-unstructured:
+
 Unstructured latitude-longitude grids
 --------------------------------------
 

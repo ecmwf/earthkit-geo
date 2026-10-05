@@ -21,7 +21,7 @@ regrid (array-level) with MIR
 
         - "linear": Finite Element based interpolation with linear base functions with supporting triangular mesh
         - "grid-box-average": input/output grid box intersections interpolation preserving input value integrals (conservative interpolation).
-        - "nearest-neighbour": choose a nearest neighbouring input point to define output point value
+        - "nearest-neighbour": choose a nearest neighbouring input point to define output point value. This is the recommended method for :ref:`unstructured <gridspec-unstructured>` grids.
 
     :type interpolation: str
 
