@@ -85,12 +85,12 @@ class XarrayDataHandler(DataHandler):
 
         # This low level check should be replaced by a more robust way to
         # determine if the dataset/array is created from earthkit-data.
+        import xarray as xr
+
         has_earthkit = False
         if "_earthkit" in ds.attrs:
             has_earthkit = True
         else:
-            import xarray as xr
-
             if isinstance(ds, xr.Dataset):
                 for var in ds.data_vars.values():
                     if "_earthkit" in var.attrs:
@@ -317,6 +317,7 @@ class XarrayDataHandler(DataHandler):
             exclude_dims = set(in_dims)
 
         in_grid = variable.ek_grid
+        out_grid_shape = out_grid.shape
 
         method = _RegridMethod(in_grid, out_grid, **kwargs)
 
@@ -331,7 +332,7 @@ class XarrayDataHandler(DataHandler):
             vectorize=True,
             dask="parallelized",
             dask_gufunc_kwargs={
-                "output_sizes": {dim: out_grid.shape[i] for i, dim in enumerate(out_dims)},
+                "output_sizes": {dim: out_grid_shape[i] for i, dim in enumerate(out_dims)},
                 "allow_rechunk": True,
             },
             output_dtypes=[var.dtype],

@@ -92,19 +92,37 @@ class MirBackend(Backend):
 
         Parameters
         ----------
-        grid : eckit.geo.Grid or dict
+        grid : eckit.geo.Grid|dict|str
             The grid, either as a ``Grid`` object or an already-plain spec.
 
         Returns
         -------
-        dict
+        dict | str
             ``grid.spec`` if ``grid`` is a ``Grid`` instance, otherwise
-            ``grid`` unchanged.
+            ``grid`` unchanged. There is a special treatment for unstructured
+            grids (see Notes). If ``grid`` is a dict or JSON string, it is
+            returned as-is.
+
+
+        Notes
+        -----
+        MIR (>= 1.30.2) accepts the grid specification either as a ``Grid`` object, as
+        a plain dictionary or as a JSON string. In former versions the ``Grid`` object
+        was not supported and the spec was extracted from it and passed to MIR as a
+        plain dictionary. We keep this behaviour for backward compatibility, but will
+        likely change it in future versions.
+
+        Unstructured grids, at present, require a special treatment. For these grids, the
+        most performant option is to pass the "uid" wrapped in a plain dictionary.
+        This may be subject to change in future versions of MIR.
         """
         from eckit.geo import Grid
 
         if isinstance(grid, Grid):
-            return grid.spec
+            if grid.type in ("unstructured_ll", "unstructured"):
+                grid = {"uid": grid.uid}
+            else:
+                return grid.spec
         return grid
 
     def regrid(
