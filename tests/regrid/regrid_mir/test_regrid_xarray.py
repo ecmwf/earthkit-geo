@@ -426,7 +426,7 @@ def test_regrid_xarray_from_netcdf_ll_to_points(in_grid):
 
 
 @pytest.mark.skipif(IN_GITHUB, reason="Skipping test in GitHub CI")
-@pytest.mark.long_test
+# @pytest.mark.long_test
 @pytest.mark.download
 @pytest.mark.timeout(90)
 def test_regrid_xarray_laea_to_ll():
@@ -485,7 +485,7 @@ def test_regrid_xarray_laea_to_ll():
     ref_lat = np.linspace(90.0, -90.0, 19)
     ref_lon = np.linspace(0.0, 350.0, 36)
 
-    assert np.allclose(r["dis06"].to_numpy()[3], ref_data, equal_nan=True)
+    assert np.allclose(r.to_numpy()[3], ref_data, equal_nan=True)
     assert np.allclose(r.latitude.values, ref_lat)
     assert np.allclose(r.longitude.values, ref_lon)
 

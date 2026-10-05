@@ -122,3 +122,12 @@ def normalise_grid_spec(grid_spec):
             r.append(v)
         grid_spec["reference"] = r
     return grid_spec
+
+
+def create_unstructured_grid_object(lats, lons):
+    import numpy as np
+    from eckit.geo import Grid
+
+    lats = np.asarray(lats).flatten()
+    lons = np.asarray(lons).flatten()
+    return Grid({"latitudes": lats, "longitudes": lons})

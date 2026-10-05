@@ -21,7 +21,7 @@ import itertools
 import logging
 from typing import Any
 
-from ..utils import create_grid_object
+from ..utils import create_grid_object, create_unstructured_grid_object
 from .patch import patch_dataset
 
 LOG = logging.getLogger(__name__)
@@ -92,11 +92,8 @@ def grid_from_xr_grid(xr_grid):
     eckit.geo.Grid
         An unstructured lat/lon grid built from the flattened points.
     """
-    from eckit.geo import Grid
-
     lat, lon = xr_grid.latlons
-    grid_spec = {"latitudes": lat.flatten().tolist(), "longitudes": lon.flatten().tolist()}
-    return Grid(grid_spec)
+    return create_unstructured_grid_object(lat, lon)
 
 
 def adjust_variable_dim_order(variable_dims, coordinates):
