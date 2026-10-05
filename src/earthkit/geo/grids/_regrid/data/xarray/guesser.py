@@ -360,7 +360,7 @@ class CoordinateGuesser(ABC):
             self._grid_cache[(x.name, y.name, dim_vars)] = grid
             return grid
 
-        LOG.error("Could not find a candidate for 'grid_mapping'")
+        LOG.debug("Could not find a candidate for 'grid_mapping'")
 
         if strict:
             raise NotImplementedError(f"Unstructured grid {x.name} {y.name}")
