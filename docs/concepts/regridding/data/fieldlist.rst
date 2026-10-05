@@ -14,7 +14,7 @@ When ``in_grid`` is not specified, the input grid is inferred independently for 
 
 1. First, the field's ``geography.grid_spec()`` metadata is used, when available.
 2. If no grid spec can be produced this way, the field's latitude/longitude arrays
-   (``geography.latlons()``) are used instead to build an unstructured lat/lon grid.
+   (``geography.latlons()``) are used instead to build an unstructured lat/lon grid. See :ref:`regridding-unstructured` for more details.
 
 Each field is regridded differently depending on whether it is backed by an actual GRIB message.
 
