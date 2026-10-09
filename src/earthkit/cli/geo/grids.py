@@ -6,15 +6,16 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
-"""Commands contributed by earthkit-geo to the shared ``earthkit`` command line interface.
-The ``earthkit`` console script itself lives in :mod:`earthkit.utils.cli`. The commands
-defined here are registered with it through the ``earthkit.cli`` entry point group in
-``pyproject.toml``, so ``earthkit regrid <...>`` becomes available once earthkit-geo is installed.
+"""Grid commands of earthkit-geo for the shared ``earthkit`` command line interface.
+
+Provides ``earthkit regrid``, which wraps :func:`earthkit.geo.regrid`.
 """
 
 import json
 
 import click
+from earthkit.cli.main import earthkit
+from earthkit.cli.standard_args import SOURCE_HELP, TARGET_HELP, add_options, source_options, target_options
 
 
 class GridSpecParamType(click.ParamType):
@@ -31,7 +32,7 @@ class GridSpecParamType(click.ParamType):
             self.fail("grid spec must not be empty", param, ctx)
 
         # anything that is not JSON is taken as a grid name, e.g. "O96" or "5/5"
-        if value[0] not in "{[\"":
+        if value[0] not in '{["':
             return value
 
         try:
@@ -40,11 +41,7 @@ class GridSpecParamType(click.ParamType):
             self.fail(f"{value!r} is not valid JSON: {e}", param, ctx)
 
         if not isinstance(spec, (dict, str)):
-            self.fail(
-                f"{value!r} must be a JSON object or a grid name, got {type(spec).__name__}",
-                param,
-                ctx,
-            )
+            self.fail(f"{value!r} must be a JSON object or a grid name, got {type(spec).__name__}", param, ctx)
 
         return spec
 
@@ -52,38 +49,35 @@ class GridSpecParamType(click.ParamType):
 GRID_SPEC = GridSpecParamType()
 
 
-@click.command()
-@click.argument("source-file", type=click.Path(exists=True, dir_okay=False))
-@click.argument("target-file", type=click.Path(exists=False, dir_okay=False))
+@earthkit.command(
+    help=f"""Regrid SOURCE to a new grid and write the result to TARGET.
+
+SOURCE: {SOURCE_HELP}
+
+TARGET: {TARGET_HELP}
+
+\b
+Example:
+    earthkit regrid input.grib output.grib --target-grid-spec O96
+    earthkit regrid input.grib output.grib -g '{{"grid": [1, 1]}}' -i nearest-neighbour
+"""
+)
+@add_options([source_options(positional=True), target_options(positional=True)])
 @click.option(
     "-g",
     "--target-grid-spec",
     type=GRID_SPEC,
     required=True,
-    help='Target grid specification, either as JSON, e.g. \'{"grid": [1, 1]}\', '
-    "or as a grid name, e.g. O96.",
+    help="Target grid specification, either as JSON, e.g. '{\"grid\": [1, 1]}', or as a grid name, e.g. O96.",
 )
 @click.option(
     "-i",
     "--interpolation",
-    type=str,
-    required=False,
     default="linear",
-    help='Interpolation method, e.g. "nearest-neighbour".',
+    show_default=True,
+    help="Interpolation method, e.g. 'linear', 'nearest-neighbour' or 'grid-box-average'.",
 )
-def regrid(source_file, target_file, target_grid_spec, interpolation):
-    """Regrids the input data to a new grid."""
-
-    import earthkit.data as ekd
+def regrid(source, target, target_grid_spec, interpolation):
     import earthkit.geo as ekg
 
-    in_data = ekd.from_source("file", source_file).to_fieldlist()
-
-    out_data = ekg.regrid(in_data, out_grid=target_grid_spec, interpolation=interpolation)
-
-    out_data.to_target("file", target_file)
-
-
-COMMANDS = {
-    "regrid": regrid,
-}
+    target.to_target(ekg.regrid(source.to_fieldlist(), out_grid=target_grid_spec, interpolation=interpolation))
