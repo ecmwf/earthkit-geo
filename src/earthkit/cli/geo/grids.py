@@ -59,18 +59,16 @@ TARGET: {TARGET_HELP}
 \b
 Example:
     earthkit regrid input.grib output.grib --target-grid-spec O96
-    earthkit regrid input.grib output.grib -g '{{"grid": [1, 1]}}' --interpolation nearest-neighbour
+    earthkit regrid input.grib output.grib --target-grid-spec '{{"grid": [1, 1]}}' --interpolation nearest-neighbour
 """
 )
 @add_options([source_options(positional=True), target_options(positional=True)])
 @click.option(
-    "-g",
     "--target-grid-spec",
     type=GRID_SPEC,
     required=True,
     help="Target grid specification, either as JSON, e.g. '{\"grid\": [1, 1]}', or as a grid name, e.g. O96.",
 )
-# No short flag: -i is the standard --index of earthkit.cli.standard_args
 @click.option(
     "--interpolation",
     default="linear",

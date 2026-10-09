@@ -40,9 +40,9 @@ def test_cli_info_lists_geo_commands():
 def test_cli_regrid_help():
     output = _invoke("regrid", "--help").output
     assert "[OPTIONS] SOURCE TARGET\n" in output
-    for option in ("-g, --target-grid-spec", "--interpolation"):
+    for option in ("--target-grid-spec", "--interpolation"):
         assert option in output
-    assert "-i," not in output
+    assert "-g," not in output and "-i," not in output
     for text in ("--source", "--target ", "--profile"):
         assert text not in output
     # The shared descriptions from earthkit-utils, rewrapped by click
@@ -74,7 +74,7 @@ def test_grid_spec(value, expected):
     ),
 )
 def test_grid_spec_invalid(value, message):
-    result = _invoke("regrid", O32_GRIB, "out.grib", "-g", value, exit_code=2)
+    result = _invoke("regrid", O32_GRIB, "out.grib", "--target-grid-spec", value, exit_code=2)
     assert message in result.output
 
 
@@ -99,13 +99,13 @@ def test_cli_regrid_calls_regrid(tmp_path, monkeypatch, options, interpolation):
     monkeypatch.setattr(ekg, "regrid", _regrid)
     monkeypatch.setattr(ekd, "to_target", lambda *args, **kwargs: calls.append((args, kwargs)))
     out_path = tmp_path / "out.grib"
-    _invoke("regrid", O32_GRIB, out_path, "-g", '{"grid": [5, 5]}', *options)
+    _invoke("regrid", O32_GRIB, out_path, "--target-grid-spec", '{"grid": [5, 5]}', *options)
     assert calls[0][1] == {"out_grid": {"grid": [5, 5]}, "interpolation": interpolation}
     assert calls[1] == (("file", str(out_path)), {"data": "regridded"})
 
 
 def test_cli_regrid_missing_input(tmp_path):
-    result = _invoke("regrid", tmp_path / "missing.grib", tmp_path / "out.grib", "-g", "O96", exit_code=2)
+    result = _invoke("regrid", tmp_path / "missing.grib", tmp_path / "out.grib", "--target-grid-spec", "O96", exit_code=2)
     assert "Invalid value for 'SOURCE'" in result.output
 
 
@@ -114,7 +114,7 @@ def test_cli_regrid(tmp_path):
     import earthkit.data as ekd
 
     out_path = tmp_path / "out.grib"
-    _invoke("regrid", O32_GRIB, out_path, "-g", '{"grid": [5, 5]}')
+    _invoke("regrid", O32_GRIB, out_path, "--target-grid-spec", '{"grid": [5, 5]}')
     result = ekd.from_source("file", str(out_path)).to_fieldlist()
     assert len(result) == len(ekd.from_source("file", O32_GRIB).to_fieldlist())
     assert result[0].shape == (37, 72)
