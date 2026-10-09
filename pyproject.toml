@@ -3,7 +3,7 @@ requires = ["setuptools>=77", "setuptools-scm>=8"]
 
 [project]
 authors = [
-  { name = "European Centre for Medium-Range Weather Forecasts (ECMWF)", email = "software.support@ecmwf.int" }
+  {name = "European Centre for Medium-Range Weather Forecasts (ECMWF)", email = "software.support@ecmwf.int"}
 ]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
@@ -34,6 +34,8 @@ dynamic = ["version"]
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 name = "earthkit-geo"
+readme = "README.md"
+requires-python = ">=3.10"
 optional-dependencies.all = ["cartopy"]
 optional-dependencies.cartography = ["cartopy"]
 optional-dependencies.ci = [
@@ -72,8 +74,6 @@ optional-dependencies.test = [
   "pytest-timeout",
   "pytest-xdist"
 ]
-readme = "README.md"
-requires-python = ">=3.10"
 urls.Documentation = "https://earthkit-geo.readthedocs.io/"
 urls.Homepage = "https://github.com/ecmwf/earthkit-geo/"
 urls.Issues = "https://github.com/ecmwf/earthkit-geo/issues"
@@ -88,6 +88,7 @@ convention = "numpy"
 
 [tool.ruff]
 line-length = 120
+preview = true
 lint.ignore = [
   "D1",  # pydocstyle: Missing Docstrings
   "D107",  # pydocstyle: numpy convention
@@ -110,7 +111,6 @@ lint.select = [
   "I",  # isort
   "W"  # pycodestyle warnings
 ]
-preview = true
 
 [tool.setuptools.packages.find]
 include = ["earthkit.geo", "earthkit.cli"]
