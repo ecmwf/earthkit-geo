@@ -40,8 +40,9 @@ def test_cli_info_lists_geo_commands():
 def test_cli_regrid_help():
     output = _invoke("regrid", "--help").output
     assert "[OPTIONS] SOURCE TARGET\n" in output
-    for option in ("--target-grid-spec", "--interpolation"):
+    for option in ("-g, --target-grid-spec", "--interpolation"):
         assert option in output
+    assert "-i," not in output
     for text in ("--source", "--target ", "--profile"):
         assert text not in output
     # The shared descriptions from earthkit-utils, rewrapped by click
@@ -81,7 +82,7 @@ def test_grid_spec_invalid(value, message):
     "options, interpolation",
     (
         ([], "linear"),
-        (["-i", "nearest-neighbour"], "nearest-neighbour"),
+        (["--interpolation", "nearest-neighbour"], "nearest-neighbour"),
     ),
 )
 def test_cli_regrid_calls_regrid(tmp_path, monkeypatch, options, interpolation):
