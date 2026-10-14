@@ -133,7 +133,7 @@ def mir_make_matrix(
             + str(in_grid)
             + str(out_grid)
             + str(kwargs)
-            )
+        )
         hash = _get_hash(coord)
         output = mir.cache() + f"tmp-interpolation-matrix-{hash}.mat"
         return_matrix = True
