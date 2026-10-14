@@ -335,3 +335,67 @@ def test_regrid_grib_2_fieldlist_ll_to_points_round_trip(field_type):
         lats_res, lons_res = f.geography.latlons()
         assert lats_res.shape == (37, 72)
         assert lons_res.shape == (37, 72)
+
+
+@pytest.mark.skipif(NO_MIR, reason="No mir available")
+@pytest.mark.skipif(NO_EKD, reason="No access to earthkit-data")
+@pytest.mark.parametrize("mode", ["field", "fieldlist", "gridspec", "none"])
+def test_regrid_single_field_with_in_template(mode):
+    ds = _create_fieldlist("O32.grib", field_type="grib")
+    field = ds[0]
+
+    in_grid = ds
+
+    if mode == "field":
+        in_grid = in_grid[0]
+    elif mode == "gridspec":
+        in_grid = {"grid": "O32"}
+    elif mode == "none":
+        in_grid = None
+
+    f_ref = get_test_data("out_O32_10x10_linear.npz")
+    v_ref = np.load(f_ref)["arr_0"]
+    metadata_ref = field.metadata(["param", "level", "date", "time"])
+
+    r = regrid(field, in_grid=in_grid, out_grid={"grid": [10, 10]}, interpolation="linear")
+
+    assert r.shape == (19, 36)
+    compare_global_ll_results(r.to_numpy(), v_ref, "linear", rtol=1e-4)
+    assert r.metadata(["param", "level", "date", "time"]) == metadata_ref
+
+    grid_ref = {"iDirectionIncrementInDegrees": 10.0, "jDirectionIncrementInDegrees": 10.0}
+    for k, v in grid_ref.items():
+        assert np.isclose(r.metadata(k), v), k
+
+    assert r.metadata("gridType") == "regular_ll"
+
+
+@pytest.mark.skipif(NO_MIR, reason="No mir available")
+@pytest.mark.skipif(NO_EKD, reason="No access to earthkit-data")
+@pytest.mark.parametrize("mode", ["field", "fieldlist", "gridspec"])
+def test_regrid_single_field_with_out_template(mode):
+    ds = _create_fieldlist("O32.grib", field_type="grib")
+    field = ds[0]
+
+    out_grid = _create_fieldlist("10x10.grib", field_type="grib")
+
+    if mode == "field":
+        out_grid = out_grid[0]
+    elif mode == "gridspec":
+        out_grid = {"grid": [10, 10]}
+
+    f_ref = get_test_data("out_O32_10x10_linear.npz")
+    v_ref = np.load(f_ref)["arr_0"]
+    metadata_ref = field.metadata(["param", "level", "date", "time"])
+
+    r = regrid(field, out_grid=out_grid, interpolation="linear")
+
+    assert r.shape == (19, 36)
+    compare_global_ll_results(r.to_numpy(), v_ref, "linear", rtol=1e-4)
+    assert r.metadata(["param", "level", "date", "time"]) == metadata_ref
+
+    grid_ref = {"iDirectionIncrementInDegrees": 10.0, "jDirectionIncrementInDegrees": 10.0}
+    for k, v in grid_ref.items():
+        assert np.isclose(r.metadata(k), v), k
+
+    assert r.metadata("gridType") == "regular_ll"

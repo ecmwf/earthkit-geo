@@ -19,6 +19,7 @@ from earthkit.geo.utils.testing import (
     compare_dims,
     covjson_to_xarray,
     get_test_data,
+    get_test_data_path,
 )
 
 if not NO_EKD:
@@ -48,6 +49,11 @@ REFS_SUBAREA = [
         [80, -20, -10, 60],
     ),
 ]
+
+
+def _create_fieldlist(filename, subfolder="global_0_360"):
+    ds = from_source("url", get_test_data_path(filename, subfolder=subfolder)).to_fieldlist()
+    return ds
 
 
 @pytest.mark.skipif(NO_MIR, reason="No mir available")
@@ -605,3 +611,36 @@ def test_regrid_xarray_covjson_unstructured_to_ll():
     assert np.allclose(r["10u"].to_numpy()[0][0][0][2], ref_data, equal_nan=True)
     assert np.allclose(r.latitude.values, ref_lat)
     assert np.allclose(r.longitude.values, ref_lon)
+
+
+@pytest.mark.skipif(NO_MIR, reason="No mir available")
+@pytest.mark.skipif(NO_EKD, reason="No earthkit.data available")
+def test_regrid_xarray_with_in_template():
+    ds_in = _create_fieldlist("O32.grib")
+    in_grid = ds_in.to_xarray()
+    ds = ds_in.to_xarray()
+
+    out_grid = _create_fieldlist("10x10.grib").to_xarray()
+    out_grid_ref = {"grid": [10, 10]}
+    dims = {"latitude": 19, "longitude": 36}
+
+    r = regrid(ds["2t"], in_grid=in_grid, out_grid=out_grid, interpolation="linear")
+
+    compare_dims(r, dims, sizes=True)
+
+    assert r.earthkit.grid_spec.items() >= out_grid_ref.items()
+
+
+@pytest.mark.skipif(NO_MIR, reason="No mir available")
+@pytest.mark.skipif(NO_EKD, reason="No earthkit.data available")
+def test_regrid_xarray_with_out_template():
+    ds = _create_fieldlist("O32.grib").to_xarray()
+    out_grid = _create_fieldlist("10x10.grib").to_xarray()
+    out_grid_ref = {"grid": [10, 10]}
+    dims = {"latitude": 19, "longitude": 36}
+
+    r = regrid(ds["2t"], out_grid=out_grid, interpolation="linear")
+
+    compare_dims(r, dims, sizes=True)
+
+    assert r.earthkit.grid_spec.items() >= out_grid_ref.items()

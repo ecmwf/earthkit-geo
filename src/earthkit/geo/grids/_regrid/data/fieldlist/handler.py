@@ -32,6 +32,12 @@ class FieldListDataHandler(DataHandler):
         except Exception:
             return False
 
+    @staticmethod
+    def get_grid(data):
+        from .grib import get_grid
+
+        return get_grid(data[0], 0)
+
     def regrid(self, data, in_grid=None, out_grid=None, **kwargs):
         """Regrid every field in a ``FieldList``.
 
@@ -128,6 +134,12 @@ class FieldDataHandler(DataHandler):
             return isinstance(data, earthkit.data.Field) and hasattr(data, "get")
         except Exception:
             return False
+
+    @staticmethod
+    def get_grid(data):
+        from .grib import get_grid
+
+        return get_grid(data, None)
 
     def regrid(self, data, **kwargs):
         """Regrid a single field by wrapping it in a one-element ``FieldList``.

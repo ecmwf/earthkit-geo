@@ -15,8 +15,18 @@ A :class:`DataHandler` subclass regrids one supported data type (e.g. a
 :mod:`earthkit.geo.grids._regrid.data`).
 """
 
+from __future__ import annotations
+
 import logging
 from abc import ABCMeta, abstractmethod
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
+
+if TYPE_CHECKING:
+    from earthkit.geo.grid import Grid  # type: ignore[import]
+
 
 LOG = logging.getLogger(__name__)
 
@@ -33,18 +43,52 @@ class DataHandler(metaclass=ABCMeta):
     handler for a given data object.
     """
 
+    @staticmethod
     @abstractmethod
-    def regrid(self, values, in_grid=None, out_grid=None, **kwargs):
-        """Regrid ``values`` from ``in_grid`` onto ``out_grid``.
+    def match(data: Any):
+        """Check whether this handler can process the given data.
 
         Parameters
         ----------
-        values : Any
+        data : Any
+            The data to check.
+
+        Returns
+        -------
+        bool
+            True if this handler can process ``data``, False otherwise.
+        """
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def get_grid(data) -> "Grid | None":
+        """Get the Grid object for the given data.
+
+        Parameters
+        ----------
+        data : Any
+            The data to get the grid for.
+
+        Returns
+        -------
+        Grid | None
+            The grid for the data, or None if it cannot be determined.
+        """
+        pass
+
+    @abstractmethod
+    def regrid(self, data, in_grid=None, out_grid=None, **kwargs):
+        """Regrid ``data`` from ``in_grid`` onto ``out_grid``.
+
+        Parameters
+        ----------
+        data : Any
             The data to regrid, of the type this handler supports.
         in_grid : Any, optional
-            The input grid or grid spec.
+            The input Grid object or grid spec.
         out_grid : Any, optional
-            The output grid or grid spec.
+            The output Grid object or grid spec.
         **kwargs : dict
             Must include ``backend`` (name or object of the regrid backend
             to use, see :meth:`backend_from_kwargs`). Any other keyword
@@ -53,7 +97,7 @@ class DataHandler(metaclass=ABCMeta):
         Returns
         -------
         Any
-            The regridded data, of the same type as ``values``.
+            The regridded data, of the same type as ``data``.
         """
         pass
 

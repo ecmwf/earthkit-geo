@@ -33,10 +33,12 @@ def get_grid(field, index):
     eckit.geo.Grid or None
         The field's grid, or None if it could not be determined.
     """
+    field_str = f"field[{index}]" if index is not None else "field"
+
     try:
         grid_spec = field.geography.grid_spec()
     except Exception as e:
-        LOG.warning(f"Cannot get input grid_spec from metadata for field[{index}]: {e}")
+        LOG.warning(f"Cannot get input grid_spec from metadata for {field_str}: {e}")
         grid_spec = None
 
     if grid_spec is None:
@@ -45,7 +47,7 @@ def get_grid(field, index):
             if lat is not None and lon is not None:
                 grid_spec = {"latitudes": lat.tolist(), "longitudes": lon.tolist()}
         except Exception as e:
-            LOG.exception(f"Cannot get latlons for field[{index}]: {e}")
+            LOG.exception(f"Cannot get latlons for {field_str}: {e}")
             raise
 
     if not grid_spec:

@@ -61,6 +61,24 @@ class XarrayDataHandler(DataHandler):
             return False
 
     @staticmethod
+    def get_grid(ds):
+        import xarray as xr
+
+        from .loader import variables as get_variables
+
+        input_is_dataset = isinstance(ds, xr.Dataset)
+        if not input_is_dataset:
+            ds = ds.to_dataset()
+
+        variables = get_variables(ds)
+
+        for v in variables:
+            if v.ek_grid is not None:
+                return v.ek_grid
+
+        return None
+
+    @staticmethod
     def add_geo_coords(ds, out_coords):
         """Add the geographical coordinates to the dataset."""
         dims, coords, coords_dim = out_coords

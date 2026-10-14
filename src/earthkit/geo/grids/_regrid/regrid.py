@@ -89,8 +89,10 @@ def regrid(
         - an :class:`xarray.DataArray` or :class:`xarray.Dataset`
         - a GRIB message as a :py:class:`bytes` or :class:`io.BytesIO` object
 
-    in_grid: dict|str|Grid|None, optional
-        The grid spec describing the input grid. It is only needed when the input grid
+    in_grid: dict|str|Grid|None|Any, optional
+        The grid spec describing the input grid. It can also be any object that can be passed to `data`; in this case
+        the input grid is inferred from this object and ValueError is raised if it cannot be determined.
+        It is only needed when the input grid
         cannot be automatically inferred from the input data. This can be the case for
         Xarray, where at present the grid information can only be accessed via the
         "earthkit.grid_spec" attribute, and if it is missing or does not contain the necessary
@@ -99,6 +101,8 @@ def regrid(
         The supported grids depends on the regridding ``backend``.
     out_grid: dict|str|Grid|None
         The grid spec describing the target grid that ``data`` will be interpolated onto.
+        It can also be any object that can be passed to `data`; in this case
+        the output grid is inferred from this object and ValueError is raised if it cannot be determined.
         The supported grids depends on the regridding ``backend``.
     interpolation: str
         The interpolation method. Please note not all the interpolation methods support all possible
@@ -126,6 +130,10 @@ def regrid(
     "FieldList|Field|xarray.DataArray|xarray.Dataset|bytes|io.BytesIO"
         The regridded data with the same type as ``data`` but with the grid changed to the output grid.
 
+    Raises
+    ------
+    ValueError
+        If the input or output grid cannot be determined or is not supported.
 
     Examples
     --------
@@ -162,4 +170,19 @@ def regrid(
         raise ValueError(txt)
 
     kwargs = kwargs.copy()
+
+    if in_grid is not None:
+        in_grid_h = get_data_handler(in_grid)
+        if in_grid_h:
+            in_grid = in_grid_h.get_grid(in_grid)
+            if in_grid is None:
+                raise ValueError("Failed to get grid from data object specified via in_grid")
+
+    if out_grid is not None:
+        out_grid_h = get_data_handler(out_grid)
+        if out_grid_h:
+            out_grid = out_grid_h.get_grid(out_grid)
+            if out_grid is None:
+                raise ValueError("Failed to get grid from out_grid")
+
     return h.regrid(data, in_grid=in_grid, out_grid=out_grid, interpolation=interpolation, backend=backend, **kwargs)

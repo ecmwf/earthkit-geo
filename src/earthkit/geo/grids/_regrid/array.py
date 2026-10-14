@@ -91,8 +91,24 @@ def regrid(
     - :ref:`/how-tos/precomputed/precomp_.ipynb`
 
     """
+    from earthkit.geo.grids._regrid.data.handler import get_data_handler
     from earthkit.geo.grids._regrid.data.numpy import handler
 
     h = handler()
     kwargs = kwargs.copy()
+
+    if in_grid is not None:
+        in_grid_h = get_data_handler(in_grid)
+        if in_grid_h:
+            in_grid = in_grid_h.get_grid(in_grid)
+            if in_grid is None:
+                raise ValueError("Failed to get grid from data object specified via in_grid")
+
+    if out_grid is not None:
+        out_grid_h = get_data_handler(out_grid)
+        if out_grid_h:
+            out_grid = out_grid_h.get_grid(out_grid)
+            if out_grid is None:
+                raise ValueError("Failed to get grid from data object specified via out_grid")
+
     return h.regrid(data, in_grid=in_grid, out_grid=out_grid, interpolation=interpolation, backend=backend, **kwargs)
