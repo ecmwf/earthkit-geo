@@ -124,8 +124,16 @@ def mir_make_matrix(
     return_matrix = False
     if output is None:
         version = 1
-        coord = str(version) + str(in_lat) + str(in_lon) + str(out_lat) + str(out_lon) \
-            + str(in_grid) + str(out_grid) + str(kwargs)
+        coord = (
+            str(version)
+            + str(in_lat)
+            + str(in_lon)
+            + str(out_lat)
+            + str(out_lon)
+            + str(in_grid)
+            + str(out_grid)
+            + str(kwargs)
+            )
         hash = _get_hash(coord)
         output = mir.cache() + f"tmp-interpolation-matrix-{hash}.mat"
         return_matrix = True
