@@ -7,7 +7,7 @@
 # nor does it submit to any jurisdiction.
 
 
-from earthkit.geo.grids._regrid.gridspec import normalise_grid_spec
+from earthkit.geo.grids._regrid.data.utils import normalise_grid_spec
 
 
 def test_gridspec_normaliser_1():

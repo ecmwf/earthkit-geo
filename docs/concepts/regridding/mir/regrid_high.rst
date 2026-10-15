@@ -12,34 +12,30 @@ regrid (high-level) with MIR
 
     :param data: The data to be regridded. The following input data types are supported:
 
-        - earthkit-data :py:class:`~earthkit.data.core.fieldlist.FieldList`
-        - earthkit-data :py:class:`~earthkit.data.core.field.Field`
-        - :class:`xarray.DataArray` or :class:`xarray.Dataset`
-        - GRIB message as a bytes or :class:`io.BytesIO` object
+        - earthkit-data :py:class:`~earthkit.data.core.fieldlist.FieldList` (see details :ref:`here <regrid-fieldlist>`)
+        - earthkit-data :py:class:`~earthkit.data.core.field.Field` (see details :ref:`here <regrid-fieldlist>`)
+        - :class:`xarray.DataArray` or :class:`xarray.Dataset` (see details :ref:`here <regrid-xarray>`)
+        - GRIB message as a bytes or :class:`io.BytesIO` object (see details :ref:`here <regrid-grib-message>`)
 
     :type data: :py:class:`~earthkit.data.core.fieldlist.FieldList`, :py:class:`~earthkit.data.core.field.Field`, :class:`xarray.DataArray`, :class:`xarray.Dataset`, bytes, :class:`io.BytesIO`
-    :param in_grid: the :ref:`gridspec <gridspec>` describing the input grid. It is only needed when the input grid
-        cannot be automatically inferred from the input data. This can be the case for
-        Xarray, where at present the grid information can only be accessed via the "earthkit.grid_spec" attribute,
-        and if it is missing or does not contain the necessary information ``in_grid`` needs to be provided. When ``in_grid`` is provided, it takes precedence over the metadata of the
-        input data. For the list of supported grids, please refer to the :ref:`gridspec <gridspec>` documentation.
+    :param in_grid: The :ref:`gridspec <gridspec>` describing the input grid. When None (the default), the input grid is inferred from the input data if possible. If the grid information cannot be inferred, but the latitudes and longitudes are available the input grid is treated as a collection of points, i.e., as an :ref:`unstructured <gridspec-unstructured>` grid. In this case, for performance reasons, it is recommended to use ``interpolation="nearest-neighbour"``. See more details in the :ref:`regridding-unstructured` section. For the list of supported grids, please refer to the :ref:`gridspec <gridspec>` documentation. Ignored when ``data`` is a GRIB message.
     :type in_grid: dict, str, :py:class:`Grid`
-    :param out_grid: the :ref:`gridspec <gridspec>` describing the target grid that ``data`` will be interpolated onto. For the list of supported grids, please refer to the :ref:`gridspec <gridspec>` documentation.
+    :param out_grid: The :ref:`gridspec <gridspec>` describing the target grid that ``data`` will be interpolated onto. For the list of supported grids, please refer to the :ref:`gridspec <gridspec>` documentation.
     :type out_grid: dict, str, :py:class:`Grid`
-    :param in_dims: the names of the geographical dimensions in the Xarray input data. It is only needed when the dimension names cannot be automatically inferred. When it is provided, it takes precedence over the metadata of the input data.
+    :param in_dims: The names of the geographical dimensions in the Xarray input data. It is only needed when the dimension names cannot be automatically inferred. When it is provided, it takes precedence over the metadata of the input data.
     :type in_dims: list, tuple, None
-    :param out_dims: the names of the geographical dimensions in the Xarray output data. It is only needed when the dimension names cannot be automatically inferred. When it is provided, it takes precedence over the metadata of the input data.
+    :param out_dims: The names of the geographical dimensions in the Xarray output data. It is only needed when the dimension names cannot be automatically inferred. When it is provided, it takes precedence over the metadata of the input data.
     :type out_dims: list, tuple, None
-    :param interpolation: the interpolation method. Please note not all the interpolation methods support all possible grid types. The possible values are as follows:
+    :param interpolation: The interpolation method. Please note not all the interpolation methods support all possible grid types. The possible values are as follows:
 
         - "linear": Finite Element based interpolation with linear base functions with supporting triangular mesh
         - "grid-box-average": input/output grid box intersections interpolation preserving input value integrals (conservative interpolation).
-        - "nearest-neighbour": choose a nearest neighbouring input point to define output point value
+        - "nearest-neighbour": choose a nearest neighbouring input point to define output point value. This is the recommended method for :ref:`unstructured <gridspec-unstructured>` grids.
 
     :type interpolation: str
 
 
-    :return: Return the regridded data with the same type as ``data`` but with the grid changed to the output grid.
+    :return: The regridded data with the same type as ``data`` but with the grid changed to the output grid.
     :rtype:  The same type of data as ``data``.
 
 

@@ -181,7 +181,14 @@ class CacheManager(threading.Thread):
     def _config_changed(self, policy):
         LOG.debug("Config changed")
         self._policy = policy
-        self._connection = None  # The user may have changed the cache directory
+        if self._connection is not None:
+            # The user may have changed the cache directory: close the old
+            # connection explicitly rather than just dropping the reference,
+            # otherwise its underlying file descriptor leaks until the next
+            # cyclic garbage collection (sqlite3.Connection objects are not
+            # always collected promptly by simple refcounting).
+            self._connection.close()
+        self._connection = None
         self._check_cache_size()
 
     def _latest_date(self):

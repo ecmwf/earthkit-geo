@@ -368,3 +368,5 @@ _dev
 *.grib2
 *.json
 *.npz
+*.nc
+*.covjson

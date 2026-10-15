@@ -43,7 +43,7 @@ def run_regrid(mode):
 
 @pytest.fixture
 def patch_estimate_matrix_memory(monkeypatch):
-    from earthkit.geo.grids._regrid.backends.db import MatrixIndex
+    from earthkit.geo.grids._regrid.backends.precomputed.db import MatrixIndex
 
     def patched_estimate_memory(self):
         return 200000
@@ -51,6 +51,7 @@ def patch_estimate_matrix_memory(monkeypatch):
     monkeypatch.setattr(MatrixIndex, "estimate_memory", patched_estimate_memory)
 
 
+@pytest.mark.matrix_db
 @pytest.mark.parametrize(
     "policy,adjust_to, evict",
     [("lru", "second", "first"), ("largest", "second", "first")],
@@ -125,6 +126,7 @@ def test_local_memcache_core_1(policy, adjust_to, evict):
             raise ValueError(f"Invalid evict value: {evict}")
 
 
+@pytest.mark.matrix_db
 @pytest.mark.parametrize(
     "policy,adjust_to, evict",
     [("lru", "second", "first"), ("largest", "first", "second")],
@@ -197,6 +199,7 @@ def test_local_memcache_core_2(policy, adjust_to, evict):
             raise ValueError(f"Invalid evict value: {evict}")
 
 
+@pytest.mark.matrix_db
 @pytest.mark.parametrize("policy", ["largest", "lru"])
 def test_local_memcache_small(policy):
     """Test the cache with such a small memory limit that no weights fits in"""
@@ -233,6 +236,7 @@ def test_local_memcache_small(policy):
         assert MEMORY_CACHE.info() == (0, 2, max_mem, 0, 0, policy)
 
 
+@pytest.mark.matrix_db
 def test_local_memcache_off_policy():
     from earthkit.geo import config
     from earthkit.geo.grids.utils.memcache import MEMORY_CACHE
@@ -271,6 +275,7 @@ def test_local_memcache_off_policy():
         assert MEMORY_CACHE.info() == (0, 0, 0, 0, 0, policy)
 
 
+@pytest.mark.matrix_db
 def test_local_memcache_unlimited():
     from earthkit.geo import config
     from earthkit.geo.grids.utils.memcache import MEMORY_CACHE
@@ -307,6 +312,7 @@ def test_local_memcache_unlimited():
         assert MEMORY_CACHE.info() == (1, 1, None, MEMORY_CACHE.curr_mem, 1, policy)
 
 
+@pytest.mark.matrix_db
 def test_local_memcache_ensure_strict_1(monkeypatch):
     """Test the cache with a memory limit that is too small to hold any estimated weights size"""
     from earthkit.geo import config
@@ -340,6 +346,7 @@ def test_local_memcache_ensure_strict_1(monkeypatch):
         assert "Weights too large" in str(excinfo.value)
 
 
+@pytest.mark.matrix_db
 def test_local_memcache_strict_2(monkeypatch):
     """Test the cache with a memory limit that can only hold one estimated weights size"""
     from earthkit.geo import config

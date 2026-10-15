@@ -8,6 +8,15 @@
 #
 
 
+"""Data-handler discovery and dispatch for the high-level ``regrid()`` entry point.
+
+Imports the ``fieldlist``, ``grib`` and ``xarray`` submodules (each exposing
+a ``handler`` attribute: a :class:`~.handler.DataHandler` subclass or a list
+of them) into :data:`DATA_HANDLERS`, and provides :func:`get_data_handler`
+to pick the handler whose :meth:`~.handler.DataHandler.match` accepts a
+given data object.
+"""
+
 from importlib import import_module
 
 _modules = [
@@ -28,6 +37,20 @@ for name in _modules:
 
 
 def get_data_handler(values):
+    """Return the registered data handler that can regrid ``values``.
+
+    Parameters
+    ----------
+    values : Any
+        The data object to find a handler for (e.g. an
+        ``earthkit.data.FieldList``, an ``xarray.Dataset``, a GRIB message).
+
+    Returns
+    -------
+    DataHandler or None
+        A new instance of the first matching handler in
+        :data:`DATA_HANDLERS`, or None if no handler matches.
+    """
     for h in DATA_HANDLERS:
         if h.match(values):
             # TODO: rethink if we need to create a new handler instance each time

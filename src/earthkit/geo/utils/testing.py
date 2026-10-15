@@ -33,7 +33,9 @@ def earthkit_test_data_path(*args):
 def simple_download(url, target):
     import requests
 
-    r = requests.get(url, allow_redirects=True)
+    # Without a timeout a stalled/unresponsive server hangs the request (and the
+    # test) forever instead of failing.
+    r = requests.get(url, allow_redirects=True, timeout=30)
     r.raise_for_status()
     open(target, "wb").write(r.content)
 
@@ -80,6 +82,10 @@ try:
     NO_MIR = not modules_installed("mir")
 except Exception:
     NO_MIR = True
+
+
+NO_COVJSON = not modules_installed("covjsonkit")
+IN_GITHUB = os.environ.get("GITHUB_WORKFLOW") is not None
 
 # TODO: remove these constants when the backend names are finalized
 LOCAL_MATRIX_BACKEND_NAME = "precomputed"
@@ -173,3 +179,19 @@ def proportion_close(v1, v2, proportion):
     close_mask = np.isclose(v1, v2)
     prop_close = np.sum(close_mask) / close_mask.size
     return prop_close
+
+
+def covjson_to_xarray(path):
+    try:
+        from covjsonkit.api import Covjsonkit
+    except ImportError:
+        raise ImportError("covjson handling requires 'covjsonkit' to be installed")
+
+    import json
+
+    with open(path, "r") as f:
+        d = json.load(f)
+        decoder = Covjsonkit().decode(d)
+        return decoder.to_xarray()
+
+    return None

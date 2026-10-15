@@ -20,6 +20,7 @@ if not NO_EKD:
     from earthkit.data import from_source  # noqa
 
 
+@pytest.mark.matrix_db
 @pytest.mark.skipif(NO_EKD, reason="No earthkit.data available")
 @pytest.mark.skipif(NO_MIR, reason="No mir available")
 @pytest.mark.parametrize(
@@ -39,6 +40,7 @@ def test_regrid_matrix_xarray_from_ogg(out_grid, dims):
     compare_dims(r, dims, sizes=True)
 
 
+@pytest.mark.matrix_db
 @pytest.mark.skipif(NO_EKD, reason="No earthkit.data available")
 @pytest.mark.skipif(NO_MIR, reason="No mir available")
 @pytest.mark.parametrize(

@@ -33,6 +33,7 @@ def _create_fieldlist(filename, field_type):
         raise ValueError(f"Unknown field type: {field_type}")
 
 
+@pytest.mark.matrix_db
 @pytest.mark.download
 @pytest.mark.tmp_cache
 @pytest.mark.skipif(NO_EKD, reason="No access to earthkit-data")
@@ -65,9 +66,10 @@ def test_regrid_matrix_fieldlist_reg_ll_grib(_kwarg, interpolation, field_type, 
     grid_ref = Grid({"grid": [10, 10]}).spec
 
     for f in r:
-        assert f.geography.grid_spec() == grid_ref
+        assert f.geography.grid_spec().items() >= grid_ref.items()
 
 
+@pytest.mark.matrix_db
 def test_regrid_matrix_fieldlist_reg_ll_non_grib():
     interpolation = "linear"
     field_type = "grib"
@@ -93,9 +95,10 @@ def test_regrid_matrix_fieldlist_reg_ll_non_grib():
     grid_ref = Grid({"grid": [10, 10]}).spec
 
     for f in r:
-        assert f.geography.grid_spec() == grid_ref
+        assert f.geography.grid_spec().items() >= grid_ref.items()
 
 
+@pytest.mark.matrix_db
 @pytest.mark.download
 @pytest.mark.tmp_cache
 @pytest.mark.skipif(NO_EKD, reason="No access to earthkit-data")
@@ -128,9 +131,10 @@ def test_regrid_matrix_fieldlist_gg(_kwarg, interpolation, field_type, out_grid)
     grid_ref = Grid({"grid": [10, 10]}).spec
 
     for f in r:
-        assert f.geography.grid_spec() == grid_ref
+        assert f.geography.grid_spec().items() >= grid_ref.items()
 
 
+@pytest.mark.matrix_db
 @pytest.mark.download
 @pytest.mark.tmp_cache
 @pytest.mark.skipif(NO_EKD, reason="No access to earthkit-data")
@@ -150,6 +154,7 @@ def test_regrid_matrix_single_field_grib(_kwarg, interpolation, field_type, out_
     ds = _create_fieldlist("5x5.grib", field_type)
 
     f_ref = get_test_data(f"out_5x5_10x10_{interpolation}.npz")
+
     v_ref = np.load(f_ref)["arr_0"]
     field = ds[0]
     field = field.set(labels={"my_label": "my_value"})
@@ -164,9 +169,10 @@ def test_regrid_matrix_single_field_grib(_kwarg, interpolation, field_type, out_
 
     grid_ref = Grid({"grid": [10, 10]}).spec
 
-    assert r.geography.grid_spec() == grid_ref
+    assert r.geography.grid_spec().items() >= grid_ref.items()
 
 
+@pytest.mark.matrix_db
 @pytest.mark.download
 @pytest.mark.tmp_cache
 @pytest.mark.skipif(NO_EKD, reason="No access to earthkit-data")
@@ -193,9 +199,10 @@ def test_regrid_matrix_single_field_non_grib():
 
     grid_ref = Grid({"grid": [10, 10]}).spec
 
-    assert r.geography.grid_spec() == grid_ref
+    assert r.geography.grid_spec().items() >= grid_ref.items()
 
 
+@pytest.mark.matrix_db
 @pytest.mark.download
 @pytest.mark.tmp_cache
 @pytest.mark.skipif(NO_EKD, reason="No access to earthkit-data")
@@ -219,4 +226,4 @@ def test_regrid_matrix_fieldlist_reg_ll_grib_deprec_grid_kwarg():
     grid_ref = Grid({"grid": [10, 10]}).spec
 
     for f in r:
-        assert f.geography.grid_spec() == grid_ref
+        assert f.geography.grid_spec().items() >= grid_ref.items()

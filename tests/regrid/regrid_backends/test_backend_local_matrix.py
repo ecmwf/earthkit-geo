@@ -25,7 +25,7 @@ def file_in_testdir(filename):
 
 
 def get_local_db():
-    from earthkit.geo.grids._regrid.backends.db import MatrixDb
+    from earthkit.geo.grids._regrid.backends.precomputed.db import MatrixDb
 
     return MatrixDb.from_path(DB_PATH)
 
