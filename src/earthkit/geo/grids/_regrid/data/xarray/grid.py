@@ -25,6 +25,13 @@ from typing import Any, Tuple
 import numpy as np
 from earthkit.utils.decorators import thread_safe_cached_property
 
+from .grid_spec import (
+    healpix_grid_spec_from_points,
+    reduced_gg_grid_spec_from_points,
+    regular_ll_grid_spec,
+    regular_ll_grid_spec_from_points,
+)
+
 LOG = logging.getLogger(__name__)
 
 
@@ -111,6 +118,16 @@ class XarrayGrid:
         else:
             return None
 
+    @property
+    def grid_spec(self):
+        """Get the grid specification from :attr:`latlon_grid` or :attr:`xy_grid`."""
+        if self.latlon_grid is not None:
+            return self.latlon_grid.grid_spec
+        elif self.xy_grid is not None:
+            return self.xy_grid.grid_spec
+        else:
+            return None
+
 
 class Grid(ABC):
     """Abstract base class for grid structures."""
@@ -135,6 +152,11 @@ class Grid(ABC):
     def grid_type(self) -> str:
         """str: Get the eckit-geo grid type."""
         pass
+
+    @property
+    def grid_spec(self):
+        """Get the grid specification."""
+        return None
 
 
 class LatLonGrid(Grid):
@@ -219,6 +241,11 @@ class MeshedGrid(LatLonGrid):
         """str: Always ``"regular-ll"``."""
         return "regular-ll"
 
+    @thread_safe_cached_property
+    def grid_spec(self):
+        """Dict or None: The gridspec for a regular lat/lon grid, or ``None`` if not regular."""
+        return regular_ll_grid_spec(self.lat.variable.values, self.lon.variable.values)
+
 
 class UnstructuredGrid(LatLonGrid):
     """Grid class for unstructured latitude and longitude coordinates."""
@@ -268,6 +295,20 @@ class UnstructuredGrid(LatLonGrid):
     def grid_type(self):
         """str: Always ``"unstructured"``."""
         return "unstructured"
+
+    @thread_safe_cached_property
+    def grid_spec(self):
+        """Dict or None: The gridspec if the points form a known grid, else ``None``.
+
+        Tries, in order, a regular lat/lon grid, a HEALPix grid, and a
+        reduced Gaussian grid.
+        """
+        lat, lon = self.latlons
+        return (
+            regular_ll_grid_spec_from_points(lat, lon)
+            or healpix_grid_spec_from_points(lat, lon)
+            or reduced_gg_grid_spec_from_points(lat, lon)
+        )
 
 
 class RawXYGrid(XYGrid):
