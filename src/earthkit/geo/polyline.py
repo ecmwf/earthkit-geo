@@ -53,7 +53,7 @@ def _great_circle_prepare(lat, lon):
     if np.any(coincident & (dot < 0)):
         i = int(np.flatnonzero(coincident & (dot < 0))[0])
         raise ValueError(
-            f"polyline: segment {i} of the great circle polyline has antipodal ends "
+            f"sample_polyline: segment {i} of the great circle polyline has antipodal ends "
             f"({lat[i]}, {lon[i]}) and ({lat[i + 1]}, {lon[i + 1]}); the path is not unique. "
             "Add an intermediate waypoint"
         )
@@ -101,7 +101,7 @@ def _distribute(lengths, extra):
     counts = np.floor(quota).astype(int)
     left = extra - int(counts.sum())
     if left < 0:  # pragma: no cover
-        raise RuntimeError(f"polyline: internal error in the sharing of the points (left={left})")
+        raise RuntimeError(f"sample_polyline: internal error in the sharing of the points (left={left})")
 
     candidates = np.flatnonzero(eligible)
     if left >= len(candidates):  # pragma: no cover
@@ -149,7 +149,7 @@ def _validate_waypoints(name, what, lats, lons):
     return lat, lon, k
 
 
-def polyline(lats, lons, n=100, method="great_circle"):
+def sample_polyline(lats, lons, n=100, method="great_circle"):
     """Sample points along a polyline defined by a sequence of waypoints.
 
     Parameters
@@ -233,8 +233,8 @@ def polyline(lats, lons, n=100, method="great_circle"):
     Points along the great circle between Reading and Bologna. The first and the last
     points are the waypoints.
 
-    >>> from earthkit.geo.polyline import polyline
-    >>> lats, lons = polyline([51.45, 44.49], [-0.97, 11.34], n=5)
+    >>> from earthkit.geo.polyline import sample_polyline
+    >>> lats, lons = sample_polyline([51.45, 44.49], [-0.97, 11.34], n=5)
     >>> lats.shape
     (5,)
     >>> float(lats[0]), float(lons[0])
@@ -245,7 +245,7 @@ def polyline(lats, lons, n=100, method="great_circle"):
     Sample the full equator every 90° (the last point is the same place as the first
     one) with a rhumb line:
 
-    >>> lats, lons = polyline([0, 0], [-180, 180], n=5, method="rhumb")
+    >>> lats, lons = sample_polyline([0, 0], [-180, 180], n=5, method="rhumb")
     >>> lats.tolist()
     [0.0, 0.0, 0.0, 0.0, 0.0]
     >>> lons.tolist()
@@ -253,27 +253,27 @@ def polyline(lats, lons, n=100, method="great_circle"):
 
     The same with great circle segments needs more than two waypoints:
 
-    >>> lats, lons = polyline([0, 0, 0, 0], [-180, -60, 60, 180], n=7)
+    >>> lats, lons = sample_polyline([0, 0, 0, 0], [-180, -60, 60, 180], n=7)
     >>> [round(float(x), 6) for x in lats]
     [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     >>> [round(float(x), 6) for x in lons]
     [-180.0, -120.0, -60.0, 0.0, 60.0, 120.0, 180.0]
 
     """
-    lat, lon, k = _validate_waypoints("polyline", "waypoints", lats, lons)
+    lat, lon, k = _validate_waypoints("sample_polyline", "waypoints", lats, lons)
 
     if isinstance(n, bool) or not isinstance(n, numbers.Integral):
-        raise ValueError(f"polyline: n must be an int! Got {type(n).__name__}")
+        raise ValueError(f"sample_polyline: n must be an int! Got {type(n).__name__}")
 
     n = int(n)
     if n < k:
-        raise ValueError(f"polyline: n must be at least the number of waypoints! n={n} < {k}")
+        raise ValueError(f"sample_polyline: n must be at least the number of waypoints! n={n} < {k}")
 
     if method not in METHODS:
-        raise ValueError(f"polyline: unknown method={method!r}! Must be one of {METHODS}")
+        raise ValueError(f"sample_polyline: unknown method={method!r}! Must be one of {METHODS}")
 
     if method == "rhumb" and np.any(np.abs(lat) == 90):
-        raise ValueError("polyline: waypoints at the poles are not allowed with method='rhumb'")
+        raise ValueError("sample_polyline: waypoints at the poles are not allowed with method='rhumb'")
 
     # segment lengths along the chosen path
     if method == "great_circle":
@@ -362,7 +362,7 @@ def _great_circle_tangents(lat, lon):
     if np.any(antipodal):
         i = int(np.flatnonzero(antipodal)[0])
         raise ValueError(
-            f"polyline_normal: segment {i} of the great circle polyline has antipodal ends "
+            f"polyline_normals: segment {i} of the great circle polyline has antipodal ends "
             f"({lat[i]}, {lon[i]}) and ({lat[i + 1]}, {lon[i + 1]}); the path is not unique. "
             "Add an intermediate waypoint"
         )
@@ -459,7 +459,7 @@ def _linear_tangents(lat, lon):
     return valid, ends[0], ends[1]
 
 
-def polyline_normal(lats, lons, method="great_circle"):
+def polyline_normals(lats, lons, method="great_circle"):
     """Compute the unit normal vectors at the vertices of a polyline.
 
     Parameters
@@ -471,7 +471,7 @@ def polyline_normal(lats, lons, method="great_circle"):
         Longitudes of the vertices (degrees). Must have the same shape as ``lats``.
     method: str, optional
         Path between consecutive vertices. One of ``"great_circle"`` (default),
-        ``"rhumb"`` or ``"linear"``. It is the same as in :py:func:`polyline`.
+        ``"rhumb"`` or ``"linear"``. It is the same as in :py:func:`sample_polyline`.
 
     Returns
     -------
@@ -503,7 +503,7 @@ def polyline_normal(lats, lons, method="great_circle"):
     line reverses at the vertex (``|t_in + t_out|`` is nearly zero) the bisector is
     undefined and an error is raised.
 
-    The methods are the same as in :py:func:`polyline`, and the normals follow the path
+    The methods are the same as in :py:func:`sample_polyline`, and the normals follow the path
     that it samples:
 
     - ``"great_circle"``: the normal at both ends of a segment lies in the plane
@@ -530,8 +530,8 @@ def polyline_normal(lats, lons, method="great_circle"):
     --------
     The normal of a line heading east along the equator points north:
 
-    >>> from earthkit.geo.polyline import polyline_normal
-    >>> east, north = polyline_normal([0, 0], [0, 10])
+    >>> from earthkit.geo.polyline import polyline_normals
+    >>> east, north = polyline_normals([0, 0], [0, 10])
     >>> [round(float(x), 6) + 0.0 for x in east]
     [0.0, 0.0]
     >>> [round(float(x), 6) + 0.0 for x in north]
@@ -539,22 +539,24 @@ def polyline_normal(lats, lons, method="great_circle"):
 
     The normals of a line heading north along a meridian point west:
 
-    >>> east, north = polyline_normal([0, 10, 20], [0, 0, 0], method="rhumb")
+    >>> east, north = polyline_normals([0, 10, 20], [0, 0, 0], method="rhumb")
     >>> [round(float(x), 6) + 0.0 for x in east]
     [-1.0, -1.0, -1.0]
     >>> [round(float(x), 6) + 0.0 for x in north]
     [0.0, 0.0, 0.0]
 
     """
-    lat, lon, k = _validate_waypoints("polyline_normal", "vertices", lats, lons)
+    lat, lon, k = _validate_waypoints("polyline_normals", "vertices", lats, lons)
 
     if method not in METHODS:
-        raise ValueError(f"polyline_normal: unknown method={method!r}! Must be one of {METHODS}")
+        raise ValueError(f"polyline_normals: unknown method={method!r}! Must be one of {METHODS}")
 
     pole = np.abs(lat) == 90
     if np.any(pole):
         i = int(np.flatnonzero(pole)[0])
-        raise ValueError(f"polyline_normal: vertex {i} is at a pole (lat={lat[i]}), where east and north are undefined")
+        raise ValueError(
+            f"polyline_normals: vertex {i} is at a pole (lat={lat[i]}), where east and north are undefined"
+        )
 
     if method == "great_circle":
         valid, start, end = _great_circle_tangents(lat, lon)
@@ -564,7 +566,7 @@ def polyline_normal(lats, lons, method="great_circle"):
         valid, start, end = _linear_tangents(lat, lon)
 
     if not np.any(valid):
-        raise ValueError("polyline_normal: all the segments have zero length, the direction is undefined")
+        raise ValueError("polyline_normals: all the segments have zero length, the direction is undefined")
 
     # nearest non-degenerate segment before (i < j) and after (i >= j) each vertex j
     nseg = k - 1
@@ -585,7 +587,7 @@ def polyline_normal(lats, lons, method="great_circle"):
     uturn = has_in & has_out & (norm < _EPSILON)
     if np.any(uturn):
         i = int(np.flatnonzero(uturn)[0])
-        raise ValueError(f"polyline_normal: the line reverses its direction at vertex {i} (U-turn)")
+        raise ValueError(f"polyline_normals: the line reverses its direction at vertex {i} (U-turn)")
 
     tangent = total / norm[:, None]
     return -tangent[:, 1], tangent[:, 0]
@@ -654,7 +656,7 @@ def circle(lat, lon, radius, n=100, figure=IFS_SPHERE):
 
     Longitude range: the longitudes of all the points are returned in [0, 360) if the
     longitude of the centre is non-negative and in [-180, 180) otherwise, as in
-    :py:func:`polyline`. A circle that crosses the dateline therefore jumps in longitude.
+    :py:func:`sample_polyline`. A circle that crosses the dateline therefore jumps in longitude.
 
     The circle may contain a pole. The centre can be at a pole, where the bearings are
     undefined: they are taken as the limit of approaching the pole along the meridian
@@ -666,11 +668,11 @@ def circle(lat, lon, radius, n=100, figure=IFS_SPHERE):
     The model is a sphere. The points are computed with vectors, which is accurate for
     any radius and next to the poles.
 
-    Because the points travel clockwise, :py:func:`polyline_normal` on the result gives
+    Because the points travel clockwise, :py:func:`polyline_normals` on the result gives
     normals pointing outwards (away from the centre), wherever it is defined. It is not
     defined if a vertex is exactly at a pole (e.g. a circle around (0, 0) with a radius
     of a quarter of the circumference starts at the north pole) or if the segments are
-    degenerate (smaller than the coincidence threshold of :py:func:`polyline_normal`).
+    degenerate (smaller than the coincidence threshold of :py:func:`polyline_normals`).
 
     Examples
     --------

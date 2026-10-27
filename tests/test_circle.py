@@ -17,7 +17,7 @@ import pytest
 from earthkit.geo.coord import latlon_to_xyz
 from earthkit.geo.distance import haversine_distance
 from earthkit.geo.figure import IFS_SPHERE, UNIT_SPHERE
-from earthkit.geo.polyline import circle, polyline_normal
+from earthkit.geo.polyline import circle, polyline_normals
 
 R = IFS_SPHERE.radius  # m
 
@@ -347,7 +347,7 @@ def _basis(lat, lon):
 
 
 @pytest.mark.parametrize("radius", [10.0, 100.0, 1000.0, 2500.0, 5000.0])
-def test_circle_polyline_normal_outwards(radius):
+def test_circle_polyline_normals_outwards(radius):
     count = 0
     centres = [c for c in CENTRES if abs(c[0]) <= 70] + [(70.0, 0.0), (-70.0, 90.0), (0.0, 180.0)]
     for lat, lon in centres:
@@ -355,7 +355,7 @@ def test_circle_polyline_normal_outwards(radius):
             continue
         count += 1
         lats, lons = circle(lat, lon, radius, n=100)
-        east, north = polyline_normal(lats, lons)
+        east, north = polyline_normals(lats, lons)
         e, u = _basis(lats, lons)
         normal = east[:, None] * e + north[:, None] * u
 
@@ -368,12 +368,12 @@ def test_circle_polyline_normal_outwards(radius):
     assert count > 0
 
 
-def test_circle_polyline_normal_undefined_at_pole_vertex():
-    # a quarter of the circumference around (0, 0) starts at the north pole, where polyline_normal is undefined
+def test_circle_polyline_normals_undefined_at_pole_vertex():
+    # a quarter of the circumference around (0, 0) starts at the north pole, where polyline_normals is undefined
     lats, lons = circle(0, 0, np.pi / 2 * R / 1000.0)
     assert lats[0] == 90
     with pytest.raises(ValueError, match="pole"):
-        polyline_normal(lats, lons)
+        polyline_normals(lats, lons)
 
 
 # ---------------------------------------------------------------------------

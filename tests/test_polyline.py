@@ -15,7 +15,7 @@ import pytest
 from earthkit.geo.coord import latlon_to_xyz
 from earthkit.geo.distance import haversine_distance
 from earthkit.geo.figure import UNIT_SPHERE
-from earthkit.geo.polyline import _distribute, _wrap_lon, polyline
+from earthkit.geo.polyline import _distribute, _wrap_lon, sample_polyline
 
 METHODS = ["great_circle", "rhumb", "linear"]
 
@@ -39,12 +39,12 @@ def _xyz(lat, lon):
 
 
 @pytest.mark.parametrize("method", METHODS)
-def test_polyline_length_and_waypoint_indices(method):
+def test_sample_polyline_length_and_waypoint_indices(method):
     # all segments have the same length (20) for every method, so the extra
     # points are shared equally: 3 per segment
     lats = [-30.0, -10.0, 10.0, 30.0]
     lons = [5.0, 5.0, 5.0, 5.0]
-    lat, lon = polyline(lats, lons, n=13, method=method)
+    lat, lon = sample_polyline(lats, lons, n=13, method=method)
 
     assert lat.shape == (13,)
     assert lon.shape == (13,)
@@ -62,11 +62,11 @@ def test_polyline_length_and_waypoint_indices(method):
 
 
 @pytest.mark.parametrize("method", METHODS)
-def test_polyline_waypoints_exact_unequal_segments(method):
+def test_sample_polyline_waypoints_exact_unequal_segments(method):
     lats = [10.123456789, 20.456, -5.5, 33.3, 33.3, 41.7]
     lons = [170.1, 20.2, 33.3, 120.4, 120.4, 151.9]
     n = 60
-    lat, lon = polyline(lats, lons, n=n, method=method)
+    lat, lon = sample_polyline(lats, lons, n=n, method=method)
 
     assert lat.shape == (n,)
     assert lon.shape == (n,)
@@ -88,31 +88,31 @@ def test_polyline_waypoints_exact_unequal_segments(method):
 
 
 @pytest.mark.parametrize("method", METHODS)
-def test_polyline_inputs_types_and_not_modified(method):
+def test_sample_polyline_inputs_types_and_not_modified(method):
     lats = np.array([0, 10, 20])
     lons = np.array([0, 10, 20])
     lats_copy = lats.copy()
     lons_copy = lons.copy()
-    lat, lon = polyline(lats, lons, n=7, method=method)
+    lat, lon = sample_polyline(lats, lons, n=7, method=method)
     np.testing.assert_array_equal(lats, lats_copy)
     np.testing.assert_array_equal(lons, lons_copy)
     assert lat.ndim == 1 and lon.ndim == 1
     assert lat.dtype == float and lon.dtype == float
 
     # lists and tuples are accepted, numpy integers as n too
-    lat2, lon2 = polyline((0, 10, 20), (0, 10, 20), n=np.int64(7), method=method)
+    lat2, lon2 = sample_polyline((0, 10, 20), (0, 10, 20), n=np.int64(7), method=method)
     np.testing.assert_array_equal(lat, lat2)
     np.testing.assert_array_equal(lon, lon2)
 
 
 @pytest.mark.parametrize("method", METHODS)
-def test_polyline_default_n_and_method(method):
-    lat, lon = polyline([0, 10], [0, 10], method=method)
+def test_sample_polyline_default_n_and_method(method):
+    lat, lon = sample_polyline([0, 10], [0, 10], method=method)
     assert lat.shape == (100,)
     assert lon.shape == (100,)
 
-    lat_d, lon_d = polyline([0, 10], [0, 10])
-    lat_g, lon_g = polyline([0, 10], [0, 10], n=100, method="great_circle")
+    lat_d, lon_d = sample_polyline([0, 10], [0, 10])
+    lat_g, lon_g = sample_polyline([0, 10], [0, 10], n=100, method="great_circle")
     np.testing.assert_array_equal(lat_d, lat_g)
     np.testing.assert_array_equal(lon_d, lon_g)
 
@@ -126,8 +126,8 @@ def test_polyline_default_n_and_method(method):
         ([0.0, 0.0, 0.0], [-180.0, 180.0, 540.0]),
     ],
 )
-def test_polyline_n_equals_k(method, lats, lons):
-    lat, lon = polyline(lats, lons, n=len(lats), method=method)
+def test_sample_polyline_n_equals_k(method, lats, lons):
+    lat, lon = sample_polyline(lats, lons, n=len(lats), method=method)
     np.testing.assert_array_equal(lat, lats)
     np.testing.assert_array_equal(lon, lons)
 
@@ -137,16 +137,16 @@ def test_polyline_n_equals_k(method, lats, lons):
 # ---------------------------------------------------------------------------
 
 
-def test_polyline_great_circle_equator():
-    lat, lon = polyline([0, 0], [0, 90], n=10)
+def test_sample_polyline_great_circle_equator():
+    lat, lon = sample_polyline([0, 0], [0, 90], n=10)
     np.testing.assert_allclose(lon, np.arange(0, 100, 10), atol=1e-9)
     np.testing.assert_allclose(lat, 0, atol=1e-12)
     assert lat[0] == 0 and lon[0] == 0
     assert lat[-1] == 0 and lon[-1] == 90
 
 
-def test_polyline_great_circle_meridian():
-    lat, lon = polyline([-20, 70], [30, 30], n=10)
+def test_sample_polyline_great_circle_meridian():
+    lat, lon = sample_polyline([-20, 70], [30, 30], n=10)
     np.testing.assert_allclose(lat, np.linspace(-20, 70, 10), atol=1e-9)
     np.testing.assert_allclose(lon, 30, atol=1e-9)
 
@@ -160,9 +160,9 @@ def test_polyline_great_circle_meridian():
         ((0.0, 0.0), (89.0, 175.0)),
     ],
 )
-def test_polyline_great_circle_equal_spacing_and_plane(p1, p2):
+def test_sample_polyline_great_circle_equal_spacing_and_plane(p1, p2):
     n = 25
-    lat, lon = polyline([p1[0], p2[0]], [p1[1], p2[1]], n=n)
+    lat, lon = sample_polyline([p1[0], p2[0]], [p1[1], p2[1]], n=n)
 
     # equally spaced along the great circle
     d = np.array([
@@ -183,8 +183,8 @@ def test_polyline_great_circle_equal_spacing_and_plane(p1, p2):
     np.testing.assert_allclose(pts @ normal, 0, atol=1e-12)
 
 
-def test_polyline_great_circle_across_dateline():
-    lat, lon = polyline([0, 0], [170, -170], n=21)
+def test_sample_polyline_great_circle_across_dateline():
+    lat, lon = sample_polyline([0, 0], [170, -170], n=21)
     assert lon[0] == 170
     assert lon[-1] == -170
     np.testing.assert_allclose(lat, 0, atol=1e-12)
@@ -198,21 +198,21 @@ def test_polyline_great_circle_across_dateline():
     np.testing.assert_allclose(interior, expected, atol=1e-9)
 
 
-def test_polyline_great_circle_near_antipodal_meridian():
+def test_sample_polyline_great_circle_near_antipodal_meridian():
     # ends almost antipodal, but above the rejection threshold: the spacing must stay equal
-    lat, lon = polyline([-90, 89.9999999999], [0, 0], n=5)
+    lat, lon = sample_polyline([-90, 89.9999999999], [0, 0], n=5)
     assert lat[0] == -90 and lat[-1] == 89.9999999999
     np.testing.assert_allclose(lat, np.linspace(-90, 89.9999999999, 5), atol=1e-6, rtol=0)
     np.testing.assert_allclose(lon, 0, atol=1e-9)
 
-    lat, lon = polyline([-90, 89.9999999999], [0, 0], n=181)
+    lat, lon = sample_polyline([-90, 89.9999999999], [0, 0], n=181)
     np.testing.assert_allclose(lat, np.linspace(-90, 89.9999999999, 181), atol=1e-6, rtol=0)
 
 
 @pytest.mark.parametrize("dlon", [179.999999999, 179.9999999999, 180.0000000001])
-def test_polyline_great_circle_near_antipodal_equator(dlon):
+def test_sample_polyline_great_circle_near_antipodal_equator(dlon):
     n = 9
-    lat, lon = polyline([0, 0], [0, dlon], n=n)
+    lat, lon = sample_polyline([0, 0], [0, dlon], n=n)
     np.testing.assert_allclose(lat, 0, atol=1e-9)
     # shortest path: eastwards for dlon < 180, westwards (through 0) otherwise
     expected = np.linspace(0, dlon, n) if dlon < 180 else np.linspace(360, dlon, n) % 360
@@ -221,11 +221,11 @@ def test_polyline_great_circle_near_antipodal_equator(dlon):
 
 
 @pytest.mark.parametrize("lat2,lon2", [(-10.0, 180.0 - 1e-10), (20.0, -179.9999999999), (89.99999999, 180.0)])
-def test_polyline_great_circle_near_antipodal_equal_spacing(lat2, lon2):
+def test_sample_polyline_great_circle_near_antipodal_equal_spacing(lat2, lon2):
     # p1 is 1e-9 degrees away from the antipode of (lat2, 180)
     p1 = (-lat2 + 1e-9, 0.0)
     n = 21
-    lat, lon = polyline([p1[0], lat2], [p1[1], lon2], n=n)
+    lat, lon = sample_polyline([p1[0], lat2], [p1[1], lon2], n=n)
     d = np.array([
         haversine_distance((lat[i], lon[i]), (lat[i + 1], lon[i + 1]), figure=UNIT_SPHERE) for i in range(n - 1)
     ])
@@ -233,21 +233,21 @@ def test_polyline_great_circle_near_antipodal_equal_spacing(lat2, lon2):
     assert np.all(np.isfinite(lat)) and np.all(np.isfinite(lon))
 
 
-def test_polyline_great_circle_over_the_pole():
-    lat, lon = polyline([80, 80], [0, 180], n=11)
+def test_sample_polyline_great_circle_over_the_pole():
+    lat, lon = sample_polyline([80, 80], [0, 180], n=11)
     assert np.all(np.isfinite(lat)) and np.all(np.isfinite(lon))
     # arcsin is ill-conditioned at the pole
     assert np.max(lat) == pytest.approx(90, abs=1e-5)
     # and the end at the pole itself
-    lat, lon = polyline([0, 90], [10, 0], n=10)
+    lat, lon = sample_polyline([0, 90], [10, 0], n=10)
     assert np.all(np.isfinite(lat)) and np.all(np.isfinite(lon))
     np.testing.assert_allclose(lat, np.linspace(0, 90, 10), atol=1e-9)
 
 
 @pytest.mark.parametrize("dlon", [1e-9, 1e-10, 1e-11])
-def test_polyline_great_circle_near_coincident(dlon):
+def test_sample_polyline_great_circle_near_coincident(dlon):
     # central angle is around 1.7e-11 or smaller: close to the zero-length threshold
-    lat, lon = polyline([0, 0], [0, dlon], n=10)
+    lat, lon = sample_polyline([0, 0], [0, dlon], n=10)
     assert np.all(np.isfinite(lat))
     assert np.all(np.isfinite(lon))
     assert lon[0] == 0 and lon[-1] == dlon
@@ -256,16 +256,16 @@ def test_polyline_great_circle_near_coincident(dlon):
     np.testing.assert_allclose(lat, 0, atol=1e-12)
 
 
-def test_polyline_great_circle_coincident_is_zero_length():
+def test_sample_polyline_great_circle_coincident_is_zero_length():
     # the first segment is a zero-length one: gets no points
-    lat, lon = polyline([0, 0, 0], [0, 1e-13, 10], n=5)
+    lat, lon = sample_polyline([0, 0, 0], [0, 1e-13, 10], n=5)
     assert lon[0] == 0
     assert lon[1] == 1e-13
     np.testing.assert_allclose(lon[2:], [10 / 3, 20 / 3, 10], atol=1e-9)
 
 
-def test_polyline_great_circle_global_three_or_more_waypoints():
-    lat, lon = polyline([0, 0, 0, 0], [-180, -60, 60, 180], n=361)
+def test_sample_polyline_great_circle_global_three_or_more_waypoints():
+    lat, lon = sample_polyline([0, 0, 0, 0], [-180, -60, 60, 180], n=361)
     assert lat.shape == (361,)
     np.testing.assert_allclose(lat, 0, atol=1e-12)
     np.testing.assert_allclose(lon, np.arange(-180, 181), atol=1e-9)
@@ -273,8 +273,8 @@ def test_polyline_great_circle_global_three_or_more_waypoints():
     assert np.all(lon[1:-1] >= -180) and np.all(lon[1:-1] < 180)
 
 
-def test_polyline_great_circle_global_zero_to_360():
-    lat, lon = polyline([0, 0, 0, 0], [0, 120, 240, 360], n=361)
+def test_sample_polyline_great_circle_global_zero_to_360():
+    lat, lon = sample_polyline([0, 0, 0, 0], [0, 120, 240, 360], n=361)
     np.testing.assert_allclose(lat, 0, atol=1e-12)
     np.testing.assert_allclose(lon, np.arange(0, 361), atol=1e-9)
     assert lon[0] == 0 and lon[-1] == 360
@@ -296,8 +296,8 @@ def test_polyline_great_circle_global_zero_to_360():
         ((70.0, 10.0), (-20.0, -50.0)),
     ],
 )
-def test_polyline_rhumb_straight_in_mercator(p1, p2):
-    lat, lon = polyline([p1[0], p2[0]], [p1[1], p2[1]], n=30, method="rhumb")
+def test_sample_polyline_rhumb_straight_in_mercator(p1, p2):
+    lat, lon = sample_polyline([p1[0], p2[0]], [p1[1], p2[1]], n=30, method="rhumb")
     x = np.deg2rad(lon)
     y = _mercator_y(lat)
     dx = x - x[0]
@@ -311,9 +311,9 @@ def test_polyline_rhumb_straight_in_mercator(p1, p2):
     np.testing.assert_allclose(ratio, ratio[0], rtol=1e-8)
 
 
-def test_polyline_rhumb_equal_spacing():
+def test_sample_polyline_rhumb_equal_spacing():
     n = 13
-    lat, lon = polyline([0, 60], [0, 60], n=n, method="rhumb")
+    lat, lon = sample_polyline([0, 60], [0, 60], n=n, method="rhumb")
     # latitude is linear in the fraction
     np.testing.assert_allclose(np.diff(lat), 5.0, atol=1e-12)
     np.testing.assert_allclose(lat, np.linspace(0, 60, n), atol=1e-12)
@@ -334,51 +334,51 @@ def test_polyline_rhumb_equal_spacing():
     assert not np.allclose(lon, np.linspace(0, 60, n))
 
 
-def test_polyline_rhumb_constant_latitude():
-    lat, lon = polyline([45, 45], [10, 50], n=5, method="rhumb")
+def test_sample_polyline_rhumb_constant_latitude():
+    lat, lon = sample_polyline([45, 45], [10, 50], n=5, method="rhumb")
     np.testing.assert_array_equal(lat, 45)
     np.testing.assert_allclose(lon, [10, 20, 30, 40, 50])
 
 
-def test_polyline_rhumb_meridian():
-    lat, lon = polyline([-10, 50], [20, 20], n=7, method="rhumb")
+def test_sample_polyline_rhumb_meridian():
+    lat, lon = sample_polyline([-10, 50], [20, 20], n=7, method="rhumb")
     np.testing.assert_allclose(lat, np.linspace(-10, 50, 7), atol=1e-12)
     np.testing.assert_array_equal(lon, 20)
 
 
-def test_polyline_rhumb_global_equator():
-    lat, lon = polyline([0, 0], [-180, 180], n=361, method="rhumb")
+def test_sample_polyline_rhumb_global_equator():
+    lat, lon = sample_polyline([0, 0], [-180, 180], n=361, method="rhumb")
     np.testing.assert_array_equal(lat, 0)
     np.testing.assert_allclose(lon, np.arange(-180, 181), atol=1e-9)
     assert lon[0] == -180 and lon[-1] == 180
     assert np.all(lon[1:-1] >= -180) and np.all(lon[1:-1] < 180)
 
 
-def test_polyline_rhumb_global_parallel():
-    lat, lon = polyline([45, 45], [-180, 180], n=361, method="rhumb")
+def test_sample_polyline_rhumb_global_parallel():
+    lat, lon = sample_polyline([45, 45], [-180, 180], n=361, method="rhumb")
     np.testing.assert_array_equal(lat, 45)
     np.testing.assert_allclose(lon, np.arange(-180, 181), atol=1e-9)
     # all longitudes covered, one degree apart
     np.testing.assert_allclose(np.diff(lon), 1, atol=1e-9)
 
 
-def test_polyline_rhumb_goes_west_through_zero():
+def test_sample_polyline_rhumb_goes_west_through_zero():
     # the longitude difference is taken as given: -340 degrees
-    lat, lon = polyline([0, 0], [170, -170], n=341, method="rhumb")
+    lat, lon = sample_polyline([0, 0], [170, -170], n=341, method="rhumb")
     np.testing.assert_array_equal(lat, 0)
     np.testing.assert_allclose(lon, np.arange(170, -171, -1), atol=1e-9)
     assert 0 in np.round(lon)
 
 
-def test_polyline_rhumb_crosses_dateline_eastwards():
-    lat, lon = polyline([0, 0], [170, 190], n=5, method="rhumb")
+def test_sample_polyline_rhumb_crosses_dateline_eastwards():
+    lat, lon = sample_polyline([0, 0], [170, 190], n=5, method="rhumb")
     assert lon[0] == 170 and lon[-1] == 190
     # interior is normalised to [0, 360) because all inputs are >= 0
     np.testing.assert_allclose(lon[1:-1], [175, 180, 185])
 
 
-def test_polyline_rhumb_global_zero_to_360():
-    lat, lon = polyline([0, 0], [0, 360], n=361, method="rhumb")
+def test_sample_polyline_rhumb_global_zero_to_360():
+    lat, lon = sample_polyline([0, 0], [0, 360], n=361, method="rhumb")
     np.testing.assert_array_equal(lat, 0)
     np.testing.assert_allclose(lon, np.arange(0, 361), atol=1e-9)
     assert lon[-1] == 360
@@ -391,16 +391,16 @@ def test_polyline_rhumb_global_zero_to_360():
 # ---------------------------------------------------------------------------
 
 
-def test_polyline_linear_exact():
-    lat, lon = polyline([0, 10], [0, 20], n=11, method="linear")
+def test_sample_polyline_linear_exact():
+    lat, lon = sample_polyline([0, 10], [0, 20], n=11, method="linear")
     np.testing.assert_allclose(lat, np.arange(11), rtol=1e-14, atol=1e-14)
     np.testing.assert_allclose(lon, 2 * np.arange(11), rtol=1e-14, atol=1e-14)
     assert (lat[0], lon[0]) == (0, 0)
     assert (lat[-1], lon[-1]) == (10, 20)
 
 
-def test_polyline_linear_global_zero_to_360():
-    lat, lon = polyline([0, 0], [0, 360], n=361, method="linear")
+def test_sample_polyline_linear_global_zero_to_360():
+    lat, lon = sample_polyline([0, 0], [0, 360], n=361, method="linear")
     np.testing.assert_array_equal(lat, 0)
     np.testing.assert_allclose(lon, np.arange(0, 361), atol=1e-9)
     assert lon[-1] == 360
@@ -408,21 +408,21 @@ def test_polyline_linear_global_zero_to_360():
     assert np.all(interior >= 0) and np.all(interior < 360)
 
 
-def test_polyline_linear_global_minus180_to_180():
-    lat, lon = polyline([20, 20], [-180, 180], n=361, method="linear")
+def test_sample_polyline_linear_global_minus180_to_180():
+    lat, lon = sample_polyline([20, 20], [-180, 180], n=361, method="linear")
     np.testing.assert_array_equal(lat, 20)
     np.testing.assert_allclose(lon, np.arange(-180, 181), atol=1e-9)
 
 
-def test_polyline_linear_no_wrapping():
+def test_sample_polyline_linear_no_wrapping():
     # goes the long way round and is not normalised
-    lat, lon = polyline([0, 0], [170, -170], n=5, method="linear")
+    lat, lon = sample_polyline([0, 0], [170, -170], n=5, method="linear")
     np.testing.assert_allclose(lon, [170, 85, 0, -85, -170])
 
-    lat, lon = polyline([0, 0], [0, 720], n=5, method="linear")
+    lat, lon = sample_polyline([0, 0], [0, 720], n=5, method="linear")
     np.testing.assert_allclose(lon, [0, 180, 360, 540, 720])
 
-    lat, lon = polyline([0, 0], [-10, 400], n=3, method="linear")
+    lat, lon = sample_polyline([0, 0], [-10, 400], n=3, method="linear")
     np.testing.assert_allclose(lon, [-10, 195, 400])
 
 
@@ -432,9 +432,9 @@ def test_polyline_linear_no_wrapping():
 
 
 @pytest.mark.parametrize("method", METHODS)
-def test_polyline_share_proportional_to_length_1_to_3(method):
+def test_sample_polyline_share_proportional_to_length_1_to_3(method):
     # along the equator the length ratio is 1:3 for all the methods; 8 extra points
-    lat, lon = polyline([0, 0, 0], [0, 10, 40], n=11, method=method)
+    lat, lon = sample_polyline([0, 0, 0], [0, 10, 40], n=11, method=method)
     assert _counts_between(lon, [0, 10, 40]) == [2, 6]
     assert lon[3] == 10
     expected = [0, 10 / 3, 20 / 3, 10] + [10 + 30 * j / 7 for j in range(1, 7)] + [40]
@@ -460,9 +460,9 @@ def test_polyline_share_proportional_to_length_1_to_3(method):
         ([0, 1, 3, 6], 10, [1, 2, 3]),
     ],
 )
-def test_polyline_largest_remainder(method, lon_wp, n, expected):
+def test_sample_polyline_largest_remainder(method, lon_wp, n, expected):
     lats = [0] * len(lon_wp)
-    lat, lon = polyline(lats, lon_wp, n=n, method=method)
+    lat, lon = sample_polyline(lats, lon_wp, n=n, method=method)
     assert lat.shape == (n,)
     assert _counts_between(lon, lon_wp) == expected
     assert sum(expected) == n - len(lon_wp)
@@ -590,36 +590,36 @@ def test_polyline_distribute_random_property():
 
 @pytest.mark.parametrize("method", METHODS)
 @pytest.mark.parametrize("longer", [1e-9, 1e-8, 1e-6])
-def test_polyline_near_but_unequal_quotas(method, longer):
+def test_sample_polyline_near_but_unequal_quotas(method, longer):
     # the second segment is slightly longer, so it gets the only extra point
     lon_wp = [0, 1, 2 + longer]
-    lat, lon = polyline([0, 0, 0], lon_wp, n=4, method=method)
+    lat, lon = sample_polyline([0, 0, 0], lon_wp, n=4, method=method)
     assert _counts_between(lon, lon_wp) == [0, 1]
     assert lon[2] == pytest.approx(1 + (1 + longer) / 2, abs=1e-9)
 
     # and the first one when it is the longer one
     lon_wp = [0, 1 + longer, 2 + longer]
-    lat, lon = polyline([0, 0, 0], lon_wp, n=4, method=method)
+    lat, lon = sample_polyline([0, 0, 0], lon_wp, n=4, method=method)
     assert _counts_between(lon, lon_wp) == [1, 0]
 
 
 @pytest.mark.parametrize("method", METHODS)
-def test_polyline_repeated_waypoints(method):
+def test_sample_polyline_repeated_waypoints(method):
     # the zero-length segment gets no points
-    lat, lon = polyline([0, 0, 0], [0, 0, 10], n=5, method=method)
+    lat, lon = sample_polyline([0, 0, 0], [0, 0, 10], n=5, method=method)
     assert lat.shape == (5,)
     np.testing.assert_array_equal(lon[:2], [0, 0])
     np.testing.assert_allclose(lon[2:], [10 / 3, 20 / 3, 10], atol=1e-9)
     np.testing.assert_allclose(lat, 0, atol=1e-12)
 
     # repeated waypoint in the middle and at the end
-    lat, lon = polyline([0, 0, 0, 0], [0, 10, 10, 10], n=6, method=method)
+    lat, lon = sample_polyline([0, 0, 0, 0], [0, 10, 10, 10], n=6, method=method)
     np.testing.assert_allclose(lon, [0, 10 / 3, 20 / 3, 10, 10, 10], atol=1e-9)
 
 
 @pytest.mark.parametrize("method", METHODS)
-def test_polyline_all_zero_length(method):
-    lat, lon = polyline([12.5, 12.5, 12.5, 12.5], [30, 30, 30, 30], n=9, method=method)
+def test_sample_polyline_all_zero_length(method):
+    lat, lon = sample_polyline([12.5, 12.5, 12.5, 12.5], [30, 30, 30, 30], n=9, method=method)
     assert lat.shape == (9,) and lon.shape == (9,)
     np.testing.assert_allclose(lat, 12.5, atol=1e-12)
     np.testing.assert_allclose(lon, 30, atol=1e-9)
@@ -634,9 +634,9 @@ def test_polyline_all_zero_length(method):
 
 
 @pytest.mark.parametrize("method", ["great_circle", "rhumb"])
-def test_polyline_lon_range_0_360(method):
+def test_sample_polyline_lon_range_0_360(method):
     # all non-negative inputs: the interior is in [0, 360)
-    lat, lon = polyline([0, 10], [350, 370], n=9, method=method)
+    lat, lon = sample_polyline([0, 10], [350, 370], n=9, method=method)
     interior = lon[1:-1]
     assert np.all(interior >= 0) and np.all(interior < 360)
     # waypoints are copied, never normalised
@@ -646,35 +646,35 @@ def test_polyline_lon_range_0_360(method):
 
 
 @pytest.mark.parametrize("method", ["great_circle", "rhumb"])
-def test_polyline_lon_range_mixed(method):
-    lat, lon = polyline([0, 10, 0], [-170, 175, 200], n=41, method=method)
+def test_sample_polyline_lon_range_mixed(method):
+    lat, lon = sample_polyline([0, 10, 0], [-170, 175, 200], n=41, method=method)
     interior = np.delete(lon, [0, np.flatnonzero(lon == 175)[0], len(lon) - 1])
     assert np.all(interior >= -180) and np.all(interior < 180)
     assert lon[0] == -170 and lon[-1] == 200
 
 
 @pytest.mark.parametrize("method", ["great_circle", "rhumb"])
-def test_polyline_lon_range_waypoints_not_normalised(method):
-    lat, lon = polyline([0, 0], [400, 500], n=3, method=method)
+def test_sample_polyline_lon_range_waypoints_not_normalised(method):
+    lat, lon = sample_polyline([0, 0], [400, 500], n=3, method=method)
     assert lon[0] == 400 and lon[-1] == 500
     # 450 normalised to 90
     np.testing.assert_allclose(lon[1], 90, atol=1e-9)
 
-    lat, lon = polyline([0, 0], [-300, -100], n=3, method="rhumb")
+    lat, lon = sample_polyline([0, 0], [-300, -100], n=3, method="rhumb")
     assert lon[0] == -300 and lon[-1] == -100
     # -200 normalised to 160
     np.testing.assert_allclose(lon[1], 160, atol=1e-9)
 
 
-def test_polyline_lon_range_excludes_180():
+def test_sample_polyline_lon_range_excludes_180():
     # the interior point at 180 is returned as -180 (range [-180, 180)) for mixed-sign inputs
-    lat, lon = polyline([0, 0], [-10, 370], n=3, method="rhumb")
+    lat, lon = sample_polyline([0, 0], [-10, 370], n=3, method="rhumb")
     assert lon[0] == -10 and lon[-1] == 370
     assert lon[1] == -180
 
 
-def test_polyline_lon_range_linear_not_normalised():
-    lat, lon = polyline([0, 0], [-100, 700], n=5, method="linear")
+def test_sample_polyline_lon_range_linear_not_normalised():
+    lat, lon = sample_polyline([0, 0], [-100, 700], n=5, method="linear")
     np.testing.assert_allclose(lon, [-100, 100, 300, 500, 700])
 
 
@@ -709,37 +709,37 @@ def test_polyline_wrap_lon(lon, minimum, expected):
 @pytest.mark.parametrize(
     "lats,lons,n,match",
     [
-        ([[0, 1], [2, 3]], [0, 1], 5, "polyline: .*1D"),
-        ([0, 1], [[0, 1], [2, 3]], 5, "polyline: .*1D"),
-        (0.0, 1.0, 5, "polyline: .*1D"),
-        ([0, 1, 2], [0, 1], 5, "polyline: .*same length"),
-        ([0], [0], 5, "polyline: .*at least 2 waypoints"),
-        ([], [], 5, "polyline: .*at least 2 waypoints"),
-        ([0, 91], [0, 1], 5, "polyline: .*latitudes"),
-        ([-90.5, 0], [0, 1], 5, "polyline: .*latitudes"),
-        ([0, np.nan], [0, 1], 5, "polyline: .*finite"),
-        ([0, 1], [0, np.nan], 5, "polyline: .*finite"),
-        ([0, np.inf], [0, 1], 5, "polyline: .*finite"),
-        ([0, 1], [0, -np.inf], 5, "polyline: .*finite"),
-        ([0, 1, 2], [0, 1, 2], 2, "polyline: n must be at least"),
-        ([0, 1], [0, 1], 1, "polyline: n must be at least"),
-        ([0, 1], [0, 1], 0, "polyline: n must be at least"),
-        ([0, 1], [0, 1], -3, "polyline: n must be at least"),
-        ([0, 1], [0, 1], 5.0, "polyline: n must be an int"),
-        ([0, 1], [0, 1], "5", "polyline: n must be an int"),
-        ([0, 1], [0, 1], None, "polyline: n must be an int"),
-        ([0, 1], [0, 1], True, "polyline: n must be an int"),
+        ([[0, 1], [2, 3]], [0, 1], 5, "sample_polyline: .*1D"),
+        ([0, 1], [[0, 1], [2, 3]], 5, "sample_polyline: .*1D"),
+        (0.0, 1.0, 5, "sample_polyline: .*1D"),
+        ([0, 1, 2], [0, 1], 5, "sample_polyline: .*same length"),
+        ([0], [0], 5, "sample_polyline: .*at least 2 waypoints"),
+        ([], [], 5, "sample_polyline: .*at least 2 waypoints"),
+        ([0, 91], [0, 1], 5, "sample_polyline: .*latitudes"),
+        ([-90.5, 0], [0, 1], 5, "sample_polyline: .*latitudes"),
+        ([0, np.nan], [0, 1], 5, "sample_polyline: .*finite"),
+        ([0, 1], [0, np.nan], 5, "sample_polyline: .*finite"),
+        ([0, np.inf], [0, 1], 5, "sample_polyline: .*finite"),
+        ([0, 1], [0, -np.inf], 5, "sample_polyline: .*finite"),
+        ([0, 1, 2], [0, 1, 2], 2, "sample_polyline: n must be at least"),
+        ([0, 1], [0, 1], 1, "sample_polyline: n must be at least"),
+        ([0, 1], [0, 1], 0, "sample_polyline: n must be at least"),
+        ([0, 1], [0, 1], -3, "sample_polyline: n must be at least"),
+        ([0, 1], [0, 1], 5.0, "sample_polyline: n must be an int"),
+        ([0, 1], [0, 1], "5", "sample_polyline: n must be an int"),
+        ([0, 1], [0, 1], None, "sample_polyline: n must be an int"),
+        ([0, 1], [0, 1], True, "sample_polyline: n must be an int"),
     ],
 )
-def test_polyline_invalid_input(method, lats, lons, n, match):
+def test_sample_polyline_invalid_input(method, lats, lons, n, match):
     with pytest.raises(ValueError, match=match):
-        polyline(lats, lons, n=n, method=method)
+        sample_polyline(lats, lons, n=n, method=method)
 
 
 @pytest.mark.parametrize("method", ["foo", "", "greatcircle", "Rhumb", None, 1])
-def test_polyline_unknown_method(method):
-    with pytest.raises(ValueError, match="polyline: unknown method"):
-        polyline([0, 1], [0, 1], n=5, method=method)
+def test_sample_polyline_unknown_method(method):
+    with pytest.raises(ValueError, match="sample_polyline: unknown method"):
+        sample_polyline([0, 1], [0, 1], n=5, method=method)
 
 
 @pytest.mark.parametrize(
@@ -751,19 +751,19 @@ def test_polyline_unknown_method(method):
         ([90, -90], [0, 0]),
     ],
 )
-def test_polyline_great_circle_antipodal(lats, lons):
-    with pytest.raises(ValueError, match="polyline: .*antipodal"):
-        polyline(lats, lons, n=10, method="great_circle")
+def test_sample_polyline_great_circle_antipodal(lats, lons):
+    with pytest.raises(ValueError, match="sample_polyline: .*antipodal"):
+        sample_polyline(lats, lons, n=10, method="great_circle")
 
 
-def test_polyline_great_circle_antipodal_in_later_segment_and_without_extra_points():
-    with pytest.raises(ValueError, match="polyline: .*segment 1"):
-        polyline([0, 0, 0], [0, 10, 190], n=3, method="great_circle")
+def test_sample_polyline_great_circle_antipodal_in_later_segment_and_without_extra_points():
+    with pytest.raises(ValueError, match="sample_polyline: .*segment 1"):
+        sample_polyline([0, 0, 0], [0, 10, 190], n=3, method="great_circle")
 
 
 @pytest.mark.parametrize("method", ["rhumb", "linear"])
-def test_polyline_antipodal_ok_for_other_methods(method):
-    lat, lon = polyline([0, 0], [0, 180], n=5, method=method)
+def test_sample_polyline_antipodal_ok_for_other_methods(method):
+    lat, lon = sample_polyline([0, 0], [0, 180], n=5, method=method)
     np.testing.assert_allclose(lon, [0, 45, 90, 135, 180])
 
 
@@ -777,14 +777,14 @@ def test_polyline_antipodal_ok_for_other_methods(method):
         ([0, 90, 0], [0, 10, 20]),
     ],
 )
-def test_polyline_rhumb_pole(lats, lons):
-    with pytest.raises(ValueError, match="polyline: .*poles"):
-        polyline(lats, lons, n=10, method="rhumb")
+def test_sample_polyline_rhumb_pole(lats, lons):
+    with pytest.raises(ValueError, match="sample_polyline: .*poles"):
+        sample_polyline(lats, lons, n=10, method="rhumb")
 
 
 @pytest.mark.parametrize("method", ["great_circle", "linear"])
-def test_polyline_pole_ok_for_other_methods(method):
-    lat, lon = polyline([0, 90], [10, 0], n=4, method=method)
+def test_sample_polyline_pole_ok_for_other_methods(method):
+    lat, lon = sample_polyline([0, 90], [10, 0], n=4, method=method)
     assert lat.shape == (4,)
     assert np.all(np.isfinite(lat)) and np.all(np.isfinite(lon))
     assert (lat[-1], lon[-1]) == (90, 0)
