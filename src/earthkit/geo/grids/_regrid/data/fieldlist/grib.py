@@ -109,12 +109,10 @@ def regrid_grib_field(field, message, index, in_grid=None, out_grid=None, backen
     if hasattr(backend, "regrid_grib"):
         if not in_is_unstructured:
             res_message = backend.regrid_grib(message, out_grid, **kwargs)
-            if not out_is_unstructured:
-                res = create_grib_field_from_message(res_message, template_field=field)
-            else:
-                # When the output grid is unstructured, the mir backend changes the grib encoding,
-                # from edition 1 to edition 2.
-                res = create_grib_field_from_message(res_message, template_field=field)
+            res = create_grib_field_from_message(res_message, template_field=field)
+            if out_is_unstructured:
+                # The mir backend re-encodes unstructured output as GRIB2 (even for GRIB1 input).
+                # GRIB cannot hold the points, so the grid spec must be set explicitly.
                 res = res.set({"geography.grid_spec": out_grid})
             return res
 
