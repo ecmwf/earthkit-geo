@@ -111,7 +111,7 @@ be supplied explicitly to avoid the fallback::
 
     r = regrid(ds.dis06, in_grid={"grid": "O320"}, out_grid=out_grid)
 
-See the full worked example in :ref:`/tutorials/mir_regrid_xarray_unstructured.ipynb`.
+See the full worked example in :ref:`/tutorials/regrid/mir_regrid_xarray_unstructured.ipynb`.
 
 See also
 --------
@@ -120,4 +120,4 @@ See also
 - :ref:`regrid-fieldlist`
 - :ref:`regrid-grib-message`
 - :ref:`regrid-xarray`
-- :ref:`/tutorials/mir_regrid_xarray_unstructured.ipynb`
+- :ref:`/tutorials/regrid/mir_regrid_xarray_unstructured.ipynb`

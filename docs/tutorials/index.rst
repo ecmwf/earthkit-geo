@@ -7,5 +7,5 @@ Tutorials
 .. toctree::
     :maxdepth: 1
 
-    mir_regrid_xarray.ipynb
-    mir_regrid_xarray_unstructured.ipynb
+    regrid/index.rst
+    polyline/index.rst

@@ -20,7 +20,7 @@ Regridding with the MIR backend:
 - :ref:`/how-tos/mir/mir_healpix_fieldlist.ipynb`
 - :ref:`/how-tos/mir/mir_octahedral_fieldlist.ipynb`
 - :ref:`/how-tos/mir/mir_interpolation_types.ipynb`
-- :ref:`/tutorials/mir_regrid_xarray.ipynb`
+- :ref:`/tutorials/regrid/mir_regrid_xarray.ipynb`
 
 Regridding with the precomputed weights backend:
 

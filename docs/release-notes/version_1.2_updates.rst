@@ -14,7 +14,7 @@ New features
 - Automatically detects the geography related dimensions and extracts the corresponding latitude/longitude values for a wider range of Xarray data for :ref:`regridding <regridding>`.
 - Added fallback mechanism for :ref:`fieldlist <regrid-fieldlist>` and :ref:`Xarray <regrid-xarray>` when the input grid spec cannot be determined. In this case the latitude/longitude values of every point are extracted and used to build a generic :ref:`unstructured <gridspec-unstructured>` grid regardless of the original coordinate layout. See :ref:`regridding-unstructured` for more details and also the following notebook example:
 
-    - :ref:`/tutorials/mir_regrid_xarray_unstructured.ipynb`
+    - :ref:`/tutorials/regrid/mir_regrid_xarray_unstructured.ipynb`
 
 Fixes
 ++++++++++++++++
