@@ -617,9 +617,9 @@ def circle(lat, lon, radius, n=100, figure=IFS_SPHERE):
     lon: float
         Longitude of the centre (degrees).
     radius: float
-        Radius of the circle (km), measured along the surface of the Earth. Must be
+        Radius of the circle (metres), measured along the surface of the Earth. Must be
         positive and smaller than the distance to the antipode of the centre (about
-        20015.8 km on the default sphere).
+        20015806 m on the default sphere).
     n: int, optional
         Total number of points in the result, including the repeated last point
         (default: 100). Must be at least 4.
@@ -647,7 +647,7 @@ def circle(lat, lon, radius, n=100, figure=IFS_SPHERE):
     -----
     The radius is the distance along the surface of the sphere (the great circle
     distance), not the straight line distance through the Earth. The angular radius is
-    ``radius * 1000 / figure.radius``.
+    ``radius / figure.radius``.
 
     The circle is closed: the last point is an exact copy of the first one. The ``n - 1``
     distinct points are equally spaced in bearing, ``360 * j / (n - 1)`` degrees for
@@ -676,12 +676,12 @@ def circle(lat, lon, radius, n=100, figure=IFS_SPHERE):
 
     Examples
     --------
-    Points at 1000 km from the point (0, 0), going north, east, south and west and back
-    to north. The longitude of the centre is non-negative, so the longitudes are in
+    Points at 1_000_000 metres from the point (0, 0), going north, east, south and west and
+    back to north. The longitude of the centre is non-negative, so the longitudes are in
     [0, 360) and the western point is at 351.0071°:
 
     >>> from earthkit.geo.polyline import circle
-    >>> lats, lons = circle(0, 0, 1000, n=5)
+    >>> lats, lons = circle(0, 0, 1_000_000, n=5)
     >>> [round(float(x), 4) + 0.0 for x in lats]
     [8.9929, 0.0, -8.9929, 0.0, 8.9929]
     >>> [round(float(x), 4) + 0.0 for x in lons]
@@ -689,7 +689,7 @@ def circle(lat, lon, radius, n=100, figure=IFS_SPHERE):
 
     The first and the last point are the same, and the result has ``n`` points:
 
-    >>> lats, lons = circle(51.5, -0.1, 500)
+    >>> lats, lons = circle(51.5, -0.1, 500_000)
     >>> lats.shape
     (100,)
     >>> bool(lats[0] == lats[-1] and lons[0] == lons[-1])
@@ -706,11 +706,11 @@ def circle(lat, lon, radius, n=100, figure=IFS_SPHERE):
     if radius <= 0:
         raise ValueError(f"circle: radius must be positive! Got {radius}")
 
-    delta = radius * 1000.0 / figure.radius
+    delta = radius / figure.radius
     if delta >= np.pi:
         raise ValueError(
-            f"circle: radius={radius} km reaches the antipode of the centre "
-            f"(at most {np.pi * figure.radius / 1000.0} km is allowed)"
+            f"circle: radius={radius} m reaches the antipode of the centre "
+            f"(at most {np.pi * figure.radius} m is allowed)"
         )
 
     if isinstance(n, bool) or not isinstance(n, numbers.Integral):
@@ -747,10 +747,10 @@ def circle_quadrants(lat, lon, radii, n=100, figure=IFS_SPHERE):
     lon: float
         Longitude of the centre (degrees).
     radii: sequence
-        The radii of the four quadrants (km), measured along the surface of the Earth, in the
+        The radii of the four quadrants (metres), measured along the surface of the Earth, in the
         order north-east, south-east, south-west, north-west (clockwise from the north-east).
         Must be a list, tuple or 1D array of 4 values, each positive and smaller than the
-        distance to the antipode of the centre (about 20015.8 km on the default sphere).
+        distance to the antipode of the centre (about 20015806 m on the default sphere).
     n: int, optional
         Total number of points in the result, including the repeated last point (default: 100).
         Must be at least 9.
@@ -778,7 +778,7 @@ def circle_quadrants(lat, lon, radii, n=100, figure=IFS_SPHERE):
     -----
     As in :py:func:`circle`, the radii are distances along the surface of the sphere (the great
     circle distances), not the straight line distances through the Earth, and the angular radius
-    of a quadrant is ``radius * 1000 / figure.radius``. The model is a sphere and the points are
+    of a quadrant is ``radius / figure.radius``. The model is a sphere and the points are
     computed with vectors, which is accurate for any radius and next to the poles.
 
     The quadrants are bounded by the bearings 0-90 (north-east), 90-180 (south-east), 180-270
@@ -801,15 +801,16 @@ def circle_quadrants(lat, lon, radii, n=100, figure=IFS_SPHERE):
 
     Examples
     --------
-    One quadrant of 1000, 2000, 3000 and 4000 km around the point (0, 0). With ``n=9``, the
-    points are the four cardinal bearings: due north at 1000 km, due east at 1000 then at
-    2000 km (the radial step at the north-east/south-east boundary), due south at 2000 then at
-    3000 km, due west at 3000 then at 4000 km, due north again at 4000 km and finally a copy of
-    the first point. The longitude of the centre is non-negative, so the longitudes are in
-    [0, 360) and the western points are at 360 - 26.9787 and 360 - 35.9716 degrees:
+    One quadrant of 1_000_000, 2_000_000, 3_000_000 and 4_000_000 metres around the point
+    (0, 0). With ``n=9``, the points are the four cardinal bearings: due north at 1_000_000 m,
+    due east at 1_000_000 then at 2_000_000 m (the radial step at the north-east/south-east
+    boundary), due south at 2_000_000 then at 3_000_000 m, due west at 3_000_000 then at
+    4_000_000 m, due north again at 4_000_000 m and finally a copy of the first point. The
+    longitude of the centre is non-negative, so the longitudes are in [0, 360) and the western
+    points are at 360 - 26.9787 and 360 - 35.9716 degrees:
 
     >>> from earthkit.geo.polyline import circle_quadrants
-    >>> lats, lons = circle_quadrants(0, 0, [1000, 2000, 3000, 4000], n=9)
+    >>> lats, lons = circle_quadrants(0, 0, [1_000_000, 2_000_000, 3_000_000, 4_000_000], n=9)
     >>> [round(float(x), 4) + 0.0 for x in lats]
     [8.9929, 0.0, 0.0, -17.9858, -26.9787, 0.0, 0.0, 35.9716, 8.9929]
     >>> [round(float(x), 4) + 0.0 for x in lons]
@@ -818,7 +819,7 @@ def circle_quadrants(lat, lon, radii, n=100, figure=IFS_SPHERE):
     The result has ``n`` points and the last one is an exact copy of the first one. The
     longitude of the centre is negative, so the longitudes are in [-180, 180):
 
-    >>> lats, lons = circle_quadrants(51.5, -0.1, [500, 500, 1000, 1000])
+    >>> lats, lons = circle_quadrants(51.5, -0.1, [500_000, 500_000, 1_000_000, 1_000_000])
     >>> lats.shape
     (100,)
     >>> bool(lats[0] == lats[-1] and lons[0] == lons[-1])
@@ -856,11 +857,11 @@ def circle_quadrants(lat, lon, radii, n=100, figure=IFS_SPHERE):
     for i, radius in enumerate(radii):
         if radius <= 0:
             raise ValueError(f"circle_quadrants: radii[{i}] must be positive! Got {radius}")
-        delta = radius * 1000.0 / figure.radius
+        delta = radius / figure.radius
         if delta >= np.pi:
             raise ValueError(
-                f"circle_quadrants: radii[{i}]={radius} km reaches the antipode of the centre "
-                f"(at most {np.pi * figure.radius / 1000.0} km is allowed)"
+                f"circle_quadrants: radii[{i}]={radius} m reaches the antipode of the centre "
+                f"(at most {np.pi * figure.radius} m is allowed)"
             )
         deltas.append(delta)
 
