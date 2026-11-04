@@ -593,17 +593,17 @@ def polyline_normals(lats, lons, method="great_circle"):
     return -tangent[:, 1], tangent[:, 0]
 
 
-def _real_scalar(name, value):
+def _real_scalar(name, value, func="circle"):
     """Return ``value`` as a finite float. It must be a real-valued numeric scalar (not a bool)."""
     arr = np.asarray(value)
     if arr.ndim != 0 or arr.dtype.kind not in "iuf":
         raise ValueError(
-            f"circle: {name} must be a real-valued numeric scalar! Got {type(value).__name__}"
+            f"{func}: {name} must be a real-valued numeric scalar! Got {type(value).__name__}"
             + (f" with ndim={arr.ndim}" if arr.ndim else "")
         )
     out = float(arr)
     if not np.isfinite(out):
-        raise ValueError(f"circle: {name} must be finite! Got {out}")
+        raise ValueError(f"{func}: {name} must be finite! Got {out}")
     return out
 
 
@@ -731,4 +731,166 @@ def circle(lat, lon, radius, n=100, figure=IFS_SPHERE):
     lons = _wrap_lon(np.rad2deg(np.arctan2(p[:, 1], p[:, 0])), 0.0 if lon >= 0 else -180.0)
 
     # close the circle with an exact copy of the first point
+    return np.append(lats, lats[0]), np.append(lons, lons[0])
+
+
+def circle_quadrants(lat, lon, radii, n=100, figure=IFS_SPHERE):
+    """Compute points on a closed outline around a location, with its own radius in each quadrant.
+
+    The outline is made of four arcs, one per quadrant around the centre: north-east,
+    south-east, south-west and north-west, each at the radius given for it.
+
+    Parameters
+    ----------
+    lat: float
+        Latitude of the centre (degrees). Must be in the range [-90, 90].
+    lon: float
+        Longitude of the centre (degrees).
+    radii: sequence
+        The radii of the four quadrants (km), measured along the surface of the Earth, in the
+        order north-east, south-east, south-west, north-west (clockwise from the north-east).
+        Must be a list, tuple or 1D array of 4 values, each positive and smaller than the
+        distance to the antipode of the centre (about 20015.8 km on the default sphere).
+    n: int, optional
+        Total number of points in the result, including the repeated last point (default: 100).
+        Must be at least 9.
+    figure: :class:`geo.figure.Figure`, optional
+        Figure of the spheroid (default: :obj:`geo.figure.IFS_SPHERE`). Only its radius
+        (in metres) is used.
+
+    Returns
+    -------
+    ndarray
+        Latitudes (degrees) of the ``n`` points.
+    ndarray
+        Longitudes (degrees) of the ``n`` points.
+
+    Raises
+    ------
+    ValueError
+        If ``lat`` or ``lon`` is not a real-valued numeric scalar (a bool, a complex number, a
+        string and an array with dimensions are not accepted) or is not finite; if ``lat`` is
+        outside [-90, 90]; if ``radii`` is not a sequence of 4 real-valued numeric scalars (bool
+        elements are not accepted); if a radius is not positive or reaches the antipode of the
+        centre; if ``n`` is not an int; or if ``n`` is smaller than 9.
+
+    Notes
+    -----
+    As in :py:func:`circle`, the radii are distances along the surface of the sphere (the great
+    circle distances), not the straight line distances through the Earth, and the angular radius
+    of a quadrant is ``radius * 1000 / figure.radius``. The model is a sphere and the points are
+    computed with vectors, which is accurate for any radius and next to the poles.
+
+    The quadrants are bounded by the bearings 0-90 (north-east), 90-180 (south-east), 180-270
+    (south-west) and 270-360 degrees (north-west). The ``n - 1`` non-closing points are split
+    between the quadrants as evenly as possible, the earlier quadrants getting the extra points
+    (with ``n = 100`` the quadrants have 25, 25, 25 and 24 points). The points of a quadrant run
+    from its start bearing to its end bearing inclusive, equally spaced. The outline starts due
+    north, at the north-east radius, and the points go clockwise seen from above, as in
+    :py:func:`circle`. The last point is an exact copy of the first one.
+
+    At each boundary bearing there are two points, one at the radius of each of the adjacent
+    quadrants, so the outline has a straight radial step there. With four equal radii the result
+    is a circle, but its points are not at the same bearings as in :py:func:`circle`: each
+    boundary bearing is visited twice, so the spacing is slightly different.
+
+    The longitude range, the pole centre and the circles containing a pole are handled as in
+    :py:func:`circle`: the longitudes are returned in [0, 360) if the longitude of the centre is
+    non-negative and in [-180, 180) otherwise, and at a pole centre the bearings are taken as
+    the limit of approaching the pole along the meridian ``lon``.
+
+    Examples
+    --------
+    One quadrant of 1000, 2000, 3000 and 4000 km around the point (0, 0). With ``n=9``, the
+    points are the four cardinal bearings: due north at 1000 km, due east at 1000 then at
+    2000 km (the radial step at the north-east/south-east boundary), due south at 2000 then at
+    3000 km, due west at 3000 then at 4000 km, due north again at 4000 km and finally a copy of
+    the first point. The longitude of the centre is non-negative, so the longitudes are in
+    [0, 360) and the western points are at 360 - 26.9787 and 360 - 35.9716 degrees:
+
+    >>> from earthkit.geo.polyline import circle_quadrants
+    >>> lats, lons = circle_quadrants(0, 0, [1000, 2000, 3000, 4000], n=9)
+    >>> [round(float(x), 4) + 0.0 for x in lats]
+    [8.9929, 0.0, 0.0, -17.9858, -26.9787, 0.0, 0.0, 35.9716, 8.9929]
+    >>> [round(float(x), 4) + 0.0 for x in lons]
+    [0.0, 8.9929, 17.9858, 0.0, 0.0, 333.0213, 324.0284, 0.0, 0.0]
+
+    The result has ``n`` points and the last one is an exact copy of the first one. The
+    longitude of the centre is negative, so the longitudes are in [-180, 180):
+
+    >>> lats, lons = circle_quadrants(51.5, -0.1, [500, 500, 1000, 1000])
+    >>> lats.shape
+    (100,)
+    >>> bool(lats[0] == lats[-1] and lons[0] == lons[-1])
+    True
+    >>> bool(np.all(lons >= -180) and np.all(lons < 180))
+    True
+
+    """
+    lat = _real_scalar("lat", lat, func="circle_quadrants")
+    lon = _real_scalar("lon", lon, func="circle_quadrants")
+
+    if isinstance(radii, np.ndarray):
+        if radii.ndim != 1:
+            raise ValueError(
+                "circle_quadrants: radii must be a sequence of 4 real-valued numeric scalars "
+                f"(the radii of the NE, SE, SW and NW quadrants)! Got array with ndim={radii.ndim}"
+            )
+    elif not isinstance(radii, (list, tuple)):
+        raise ValueError(
+            "circle_quadrants: radii must be a sequence of 4 real-valued numeric scalars "
+            f"(the radii of the NE, SE, SW and NW quadrants)! Got {type(radii).__name__}"
+        )
+
+    if len(radii) != 4:
+        raise ValueError(f"circle_quadrants: radii must have exactly 4 elements (NE, SE, SW, NW)! Got {len(radii)}")
+
+    # check the elements one by one: a bool, a complex number, a string or a nested sequence
+    # in the middle of the list is rejected, the list is not coerced as a whole
+    radii = [_real_scalar(f"radii[{i}]", r, func="circle_quadrants") for i, r in enumerate(radii)]
+
+    if abs(lat) > 90:
+        raise ValueError(f"circle_quadrants: lat must be in the range [-90, 90]! Got {lat}")
+
+    deltas = []
+    for i, radius in enumerate(radii):
+        if radius <= 0:
+            raise ValueError(f"circle_quadrants: radii[{i}] must be positive! Got {radius}")
+        delta = radius * 1000.0 / figure.radius
+        if delta >= np.pi:
+            raise ValueError(
+                f"circle_quadrants: radii[{i}]={radius} km reaches the antipode of the centre "
+                f"(at most {np.pi * figure.radius / 1000.0} km is allowed)"
+            )
+        deltas.append(delta)
+
+    if isinstance(n, bool) or not isinstance(n, numbers.Integral):
+        raise ValueError(f"circle_quadrants: n must be an int! Got {type(n).__name__}")
+
+    n = int(n)
+    if n < 9:
+        raise ValueError(f"circle_quadrants: n must be at least 9! Got {n}")
+
+    # the n - 1 non-closing points, as evenly as possible between the quadrants, the earlier
+    # quadrants getting the extra points; each count is at least 2
+    q, extra = divmod(n - 1, 4)
+    counts = np.array([q + 1 if i < extra else q for i in range(4)])
+
+    # the bearings (degrees, clockwise from north) of the points: every quadrant runs from its
+    # start bearing to its end bearing inclusive; % 360 keeps the last bearing (360) exact
+    bearings = np.deg2rad(
+        np.concatenate([90.0 * i + 90.0 * np.arange(c) / (c - 1) for i, c in enumerate(counts)]) % 360.0
+    )
+    delta = np.repeat(deltas, counts)
+
+    centre = np.stack(latlon_to_xyz(lat, lon))
+    east, north = (v[0] for v in _local_basis(np.array([lat]), np.array([lon])))
+
+    tangent = np.cos(bearings)[:, None] * north + np.sin(bearings)[:, None] * east
+    p = np.cos(delta)[:, None] * centre + np.sin(delta)[:, None] * tangent
+
+    lats = np.rad2deg(np.arctan2(p[:, 2], np.hypot(p[:, 0], p[:, 1])))
+    lons = _wrap_lon(np.rad2deg(np.arctan2(p[:, 1], p[:, 0])), 0.0 if lon >= 0 else -180.0)
+
+    # close the outline with an exact copy of the first point
     return np.append(lats, lats[0]), np.append(lons, lons[0])

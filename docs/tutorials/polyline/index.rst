@@ -9,3 +9,4 @@ Polylines
 
     sample_polyline.ipynb
     polyline_normals.ipynb
+    circle.ipynb
