@@ -6,4 +6,3 @@ build:
   parallel: 64
   pytest_cmd: |
     FINDLIBS_DISABLE_PACKAGE=no EARTHKIT_DATA_CACHE_POLICY=off python -m pytest -n16 || pytest --last-failed --last-failed-no-failures none
-
