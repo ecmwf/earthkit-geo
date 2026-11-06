@@ -90,13 +90,14 @@ def _yaml_from_dict(d):
 
     return yaml.dump(d, default_flow_style=True).strip()
 
+def _get_hash(s: str):
+    import hashlib
+    return hashlib.md5(s.encode()).hexdigest()
 
 def _griddef_from_latlon(lat, lon, dir=None):
-    import hashlib
-
     version = 1
     coord = str(version) + str(lat) + str(lon)
-    hash = hashlib.md5(coord.encode()).hexdigest()
+    hash = _get_hash(coord)
 
     name = Path(hash + ".griddef")
     if dir:
@@ -120,8 +121,26 @@ def mir_make_matrix(
 ):
     import mir
 
-    ext = Path(output).suffix if output is not None else None
-    if output is not None and ext not in (".mat", ".npz"):
+    return_matrix = False
+    if output is None:
+        version = 1
+        coord = (
+            str(version)
+            + str(in_lat)
+            + str(in_lon)
+            + str(out_lat)
+            + str(out_lon)
+            + str(in_grid)
+            + str(out_grid)
+            + str(kwargs)
+        )
+        hash = _get_hash(coord)
+        output = mir.cache() + f"tmp-interpolation-matrix-{hash}.mat"
+        return_matrix = True
+    mat = Path(output)
+    ext = mat.suffix
+
+    if ext not in (".mat", ".npz"):
         raise ValueError("mir_make_matrix: output must have extension .mat or .npz")
 
     job = mir.Job()
@@ -140,7 +159,6 @@ def mir_make_matrix(
     else:
         raise ValueError("mir_make_matrix: output grid or lats/lons must be provided.")
 
-    mat = Path(output)
     if ext == ".mat":
         job.set("interpolation-matrix", str(mat))
     elif ext == ".npz":
@@ -155,14 +173,15 @@ def mir_make_matrix(
     except Exception as e:
         raise RuntimeError(f"mir_make_matrix: error: {e}.") from e
 
-    if ext and not mat.exists():
+    if not mat.exists():
         raise FileNotFoundError(f"mir_make_matrix: matrix file '{mat}' not found.")
 
     if ext == ".npz":
         mir_cached_matrix_to_file(str(mat), output)
         mat.unlink()
         assert Path(output).exists()
-    elif not ext:
+
+    if return_matrix:
         return mir_cached_matrix_to_array(mat)
 
 
