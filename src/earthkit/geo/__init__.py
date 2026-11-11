@@ -23,6 +23,7 @@ import earthkit.geo.distance  # noqa: F401
 import earthkit.geo.figure  # noqa: F401
 import earthkit.geo.gisco  # noqa: F401
 import earthkit.geo.grids  # noqa: F401
+import earthkit.geo.polyline  # noqa: F401
 import earthkit.geo.rotate  # noqa: F401
 from earthkit.geo.grids import regrid
 from earthkit.geo.utils.caching import CACHE as cache

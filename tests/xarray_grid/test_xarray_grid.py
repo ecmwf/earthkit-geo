@@ -178,8 +178,10 @@ def test_xarray_grid_netcdf_ll_1():
     assert v.name == "t2m"
 
     ek_grid = v.ek_grid
-    assert ek_grid.type == "unstructured_ll"
-    assert ek_grid.shape == (points_num,)
+    # the points form a complete regular lat/lon grid, so the grid is now
+    # auto-detected as "regular_ll" rather than treated as "unstructured_ll"
+    assert ek_grid.type == "regular_ll"
+    assert ek_grid.shape == (7, 12)
 
     xr_grid = v.xr_grid
     assert xr_grid.variable_dims == variable_grid_dims

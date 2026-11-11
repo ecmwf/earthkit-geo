@@ -335,3 +335,79 @@ def test_regrid_grib_2_fieldlist_ll_to_points_round_trip(field_type):
         lats_res, lons_res = f.geography.latlons()
         assert lats_res.shape == (37, 72)
         assert lons_res.shape == (37, 72)
+
+
+def _ekd_requests_grid_spec_for_zero_uid(message_bytes):
+    """Return True if the installed earthkit-data asks ecCodes for the "gridSpec" of a zero-uid grid.
+
+    Such a request makes ecCodes/eckit print "GridUnknownError" to stderr. The check is
+    behaviour-based, so it also works for local development versions of earthkit-data.
+    """
+
+    class _Spy:
+        def __init__(self, handle):
+            self._handle = handle
+            self.keys = []
+
+        def get(self, name, *args, **kwargs):
+            self.keys.append(name)
+            return self._handle.get(name, *args, **kwargs)
+
+        def __getattr__(self, name):
+            return getattr(self._handle, name)
+
+    try:
+        from earthkit.data.field.grib.geography import GribGeographyBuilder
+        from earthkit.data.readers.grib.handle import MemoryGribHandle
+
+        handle = MemoryGribHandle.from_message(message_bytes)
+
+        # the input must be an unstructured grid with an all-zero grid uid
+        assert handle.get("gridType") == "unstructured_grid"
+        uid = handle.get("uuidOfHGrid")
+        uid = uid.hex() if isinstance(uid, bytes) else str(uid).strip()
+        assert uid != "" and set(uid) == {"0"}
+
+        spy = _Spy(handle)
+        GribGeographyBuilder.build(spy)
+    except (ImportError, AttributeError):
+        return True
+
+    return "gridSpec" in spy.keys
+
+
+@pytest.mark.skipif(NO_MIR, reason="No mir available")
+@pytest.mark.skipif(NO_EKD, reason="No access to earthkit-data")
+@pytest.mark.parametrize("filename", ["5x5_multi.grib1", "5x5_multi.grib2"])
+def test_regrid_grib_fieldlist_ll_to_points_no_grid_unknown_error(filename, capfd):
+    ds = _create_fieldlist(filename, subfolder="grib")
+
+    lats = [40.0, 40.0, 40.0, 30.0, 30.0, 30.0]
+    lons = [10.0, 20.0, 30.0, 5.0, 25.0, 35.0]
+    points_num = 6
+
+    # Regrid to points, encode and read back the result. The stderr output is captured throughout.
+    r = regrid(ds, out_grid={"latitudes": lats, "longitudes": lons}, interpolation="nn")
+
+    assert len(r) == 2
+    messages = []
+    for f in r:
+        assert f.values.shape == (points_num,)
+        lats_res, lons_res = f.geography.latlons()
+        assert np.allclose(lats_res, lats)
+        assert np.allclose(lons_res, lons)
+        messages.append(f.sync().message())
+
+    for msg in messages:
+        f_grib = from_source("memory", msg).to_fieldlist()[0]
+        assert f_grib.geography.shape() == (points_num,)
+
+    stderr = capfd.readouterr().err
+
+    # Only run the probe after the output has been read so that its own stderr cannot change the result.
+    forbidden = ["GridUnknownError", "GridSpec: geo::Exception"]
+    if any(s in stderr for s in forbidden) and _ekd_requests_grid_spec_for_zero_uid(messages[0]):
+        pytest.xfail("earthkit-data without the zero grid-uid fix prints GridUnknownError")
+
+    for s in forbidden:
+        assert s not in stderr, stderr

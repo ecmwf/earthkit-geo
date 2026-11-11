@@ -164,7 +164,8 @@ def test_regrid_xarray_dataset_from_h_nested(out_grid, out_grid_ref, dims):
 
 @pytest.mark.skipif(IN_GITHUB, reason="Skipping test in GitHub CI")
 @pytest.mark.parametrize("lat_name,lon_name", [("lat", "lon"), ("latitude", "longitude")])
-def test_regrid_xarray_2d_1(lat_name, lon_name):
+@pytest.mark.parametrize("auto_in_grid", [False, True])
+def test_regrid_xarray_2d_1(lat_name, lon_name, auto_in_grid):
     # Dimensions:  (level: 2, lat: 3, lon: 3)
     # Coordinates:
     #   * level    (level) int64 16B 700 500
@@ -194,7 +195,7 @@ def test_regrid_xarray_2d_1(lat_name, lon_name):
     v = {"a": a}
     ds_in = xr.Dataset(v, coords=coords)
 
-    in_grid = {"grid": [10, 10], "area": [50, 0, 30, 20]}
+    in_grid = None if auto_in_grid else {"grid": [10, 10], "area": [50, 0, 30, 20]}
     out_grid = {"grid": [5, 5]}
 
     r = regrid(ds_in["a"], in_grid=in_grid, out_grid=out_grid, interpolation="linear")
@@ -229,7 +230,8 @@ def test_regrid_xarray_2d_1(lat_name, lon_name):
 
 @pytest.mark.skipif(IN_GITHUB, reason="Skipping test in GitHub CI")
 @pytest.mark.parametrize("lat_name,lon_name", [("lat", "lon"), ("latitude", "longitude")])
-def test_regrid_xarray_2d_2(lat_name, lon_name):
+@pytest.mark.parametrize("auto_in_grid", [False, True])
+def test_regrid_xarray_2d_2(lat_name, lon_name, auto_in_grid):
     # Dimensions:  (level: 2, y: 3, x: 2)
     # Coordinates:
     #   * level    (level) int64 16B 700 500
@@ -260,35 +262,70 @@ def test_regrid_xarray_2d_2(lat_name, lon_name):
     v = {"a": a}
     ds_in = xr.Dataset(v, coords=coords)
 
-    in_grid = {
-        "latitudes": [50.0, 50.0, 40.0, 40.0, 30.0, 30.0],
-        "longitudes": [0.0, 10.0, 0.0, 10.0, 0.0, 10.0],
-    }
+    in_grid = (
+        None
+        if auto_in_grid
+        else {
+            "latitudes": [50.0, 50.0, 40.0, 40.0, 30.0, 30.0],
+            "longitudes": [0.0, 10.0, 0.0, 10.0, 0.0, 10.0],
+        }
+    )
     out_grid = {"grid": [5, 5]}
 
     r = regrid(ds_in["a"], in_grid=in_grid, out_grid=out_grid, interpolation="linear")
 
-    out_dims = {"level": 2, "latitude": 37, "longitude": 72}
-    compare_dims(r, out_dims, sizes=True)
+    if auto_in_grid:
+        # the 6 points form a complete regular lat/lon grid (area [50, 0, 30, 10]), so the
+        # auto-detected input grid is confined to that area, unlike the explicit unstructured
+        # "latitudes"/"longitudes" in_grid below, which MIR interpolates over the whole globe
+        out_dims = {"level": 2, "latitude": 5, "longitude": 3}
+        compare_dims(r, out_dims, sizes=True)
 
-    ref_data = np.array([
-        [[11.0, 12.0], [21.0, 22.0], [31.0, 32.0]],
-        [[14.0, 15.0], [24.0, 25.0], [34.0, 35.0]],
-    ])
+        ref_data = np.array([
+            [
+                [11.0, 11.60916513, 12.0],
+                [16.0, 16.64829292, 17.0],
+                [21.0, 21.60735172, 22.0],
+                [26.0, 26.57403598, 27.0],
+                [31.0, 31.5, 32.0],
+            ],
+            [
+                [14.0, 14.60916513, 15.0],
+                [19.0, 19.64829292, 20.0],
+                [24.0, 24.60735172, 25.0],
+                [29.0, 29.57403598, 30.0],
+                [34.0, 34.5, 35.0],
+            ],
+        ])
+        ref_lat = np.array([50.0, 45.0, 40.0, 35.0, 30.0])
+        ref_lon = np.array([0.0, 5.0, 10.0])
 
-    ref_lat = np.array([50.0, 40.0, 30.0])
-    ref_lon = np.array([0.0, 10.0])
+        assert np.allclose(r.values, ref_data)
+        assert np.allclose(r.latitude.values, ref_lat)
+        assert np.allclose(r.longitude.values, ref_lon)
+    else:
+        out_dims = {"level": 2, "latitude": 37, "longitude": 72}
+        compare_dims(r, out_dims, sizes=True)
 
-    r_sub = r.sel(latitude=ref_lat, longitude=ref_lon)
+        ref_data = np.array([
+            [[11.0, 12.0], [21.0, 22.0], [31.0, 32.0]],
+            [[14.0, 15.0], [24.0, 25.0], [34.0, 35.0]],
+        ])
 
-    assert np.allclose(r_sub.values, ref_data)
-    assert np.allclose(r_sub.latitude.values, ref_lat)
-    assert np.allclose(r_sub.longitude.values, ref_lon)
+        ref_lat = np.array([50.0, 40.0, 30.0])
+        ref_lon = np.array([0.0, 10.0])
+
+        r_sub = r.sel(latitude=ref_lat, longitude=ref_lon)
+
+        assert np.allclose(r_sub.values, ref_data)
+        assert np.allclose(r_sub.latitude.values, ref_lat)
+        assert np.allclose(r_sub.longitude.values, ref_lon)
 
 
 @pytest.mark.skipif(IN_GITHUB, reason="Skipping test in GitHub CI")
 @pytest.mark.parametrize("lat_name,lon_name", [("lat", "lon"), ("latitude", "longitude")])
-def test_regrid_xarray_1d_1(lat_name, lon_name):
+@pytest.mark.parametrize("auto_in_grid", [False, True])
+def test_regrid_xarray_1d_1(lat_name, lon_name, auto_in_grid):
     # Dimensions:  (level: 2, values: 9)
     # Coordinates:
     #   * level    (level) int64 16B 700 500
@@ -319,30 +356,65 @@ def test_regrid_xarray_1d_1(lat_name, lon_name):
     v = {"a": a}
     ds_in = xr.Dataset(v, coords=coords)
 
-    in_grid = {
-        "latitudes": [50.0, 50.0, 50.0, 40.0, 40.0, 40.0, 30.0, 30.0, 30.0],
-        "longitudes": [0.0, 10.0, 20.0, 0.0, 10.0, 20.0, 0.0, 10.0, 20.0],
-    }
+    in_grid = (
+        None
+        if auto_in_grid
+        else {
+            "latitudes": [50.0, 50.0, 50.0, 40.0, 40.0, 40.0, 30.0, 30.0, 30.0],
+            "longitudes": [0.0, 10.0, 20.0, 0.0, 10.0, 20.0, 0.0, 10.0, 20.0],
+        }
+    )
     out_grid = {"grid": [5, 5]}
 
     r = regrid(ds_in["a"], in_grid=in_grid, out_grid=out_grid, interpolation="linear")
 
-    out_dims = {"level": 2, "latitude": 37, "longitude": 72}
-    compare_dims(r, out_dims, sizes=True)
+    if auto_in_grid:
+        # the 9 points form a complete regular lat/lon grid (area [50, 0, 30, 20]), identical
+        # to the one used in test_regrid_xarray_2d_1, so the auto-detected input grid is
+        # confined to that area, unlike the explicit unstructured "latitudes"/"longitudes"
+        # in_grid below, which MIR interpolates over the whole globe
+        out_dims = {"level": 2, "latitude": 5, "longitude": 5}
+        compare_dims(r, out_dims, sizes=True)
 
-    ref_data = np.array([
-        [[11.0, 12.0, 13.0], [21.0, 22.30354886, 23.0], [31.0, 32.0, 33.0]],
-        [[14.0, 15.0, 16.0], [24.0, 25.30354886, 26.0], [34.0, 35.0, 36.0]],
-    ])
+        ref_data = np.array([
+            [
+                [11.0, 11.60916513, 12.0, 12.60709173, 13.0],
+                [16.0, 16.64829292, 17.0, 17.56959565, 18.0],
+                [21.0, 21.60735172, 22.0, 22.60876203, 23.0],
+                [26.0, 26.57403598, 27.0, 27.63057889, 28.0],
+                [31.0, 31.5, 32.0, 32.5, 33.0],
+            ],
+            [
+                [14.0, 14.60916513, 15.0, 15.60709173, 16.0],
+                [19.0, 19.64829292, 20.0, 20.56959565, 21.0],
+                [24.0, 24.60735172, 25.0, 25.60876203, 26.0],
+                [29.0, 29.57403598, 30.0, 30.63057889, 31.0],
+                [34.0, 34.5, 35.0, 35.5, 36.0],
+            ],
+        ])
+        ref_lat = np.array([50.0, 45.0, 40.0, 35.0, 30.0])
+        ref_lon = np.array([0.0, 5.0, 10.0, 15.0, 20.0])
 
-    ref_lat = np.array([50.0, 40.0, 30.0])
-    ref_lon = np.array([0.0, 10.0, 20.0])
+        assert np.allclose(r.values, ref_data)
+        assert np.allclose(r.latitude.values, ref_lat)
+        assert np.allclose(r.longitude.values, ref_lon)
+    else:
+        out_dims = {"level": 2, "latitude": 37, "longitude": 72}
+        compare_dims(r, out_dims, sizes=True)
 
-    r_sub = r.sel(latitude=ref_lat, longitude=ref_lon)
+        ref_data = np.array([
+            [[11.0, 12.0, 13.0], [21.0, 22.30354886, 23.0], [31.0, 32.0, 33.0]],
+            [[14.0, 15.0, 16.0], [24.0, 25.30354886, 26.0], [34.0, 35.0, 36.0]],
+        ])
 
-    assert np.allclose(r_sub.values, ref_data)
-    assert np.allclose(r_sub.latitude.values, ref_lat)
-    assert np.allclose(r_sub.longitude.values, ref_lon)
+        ref_lat = np.array([50.0, 40.0, 30.0])
+        ref_lon = np.array([0.0, 10.0, 20.0])
+
+        r_sub = r.sel(latitude=ref_lat, longitude=ref_lon)
+
+        assert np.allclose(r_sub.values, ref_data)
+        assert np.allclose(r_sub.latitude.values, ref_lat)
+        assert np.allclose(r_sub.longitude.values, ref_lon)
 
 
 @pytest.mark.skipif(IN_GITHUB, reason="Skipping test in GitHub CI")

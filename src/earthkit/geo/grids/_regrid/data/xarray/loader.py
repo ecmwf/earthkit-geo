@@ -92,6 +92,9 @@ def grid_from_xr_grid(xr_grid):
     eckit.geo.Grid
         An unstructured lat/lon grid built from the flattened points.
     """
+    gs = xr_grid.grid_spec
+    if gs is not None:
+        return create_grid_object(gs)
     lat, lon = xr_grid.latlons
     return create_unstructured_grid_object(lat, lon)
 
