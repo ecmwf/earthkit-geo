@@ -94,9 +94,45 @@ def _get_hash(s: str):
     import hashlib
     return hashlib.md5(s.encode()).hexdigest()
 
+def _str_reduce_arrays_for_hash(array_1, array_2=None):
+    if array_1 is None:
+        return 'None'
+    array_1_cos_sum = np.cos(np.deg2rad(array_1)).sum()
+    array_1_sin_sum = np.sin(np.deg2rad(array_1)).sum()
+                         
+    array_1_str = "_".join(
+        [
+            str(np.log(np.abs(array_1_cos_sum)+1e-16)), 
+            str(np.log(np.abs(array_1_sin_sum)+1e-16)), 
+            str(array_1.shape)
+        ]
+    )
+
+    if array_2 is None:
+        return array_1_str
+    array_2_cos_sum = np.cos(np.deg2rad(array_2)).sum()
+    array_2_sin_sum = np.sin(np.deg2rad(array_2)).sum()
+    array_2_str = "_".join(
+        [
+            str(np.log(np.abs(array_2_cos_sum)+1e-16)), 
+            str(np.log(np.abs(array_2_sin_sum)+1e-16)), 
+            str(array_2.shape)
+        ]
+    )
+    array_1_2_str = "_".join(
+        [
+            str(np.log(np.abs(array_1_cos_sum + array_2_cos_sum)+1e-16)),
+            str(np.log(np.abs(array_1_cos_sum + array_2_sin_sum)+1e-16)),
+            str(np.log(np.abs(array_1_sin_sum + array_2_cos_sum)+1e-16)),
+            str(np.log(np.abs(array_1_sin_sum + array_2_sin_sum)+1e-16)),
+        ]
+    )
+    return array_1_str + array_2_str + array_1_2_str
+
 def _griddef_from_latlon(lat, lon, dir=None):
     version = 1
-    coord = str(version) + str(lat) + str(lon)
+    
+    coord = str(version) + _str_reduce_arrays_for_hash(lat, lon)
     hash = _get_hash(coord)
 
     name = Path(hash + ".griddef")
@@ -107,7 +143,6 @@ def _griddef_from_latlon(lat, lon, dir=None):
         mir_write_latlon_to_griddef(name, lat, lon)
 
     return str(name)
-
 
 def mir_make_matrix(
     in_grid: Optional[Dict] = None,
@@ -121,18 +156,18 @@ def mir_make_matrix(
 ):
     import mir
 
+    job = mir.Job()
+
     return_matrix = False
     if output is None:
         version = 1
         coord = (
             str(version)
-            + str(in_lat)
-            + str(in_lon)
-            + str(out_lat)
-            + str(out_lon)
-            + str(in_grid)
-            + str(out_grid)
             + str(kwargs)
+            + _str_reduce_arrays_for_hash(in_lat, in_lon)
+            + _str_reduce_arrays_for_hash(out_lat,out_lon)
+            + str(_yaml_from_dict(in_grid))
+            + str(_yaml_from_dict(out_grid))
         )
         hash = _get_hash(coord)
         output = mir.cache() + f"tmp-interpolation-matrix-{hash}.mat"
@@ -142,8 +177,6 @@ def mir_make_matrix(
 
     if ext not in (".mat", ".npz"):
         raise ValueError("mir_make_matrix: output must have extension .mat or .npz")
-
-    job = mir.Job()
 
     if in_grid is not None and in_lat is None and in_lon is None:
         input = mir.GridSpecInput(_yaml_from_dict(in_grid))
@@ -167,7 +200,6 @@ def mir_make_matrix(
 
     for key, val in kwargs.items():
         job.set(key, val)
-
     try:
         job.execute(input, mir.EmptyOutput())
     except Exception as e:
