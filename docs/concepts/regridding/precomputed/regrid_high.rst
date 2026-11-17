@@ -16,9 +16,9 @@ regrid (high-level) with precomputed weights
         - GRIB message as a bytes or :class:`io.BytesIO` object (see details :ref:`here <regrid-grib-message>`)
 
     :type data: :py:class:`~earthkit.data.core.fieldlist.FieldList`, :py:class:`~earthkit.data.core.field.Field`, :class:`xarray.DataArray`, :class:`xarray.Dataset`, bytes, :class:`io.BytesIO`
-    :param in_grid: The :ref:`gridspec <gridspec>` describing the input grid. When None (the default), the input grid is inferred from the input data if possible. If grid information cannot be inferred, raises a ValueError. For the list of supported grids, please refer to the :ref:`gridspec <gridspec>` documentation.
+    :param in_grid: The :ref:`gridspec <precomputed-gridspec>` describing the input grid. When None (the default), the input grid is inferred from the input data if possible. If grid information cannot be inferred, raises a ValueError. For the list of supported grids, please refer to the :ref:`gridspec <precomputed-gridspec>` documentation.
     :type in_grid: dict, str, :class:`eckit.geo.Grid`
-    :param out_grid: the :ref:`gridspec <gridspec>` describing the target grid that ``data`` will be interpolated onto. For the list of supported grids, please refer to the :ref:`gridspec <gridspec>` documentation.
+    :param out_grid: the :ref:`gridspec <precomputed-gridspec>` describing the target grid that ``data`` will be interpolated onto. For the list of supported grids, please refer to the :ref:`gridspec <precomputed-gridspec>` documentation.
     :type out_grid: dict, str, :class:`eckit.geo.Grid`
     :param in_dims: the names of the geographical dimensions in the Xarray input data. It is only needed when the dimension names cannot be automatically inferred. When it is provided, it takes precedence over the metadata of the input data.
     :type in_dims: list, tuple, None

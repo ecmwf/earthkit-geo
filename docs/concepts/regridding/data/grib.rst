@@ -39,4 +39,4 @@ See also
 
 - :ref:`regrid-fieldlist`
 - :ref:`mir-regrid-high`
-- :ref:`gridspec`
+- :ref:`grid-spec`

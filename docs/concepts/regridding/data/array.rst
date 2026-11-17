@@ -14,7 +14,7 @@ high-level :func:`earthkit.geo.grids.regrid`.
     out_values, out_grid = array.regrid(values, in_grid={"grid": [1, 1]}, out_grid={"grid": "O320"})
 
 Since a raw array carries no geography information of its own, both ``in_grid`` and ``out_grid`` must
-always be given explicitly as :ref:`gridspecs <gridspec>`. The function returns a tuple of the
+always be given explicitly as :ref:`gridspecs <grid-spec>`. The function returns a tuple of the
 interpolated values and the output grid spec; the latter may differ from the requested ``out_grid``
 since the backend can normalise or otherwise adjust it during regridding.
 
@@ -41,4 +41,4 @@ See also
 
 - :ref:`mir-regrid-array`
 - :ref:`precomputed-regrid-array`
-- :ref:`gridspec`
+- :ref:`grid-spec`

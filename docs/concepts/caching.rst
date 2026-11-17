@@ -1,6 +1,6 @@
 .. _caching:
 
-Disk-based caching of regridding precomputed weights caching
+Disk-based caching of regridding precomputed weights
 ===============================================================
 
 *New in version 1.0.0.*

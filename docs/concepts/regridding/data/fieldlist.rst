@@ -81,4 +81,4 @@ See also
 
 - :ref:`mir-regrid-high`
 - :ref:`precomputed-regrid-high`
-- :ref:`gridspec`
+- :ref:`grid-spec`

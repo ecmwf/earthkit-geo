@@ -13,9 +13,9 @@ regrid (array-level) with MIR
 
     :param data: The data to be regridded, represented as a NumPy array, defining a single field on the ``in_grid``.
     :type data: ndarray
-    :param in_grid: The :ref:`gridspec <gridspec>` describing the grid that ``data`` are defined on. For the list of supported grids, please refer to the :ref:`gridspec <gridspec>` documentation.
+    :param in_grid: The :ref:`gridspec <mir-gridspec>` describing the grid that ``data`` are defined on. For the list of supported grids, please refer to the :ref:`gridspec <mir-gridspec>` documentation.
     :type in_grid: dict, str,  :obj:`Grid <earthkit.geo.grid.Grid>`
-    :param out_grid: The :ref:`gridspec <gridspec>` describing the target grid that ``data`` will be interpolated onto. For the list of supported grids, please refer to the :ref:`gridspec <gridspec>` documentation.
+    :param out_grid: The :ref:`gridspec <mir-gridspec>` describing the target grid that ``data`` will be interpolated onto. For the list of supported grids, please refer to the :ref:`gridspec <mir-gridspec>` documentation.
     :type out_grid: dict, str, :obj:`Grid <earthkit.geo.grid.Grid>`
     :param interpolation: The interpolation method. Please note not all the interpolation methods support all possible grid types. The possible values are  as follows:
 
@@ -25,7 +25,7 @@ regrid (array-level) with MIR
 
     :type interpolation: str
 
-    :return: Return a tuple with the interpolated values and the :ref:`gridspec <gridspec>` of the output grid. This latter might be different than the one specified in ``out_grid`` because MIR can perform normalisation and other adjustments on it.
+    :return: Return a tuple with the interpolated values and the :ref:`gridspec <mir-gridspec>` of the output grid. This latter might be different than the one specified in ``out_grid`` because MIR can perform normalisation and other adjustments on it.
     :rtype: tuple of ndarray and dict
 
 Examples
