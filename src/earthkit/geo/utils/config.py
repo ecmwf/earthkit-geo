@@ -17,7 +17,6 @@ from typing import Callable
 
 import yaml
 
-from earthkit.geo import __version__ as VERSION
 from earthkit.geo.utils.html import css
 from earthkit.geo.utils.humanize import as_bytes, as_percent, as_seconds, list_to_human
 
@@ -232,6 +231,10 @@ def forward(func):
 def save_config(path, config):
     LOG.debug("Saving config")
     from filelock import FileLock
+
+    # Imported here to avoid a circular import: earthkit.geo imports this module
+    # while it is being initialised.
+    from earthkit.geo import __version__ as VERSION
 
     lock = path + ".lock"
     with FileLock(lock):
@@ -648,6 +651,10 @@ def _init_config_file():
 
 
 def _init_config(config_yaml):
+    # Imported here to avoid a circular import: earthkit.geo imports this module
+    # while it is being initialised.
+    from earthkit.geo import __version__ as VERSION
+
     save = False
     config = dict(**DEFAULTS)
     try:

@@ -23,7 +23,7 @@ GRIB fields
 
 If a field has an associated GRIB message, GRIB-specific regridding is used so that, as far as
 possible, the original GRIB metadata is preserved in the result (only the geometry-related keys
-change). See :ref:`regrid-grib` for further details on how a GRIB message itself is regridded.
+change). See :ref:`regrid-grib-message` for further details on how a GRIB message itself is regridded.
 
 Whenever possible, the GRIB message is regridded directly by the backend, without going through an
 intermediate NumPy array. This fast path is only used when:

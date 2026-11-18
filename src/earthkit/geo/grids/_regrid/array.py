@@ -88,7 +88,6 @@ def regrid(
     Using the "precomputed" backend:
 
     - :ref:`/how-tos/precomputed/precomp_numpy_array.ipynb`
-    - :ref:`/how-tos/precomputed/precomp_.ipynb`
 
     """
     from earthkit.geo.grids._regrid.data.numpy import handler

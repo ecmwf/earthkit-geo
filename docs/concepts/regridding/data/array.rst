@@ -23,7 +23,7 @@ since the backend can normalise or otherwise adjust it during regridding.
     Passing a raw NumPy array to the generic :func:`earthkit.geo.grids.regrid` function raises a
     ``ValueError`` pointing to this array-level entry point instead, since that function's grid
     inference and dispatch mechanism only applies to data types with attached geography metadata
-    (see :ref:`regrid-fieldlist`, :ref:`regrid-grib` and :ref:`regrid-xarray`).
+    (see :ref:`regrid-fieldlist`, :ref:`regrid-grib-message` and :ref:`regrid-xarray`).
 
 Examples
 --------

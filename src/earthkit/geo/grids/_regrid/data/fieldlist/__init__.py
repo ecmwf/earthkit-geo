@@ -9,7 +9,7 @@
 
 """FieldList backend for the regrid data-handler dispatch mechanism.
 
-Exposes :data:`handler`, the :class:`~.handler.FieldListDataHandler` class used
+Exposes ``handler``, the :class:`~.handler.FieldListDataHandler` class used
 to regrid ``earthkit.data.FieldList`` objects.
 """
 

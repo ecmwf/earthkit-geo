@@ -260,10 +260,23 @@ Named grids, projections and areas are registered from YAML catalogues, distribu
       - Hydrological grids, such as GloFAS (``GLOFAS-4``)
     * - ``ORCA.yaml``
       - NEMO ORCA ocean grids, such as ``eORCA025_T``
+    * - ``ICON-CH.yaml``
+      - ICON grids from MeteoSwiss, such as ``ICON-CH1``
+    * - ``ICON-DWD.yaml``
+      - ICON grids from the German weather service (DWD), such as ``icon-grid-0001-r02b05-r``
+    * - ``ICON-MPIM.yaml``
+      - ICON grids from the Max Planck Institute for Meteorology (MPI-M), such as
+        ``icon-grid-0016-r02b09-o``
     * - ``projection.yaml``
       - Named projections, such as ``swisslv95`` (EPSG:2056)
     * - ``area.yaml``, ``shapefile.yaml``
       - Areas, and libraries of region polygons (Eurostat GISCO country boundaries)
+
+The predefined entries are listed in:
+
+- :ref:`Predefined grids <grid-ref-predefined-grids>`
+- :ref:`Predefined areas <grid-ref-predefined-areas>`
+- :ref:`Predefined projections <grid-ref-predefined-projections>`
 
 A grid catalogue lists entries under ``grid_names`` (by name) and ``grid_uids`` (by uid); YAML
 anchors register one entry under several names and uids. An entry is an ordinary spec, which may

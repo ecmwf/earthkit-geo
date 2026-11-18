@@ -28,21 +28,7 @@ LOG = logging.getLogger(__name__)
 
 
 class Variable:
-    """A geographical xarray variable paired with its detected grid.
-
-    Attributes
-    ----------
-    name : Hashable
-        The variable's name.
-    variable : xr.DataArray
-        The underlying xarray variable.
-    geo_dims : Optional[List[str]]
-        The names of the variable's geographical grid dimensions.
-    xr_grid : Optional[XarrayGrid]
-        The grid derived from the variable's xarray coordinates.
-    ek_grid : Optional[eckit.geo.Grid]
-        The corresponding eckit-geo grid used for regridding.
-    """
+    """A geographical xarray variable paired with its detected grid."""
 
     def __init__(self, variable):
         """Initialise the wrapper.
@@ -53,10 +39,19 @@ class Variable:
             The xarray variable to wrap.
         """
         self.name = variable.name
+        """The variable's name (Hashable)."""
+
         self.variable = variable
+        """The underlying xarray variable (``xr.DataArray``)."""
+
         self.geo_dims = None
+        """The names of the variable's geographical grid dimensions (Optional[List[str]])."""
+
         self.xr_grid = None
+        """The grid derived from the variable's xarray coordinates (Optional[XarrayGrid])."""
+
         self.ek_grid = None
+        """The corresponding eckit-geo grid used for regridding (Optional[eckit.geo.Grid])."""
 
 
 def grid_from_earthkit(ds):
