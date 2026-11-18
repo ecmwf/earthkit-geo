@@ -44,3 +44,19 @@ and classes in `earthkit-geo`.
 - :doc:`autoapi/earthkit/geo/grids/index`
 - :doc:`autoapi/earthkit/geo/polyline/index`
 - :doc:`autoapi/earthkit/geo/rotate/index`
+
+.. The toctree below puts the generated API pages into the navigation. It starts at
+   the ``earthkit.geo`` package index, which lists the modules linked above. The
+   ``_regrid`` subpackage is an implicit namespace package, so autoapi generates no
+   index page for it and its packages are listed here instead.
+
+.. toctree::
+   :hidden:
+   :maxdepth: 1
+
+   autoapi/earthkit/geo/index
+   autoapi/earthkit/geo/grids/_regrid/array/index
+   autoapi/earthkit/geo/grids/_regrid/backends/index
+   autoapi/earthkit/geo/grids/_regrid/data/index
+   autoapi/earthkit/geo/grids/_regrid/input/index
+   autoapi/earthkit/geo/grids/_regrid/regrid/index

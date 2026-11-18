@@ -88,6 +88,23 @@ autoapi_add_toctree_entry = False
 autoapi_own_page_level = "function"
 autoapi_python_use_implicit_namespaces = True
 
+# autoapi only reads ``../src/earthkit``, so it cannot resolve imports from other
+# earthkit packages (e.g. ``earthkit.utils.decorators``, which is installed separately).
+# Those imports are correct; autoapi's documented remedy is to suppress this category.
+suppress_warnings = ["autoapi.python_import_resolution"]
+
+# ``handler`` is the name of both a submodule and the module level object that the
+# data handler plugin convention exposes (see earthkit/geo/grids/_regrid/data/__init__.py)
+# in these packages. sphinx-autoapi would document the object twice ("duplicate object
+# description"), so the attribute entries are left out here; the handler classes
+# themselves are documented by the submodules.
+_AUTOAPI_SKIP_MEMBERS = {
+    "data": {
+        "earthkit.geo.grids._regrid.data.fieldlist.handler",
+        "earthkit.geo.grids._regrid.data.xarray.handler",
+    },
+}
+
 # napoleon configuration
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True
@@ -213,7 +230,16 @@ intersphinx_mapping = {
 }
 
 
+def _skip_autoapi_member(app, what, name, obj, skip, options):
+    """Leave out the autoapi members listed in ``_AUTOAPI_SKIP_MEMBERS``."""
+    if name in _AUTOAPI_SKIP_MEMBERS.get(what, ()):
+        return True
+    # no opinion, let sphinx-autoapi decide
+    return None
+
+
 def setup(app):
     from earthkit_packages import _write_earthkit_packages_js
 
     app.connect("builder-inited", lambda app: _write_earthkit_packages_js(app, ek_branch))
+    app.connect("autoapi-skip-member", _skip_autoapi_member)

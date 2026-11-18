@@ -3,7 +3,7 @@
 Unstructured grid fallback
 ============================
 
-Regridding is driven by the :ref:`gridspec <gridspec>`: the input and output grids are each described
+Regridding is driven by the :ref:`gridspec <grid-spec>`: the input and output grids are each described
 as a gridspec, and the selected backend interpolates between them accordingly.
 
 Not all grids can currently be described by a gridspec. The gridspec, as an object/framework, is not
@@ -116,7 +116,7 @@ See the full worked example in :ref:`/tutorials/regrid/mir_regrid_xarray_unstruc
 See also
 --------
 
-- :ref:`gridspec`
+- :ref:`grid-spec`
 - :ref:`regrid-fieldlist`
 - :ref:`regrid-grib-message`
 - :ref:`regrid-xarray`

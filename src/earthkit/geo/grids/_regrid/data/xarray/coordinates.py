@@ -13,7 +13,8 @@ Wraps an ``xarray`` coordinate variable (e.g. ``latitude``, ``longitude``,
 ``x``, ``y``, or a scalar/unsupported coordinate) in a :class:`Coordinate`
 subclass that records what role the coordinate plays in the grid (lat, lon,
 x, y, point, scalar, ...). Instances are produced by
-:mod:`~.guesser` and consumed by :mod:`~.grid` to build the geographical
+:mod:`~.guesser` and consumed by
+:mod:`~earthkit.geo.grids._regrid.data.xarray.grid` to build the geographical
 grid for a variable.
 """
 

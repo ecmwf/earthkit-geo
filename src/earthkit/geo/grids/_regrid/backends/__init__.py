@@ -46,16 +46,10 @@ LOG = logging.getLogger(__name__)
 
 
 class Backend(metaclass=ABCMeta):
-    """Abstract base class for point-to-point interpolation backends.
-
-    Attributes
-    ----------
-    name : str or None
-        The name the backend is registered and looked up under (e.g. via
-        :func:`get_backend`).
-    """
+    """Abstract base class for point-to-point interpolation backends."""
 
     name: str | None = None
+    """The name the backend is registered and looked up under (e.g. via :func:`get_backend`)."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         pass

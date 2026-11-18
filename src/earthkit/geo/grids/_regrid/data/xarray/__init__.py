@@ -9,7 +9,7 @@
 
 """xarray backend for the regrid data-handler dispatch mechanism.
 
-Exposes :data:`handler`, the :class:`~.handler.XarrayDataHandler` class used
+Exposes ``handler``, the :class:`~.handler.XarrayDataHandler` class used
 to regrid ``xarray.Dataset``/``xarray.DataArray`` objects.
 """
 

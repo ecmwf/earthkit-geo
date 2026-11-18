@@ -72,14 +72,14 @@ def make_gs_block(source, target):
 {source_grid}
 +++++++++++++++++++++++++
 
-Source :ref:`gridspec <gridspec>`:
+Source :ref:`gridspec <precomputed-gridspec>`:
 
 .. code-block:: python
 
     {to_str(source)}
 
 
-Target :ref:`gridspec <gridspec>`\s available for source:
+Target :ref:`gridspec <precomputed-gridspec>`\s available for source:
 
 .. list-table::
     :header-rows: 0
@@ -124,7 +124,7 @@ def build_gs_page(grid_pairs, grid_spec, long_name):
 .. include:: pre_gen_warn.rst
 
 This page contains all the available target gridspecs for a given
-**{long_name}** source :ref:`gridspec <gridspec>`.
+**{long_name}** source :ref:`gridspec <precomputed-gridspec>`.
 
 """
     # print(f"{grid=}\n")

@@ -10,7 +10,7 @@
 
 """Functions building gridspecs from distinct coordinate values.
 
-See :ref:`gridspec` for the gridspec format.
+See :ref:`gridspec <grid-spec>` for the gridspec format.
 """
 
 from typing import Any, Optional
