@@ -192,6 +192,247 @@ def test_meshed_grid_spec_global_shifted(inc, ascending):
     assert np.allclose(eckit_grid.distinct_longitudes(), sorted(lon_values))
 
 
+@pytest.mark.parametrize("ascending", [False, True])
+def test_meshed_grid_spec_fine_subarea(ascending):
+    # a 0.2 degree grid with 899 latitudes (-89.8 to 89.8) and 1800 longitudes
+    # (-180 to 179.8); it excludes the poles, so it is a subarea, stored either
+    # with latitude ascending (grid A, "i+j+") or descending (grid B, "i+j-")
+    inc = 0.2
+    north = 89.8
+    west = -180.0
+    nlat = 899
+    nlon = 1800
+
+    lat_values = north - inc * np.arange(nlat)
+    if ascending:
+        lat_values = lat_values[::-1]
+    lon_values = west + inc * np.arange(nlon)
+
+    grid = _meshed_grid(lat_values, lon_values)
+    spec = grid.grid_spec
+
+    assert isinstance(spec, dict)
+    assert spec["grid"] == pytest.approx([inc, inc])
+    assert spec["area"] == pytest.approx([
+        float(np.max(lat_values)),
+        float(np.min(lon_values)),
+        float(np.min(lat_values)),
+        float(np.max(lon_values)),
+    ])
+    # the area corners lie on the default (0, 0) reference
+    assert "reference" not in spec
+
+    if ascending:
+        assert spec["order"] == "i+j+"
+    else:
+        assert "order" not in spec
+
+    eckit_grid = eckit_geo.Grid(spec)
+    assert eckit_grid.type == "regular_ll"
+    assert eckit_grid.order == ("i+j+" if ascending else "i+j-")
+    assert eckit_grid.shape == (nlat, nlon)
+
+    # the points are numbered in the order of the data: the first row is
+    # lat_values[0], running west to east
+    lat_points, lon_points = eckit_grid.to_latlons()
+    assert lat_points[0] == pytest.approx(lat_values[0])
+    assert lon_points[0] == pytest.approx(lon_values[0])
+    assert lat_points[-1] == pytest.approx(lat_values[-1])
+    assert lon_points[-1] == pytest.approx(lon_values[-1])
+
+
+@pytest.mark.parametrize("ascending", [False, True])
+def test_meshed_grid_spec_fine_subarea_float32(ascending):
+    # the same 0.2 degree subarea as test_meshed_grid_spec_fine_subarea, but
+    # stored in float32, as in a real netCDF file: the coordinates are then
+    # quantised to an ulp of the coordinate magnitude (about 1e-5 degrees),
+    # so the steps are not uniform to within np.allclose's default tolerance
+    inc = 0.2
+    north = 89.8
+    west = -180.0
+    nlat = 899
+    nlon = 1800
+
+    lat_values = (north - inc * np.arange(nlat)).astype(np.float32)
+    if ascending:
+        lat_values = lat_values[::-1]
+    lon_values = (west + inc * np.arange(nlon)).astype(np.float32)
+
+    grid = _meshed_grid(lat_values, lon_values)
+    spec = grid.grid_spec
+
+    assert isinstance(spec, dict)
+    assert spec["grid"] == pytest.approx([inc, inc])
+    assert spec["area"] == pytest.approx([
+        float(np.max(lat_values)),
+        float(np.min(lon_values)),
+        float(np.min(lat_values)),
+        float(np.max(lon_values)),
+    ])
+    # the area corners lie on the default (0, 0) reference; the float32
+    # quantisation must not produce a spurious "reference"
+    assert "reference" not in spec
+
+    if ascending:
+        assert spec["order"] == "i+j+"
+    else:
+        assert "order" not in spec
+
+    eckit_grid = eckit_geo.Grid(spec)
+    assert eckit_grid.type == "regular_ll"
+    assert eckit_grid.order == ("i+j+" if ascending else "i+j-")
+    assert eckit_grid.shape == (nlat, nlon)
+
+
+@pytest.mark.parametrize("ascending", [False, True])
+def test_meshed_grid_spec_float32_off_lattice(ascending):
+    # a small float32 subarea whose corners are deliberately off the increment
+    # lattice (10.03125 is not a multiple of 0.25). Its values are exactly
+    # representable, so the 6 digit "cleaning" a float32 axis goes through must
+    # refuse them and keep the raw corners: had it not, the rounded north and south
+    # would no longer span exactly (nlat - 1) increments and the grid would lose a
+    # row of points
+    lat_values = (10.03125 - 0.25 * np.arange(4)).astype(np.float32)
+    if ascending:
+        lat_values = lat_values[::-1]
+    lon_values = (99.96875 + 0.25 * np.arange(4)).astype(np.float32)
+
+    grid = _meshed_grid(lat_values, lon_values)
+    spec = grid.grid_spec
+
+    assert isinstance(spec, dict)
+    assert spec["grid"] == pytest.approx([0.25, 0.25])
+    assert spec["area"] == pytest.approx([10.03125, 99.96875, 9.28125, 100.71875])
+
+    if ascending:
+        assert spec["order"] == "i+j+"
+    else:
+        assert "order" not in spec
+
+    eckit_grid = eckit_geo.Grid(spec)
+    assert eckit_grid.type == "regular_ll"
+    assert eckit_grid.shape == (4, 4)
+
+    # the points are the ones of the axis, to within a float32 ulp
+    assert np.allclose(eckit_grid.distinct_latitudes(), sorted(lat_values, reverse=not ascending), rtol=0, atol=1e-5)
+    assert np.allclose(eckit_grid.distinct_longitudes(), sorted(lon_values), rtol=0, atol=1e-5)
+
+
+def test_meshed_grid_spec_float32_irregular_drift():
+    # a float32 axis every step of which is within a few ulps of the average step,
+    # but whose points wander off the regular lattice by up to 0.01 degrees: only
+    # quantisation noise may be forgiven, a genuinely irregular axis is not a grid
+    lat_values = np.array([50.0, 49.0, 48.0], dtype=np.float32)
+    t = np.linspace(0, np.pi, 1001)
+    lon_values = (np.linspace(100, 110, 1001) + 0.01 * np.sin(t)).astype(np.float32)
+
+    # every step is within 4 float32 ulps of the average one, so a per-step
+    # tolerance alone cannot reject this axis
+    steps = np.diff(lon_values)
+    assert np.max(np.abs(steps - np.mean(steps))) <= 4 * np.finfo(np.float32).eps * 110
+
+    grid = _meshed_grid(lat_values, lon_values)
+    assert grid.grid_spec is None
+
+
+@pytest.mark.parametrize("past", ["north", "south"])
+@pytest.mark.parametrize("ascending", [False, True])
+def test_meshed_grid_spec_float32_lat_past_pole(past, ascending):
+    # a float32 latitude axis reaching a whole degree past a pole is not a grid:
+    # the gridspec fitting it would be clamped by eckit into fewer rows than the
+    # axis has. The guard is lenient with a few ulps of float32 noise (a degree
+    # near the poles is quantised to ~7.6e-6), but one degree is ~130000 of them
+    if past == "north":
+        lat_values = (91.0 - 0.5 * np.arange(364)).astype(np.float32)  # 91 down to -90.5
+    else:
+        lat_values = (-91.0 + 0.5 * np.arange(364)).astype(np.float32)  # -91 up to 90.5
+    if ascending:
+        lat_values = lat_values[::-1]
+    lon_values = (0.5 * np.arange(720)).astype(np.float32)
+
+    # the axis is exactly regular in float32 (all values are multiples of 0.5), so
+    # only the latitude-bounds guard can reject it
+    grid = _meshed_grid(lat_values, lon_values)
+    assert grid.grid_spec is None
+
+
+@pytest.mark.parametrize("inc", [0.5, 0.25])
+@pytest.mark.parametrize("ascending", [False, True])
+def test_meshed_grid_spec_float32_global_at_poles(inc, ascending):
+    # a global float32 axis ends exactly at +-90, which is exact in float32, so the
+    # bounds guard accepts it: the axis is 90 - inc * arange(180/inc + 1), reaching
+    # from pole to pole, stored descending ("i+j-") or ascending ("i+j+")
+    nlat = int(round(180 / inc)) + 1
+    nlon = int(round(360 / inc))
+
+    lat_values = (90.0 - inc * np.arange(nlat)).astype(np.float32)
+    if ascending:
+        lat_values = lat_values[::-1]
+    lon_values = (-180.0 + inc * np.arange(nlon)).astype(np.float32)
+
+    grid = _meshed_grid(lat_values, lon_values)
+    spec = grid.grid_spec
+
+    assert isinstance(spec, dict)
+    assert spec["grid"] == pytest.approx([inc, inc])
+    assert spec["area"] == pytest.approx([90.0, -180.0, -90.0, 180.0 - inc])
+    assert "reference" not in spec
+
+    if ascending:
+        assert spec["order"] == "i+j+"
+    else:
+        assert "order" not in spec
+
+    # the grid built from the spec has as many points as the axes
+    eckit_grid = eckit_geo.Grid(spec)
+    assert eckit_grid.type == "regular_ll"
+    assert eckit_grid.order == ("i+j+" if ascending else "i+j-")
+    assert eckit_grid.shape == (nlat, nlon)
+
+
+@pytest.mark.parametrize("end", ["north", "south"])
+@pytest.mark.parametrize("ascending", [False, True])
+def test_meshed_grid_spec_float32_global_poles_within_noise(end, ascending):
+    # a global float32 axis whose far end sits a couple of ulps past a pole, as
+    # axis quantisation noise can leave it, is still a grid: the guard forgives a
+    # few ulps, and the 6 digit cleaning brings the spec's ends back to exactly +-90
+    inc = 0.5
+    nlat = 361
+    nlon = 720
+    ulp = np.spacing(np.float32(90.0))  # the ulp of a float32 near 90
+
+    # the whole axis nudged 2 ulps past one pole: the other end stays within bounds
+    shift = 2 * ulp if end == "north" else -2 * ulp
+    lat_values = (90.0 + shift - inc * np.arange(nlat)).astype(np.float32)
+    if ascending:
+        lat_values = lat_values[::-1]
+    lon_values = (-180.0 + inc * np.arange(nlon)).astype(np.float32)
+
+    # the far end really does reach past its pole, by more than a single ulp
+    if end == "north":
+        assert float(np.max(lat_values)) > 90.0 + ulp
+    else:
+        assert float(np.min(lat_values)) < -90.0 - ulp
+
+    grid = _meshed_grid(lat_values, lon_values)
+    spec = grid.grid_spec
+
+    assert isinstance(spec, dict)
+    assert spec["grid"] == pytest.approx([inc, inc])
+    assert spec["area"] == pytest.approx([90.0, -180.0, -90.0, 180.0 - inc])
+    assert "reference" not in spec
+
+    if ascending:
+        assert spec["order"] == "i+j+"
+    else:
+        assert "order" not in spec
+
+    eckit_grid = eckit_geo.Grid(spec)
+    assert eckit_grid.type == "regular_ll"
+    assert eckit_grid.order == ("i+j+" if ascending else "i+j-")
+    assert eckit_grid.shape == (nlat, nlon)
+
+
 def test_meshed_grid_spec_specific_area():
     north, west, south, east = 73, -27, 33, 45
     inc = 4
@@ -296,6 +537,54 @@ def test_unstructured_grid_spec_2d(ascending):
     assert eckit_grid.order == ("i+j+" if ascending else "i+j-")
     assert np.allclose(eckit_grid.distinct_latitudes(), sorted(lat_values, reverse=not ascending))
     assert np.allclose(eckit_grid.distinct_longitudes(), sorted(lon_values))
+
+
+@pytest.mark.parametrize("ascending", [False, True])
+def test_unstructured_grid_spec_2d_fine_subarea(ascending):
+    # the same 0.2 degree subarea as test_meshed_grid_spec_fine_subarea, but
+    # given as 2D per-point latitudes/longitudes
+    inc = 0.2
+    north = 89.8
+    west = -180.0
+    nlat = 899
+    nlon = 1800
+
+    lat_values = north - inc * np.arange(nlat)
+    if ascending:
+        lat_values = lat_values[::-1]
+    lon_values = west + inc * np.arange(nlon)
+
+    lat_points, lon_points = np.meshgrid(lat_values, lon_values, indexing="ij")
+
+    grid = _unstructured_grid(lat_points, lon_points, dims=("y", "x"))
+    spec = grid.grid_spec
+
+    assert isinstance(spec, dict)
+    assert spec["grid"] == pytest.approx([inc, inc])
+    assert spec["area"] == pytest.approx([
+        float(np.max(lat_values)),
+        float(np.min(lon_values)),
+        float(np.min(lat_values)),
+        float(np.max(lon_values)),
+    ])
+    assert "reference" not in spec
+
+    if ascending:
+        assert spec["order"] == "i+j+"
+    else:
+        assert "order" not in spec
+
+    eckit_grid = eckit_geo.Grid(spec)
+    assert eckit_grid.type == "regular_ll"
+    assert eckit_grid.order == ("i+j+" if ascending else "i+j-")
+    assert eckit_grid.shape == (nlat, nlon)
+
+    # the points are numbered in the order of the (row-major) 2D data
+    ek_lat, ek_lon = eckit_grid.to_latlons()
+    assert ek_lat[0] == pytest.approx(lat_points[0, 0])
+    assert ek_lon[0] == pytest.approx(lon_points[0, 0])
+    assert ek_lat[-1] == pytest.approx(lat_points[-1, -1])
+    assert ek_lon[-1] == pytest.approx(lon_points[-1, -1])
 
 
 def test_unstructured_grid_spec_global():
