@@ -221,6 +221,59 @@ def test_xarray_grid_netcdf_ll_2():
 @pytest.mark.long_test
 @pytest.mark.download
 @pytest.mark.timeout(90)
+@pytest.mark.parametrize(
+    "filename,order,spec_order",
+    [
+        # 0.2 degree ocean grid excluding the poles, with the latitudes
+        # ascending (-89.8 to 89.8) and descending (89.8 to -89.8)
+        ("latlon_02x02_ocean_nopole_jplus.nc", "i+j+", "i+j+"),
+        ("latlon_02x02_ocean_nopole_jminus.nc", "i+j-", None),
+    ],
+)
+def test_xarray_grid_netcdf_ll_nopole(filename, order, spec_order):
+    path = get_test_data(filename, subfolder="xr")
+    ds = xr.open_dataset(path)
+
+    lat_num, lon_num = 899, 1800
+    variable_grid_dims = ("latitude", "longitude")
+    points_num = lat_num * lon_num
+
+    # auto grid-spec detection
+    variables = get_variables(ds)
+
+    assert len(variables) == 1
+    v = variables[0]
+
+    # the points form a complete regular lat/lon grid, so the grid is
+    # detected as "regular_ll" rather than treated as "unstructured_ll"
+    ek_grid = v.ek_grid
+    assert ek_grid.type == "regular_ll"
+    assert ek_grid.order == order
+    assert ek_grid.shape == (lat_num, lon_num)
+
+    # the detected gridspec: the increment is the average of the float32 steps
+    # and the area is the corner values of the coordinate arrays
+    spec = v.xr_grid.grid_spec
+    assert spec["grid"] == pytest.approx([0.2, 0.2])
+    assert spec["area"] == pytest.approx([89.8, -180.0, -89.8, 179.8])
+
+    if spec_order is None:
+        # the default, north to south latitude order is not repeated in the spec
+        assert "order" not in spec
+    else:
+        assert spec["order"] == spec_order
+
+    xr_grid = v.xr_grid
+    assert xr_grid.variable_dims == variable_grid_dims
+
+    lat, lon = xr_grid.latlons
+    assert lat.shape == (points_num,)
+    assert lon.shape == (points_num,)
+
+
+@pytest.mark.long_test
+@pytest.mark.download
+@pytest.mark.timeout(90)
 def test_xarray_grid_laea():
     path = get_test_data("efas.nc", subfolder="xr")
     ds = xr.open_dataset(path)
