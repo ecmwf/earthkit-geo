@@ -26,6 +26,117 @@ def _offset(value: float, increment: float, atol: float = 1e-9) -> float:
     return offset
 
 
+def _is_single_precision(values: np.ndarray) -> bool:
+    """Whether ``values`` is stored with float32 or coarser precision."""
+    return np.issubdtype(values.dtype, np.floating) and np.finfo(values.dtype).eps >= np.finfo(np.float32).eps
+
+
+def _round6(value: float) -> float:
+    """Re-read ``value`` at 6 significant digits, the reliable precision of a float32."""
+    return float(f"{value:.6g}")
+
+
+# how far a point of a float32 axis may sit from the lattice its cleaned increment and ends
+# describe, in ulps of the coordinate magnitude. Axes built by arange, by linspace or in
+# float32 stay within 1.4 ulps of it, over grids of up to 3600 points; an axis that is only
+# regular on average, its points wandering from side to side, is off by orders of magnitude
+# more, and is not a grid
+_LATTICE_ULPS = 4.0
+
+# the cleaned increment and ends are only used when the area they describe spans exactly the
+# points of the axis: eckit counts the increments that fit in the area, so an area a fraction
+# of an increment too short loses a line of points
+_SPAN_ATOL = 1e-9
+
+
+def _max_drift(values: np.ndarray, first: float, step: float) -> float:
+    """How far the points in ``values`` are from the regular axis starting at ``first`` with increment ``step``."""
+    lattice = first + step * np.arange(len(values))
+    return float(np.max(np.abs(np.asarray(values, dtype=np.float64) - lattice)))
+
+
+def _axis_atol(values: np.ndarray) -> float:
+    """How far the points of a single-precision axis may sit from the lattice they belong to.
+
+    A coordinate stored in float32 is quantised to an ulp of its magnitude, about 1e-5 degrees
+    at the size of the Earth and much coarser than the absolute tolerance ``np.allclose`` uses.
+    For magnitudes below one degree the ulp of a degree is used instead, a floor that no real
+    coordinate reaches.
+    """
+    return _LATTICE_ULPS * np.finfo(values.dtype).eps * max(float(np.max(np.abs(values))), 1.0)
+
+
+def _reproduces_axis(values: np.ndarray, step: float, low: float, high: float) -> bool:
+    """Whether the increment ``step`` and the ends ``low``/``high`` describe ``values``.
+
+    The ends must span exactly ``len(values) - 1`` increments, so that the grid built from
+    them has as many points as the axis, and the axis rebuilt from the end the increment
+    starts at must match the points.
+    """
+    if abs((high - low) - (len(values) - 1) * abs(step)) > _SPAN_ATOL:
+        return False
+    return _max_drift(values, low if step > 0 else high, step) <= _axis_atol(values)
+
+
+def _within_bounds(values: np.ndarray, bounds: tuple) -> bool:
+    """Whether a single-precision coordinate stays within ``bounds``, allowing for its precision.
+
+    Integer and float64 coordinates are not checked: their values are taken as they are.
+    """
+    if not _is_single_precision(values):
+        return True
+    low, high = bounds
+    atol = _axis_atol(values)
+    return float(np.min(values)) >= low - atol and float(np.max(values)) <= high + atol
+
+
+def _regular_axis(values: np.ndarray) -> Optional[tuple]:
+    """Fit a regular axis to the coordinate ``values``.
+
+    Returns ``(step, low, high)``: the signed increment and the two ends of the axis, or
+    ``None`` when ``values`` does not describe a regular axis.
+
+    A coordinate stored in float32 (e.g. read from a netCDF file) is quantised to an ulp of its
+    magnitude, about 1e-5 degrees at the size of the Earth, so its steps are uniform only to
+    within a few of those ulps and it does not meet the bar a float64 axis is held to: np.allclose
+    with its default tolerances. Its increment and its ends carry about 7 significant decimal
+    digits, so they are re-read at 6: this drops the last digit of quantisation noise and recovers
+    the nominal values the file was meant to hold (0.2, 89.8, ...). Without it, an increment such
+    as ``float32(0.2)`` = 0.20000000298... leaves the ends off the increment lattice by a few ulps,
+    which makes the gridspec round-trip through eckit into a different, shifted grid. Those cleaned
+    values are only used when they still describe the axis, which :func:`_reproduces_axis` checks:
+    the same number of points, and every point of the axis within a few ulps of the lattice they
+    build. An axis that is only regular on average, one whose points wander from side to side
+    along it, fails that check, and so does one whose ends really are off the increment lattice
+    (10.03125, say).
+
+    Both of those keep the raw increment and ends, but only when the steps are uniform to
+    np.allclose's default tolerances: that is the bar this fitting was held to before single
+    precision was taken into account, so an axis that used to be detected still is, with the very
+    same gridspec. An axis that neither cleans up nor meets it is not a regular axis.
+    """
+    steps = np.diff(values)
+    step = float(np.mean(steps))
+    low = float(np.min(values))
+    high = float(np.max(values))
+
+    # the bar this fitting was held to before single precision: np.allclose's defaults
+    strict = bool(np.allclose(steps, step))
+
+    if _is_single_precision(values):
+        # the increment counts the points of the grid, so it is averaged in float64: a float32
+        # step carries too few digits for that average to be reliable over a whole axis
+        step64 = float(np.mean(np.diff(values.astype(np.float64))))
+        cleaned = (_round6(step64), _round6(low), _round6(high))
+        if _reproduces_axis(values, *cleaned):
+            return cleaned
+
+    if not strict:
+        return None
+
+    return step, low, high
+
+
 def regular_ll_grid_spec(lats: Any, lons: Any) -> Optional[dict]:
     """Build the gridspec for a regular latitude-longitude grid.
 
@@ -48,31 +159,39 @@ def regular_ll_grid_spec(lats: Any, lons: Any) -> Optional[dict]:
     if len(lats) < 2 or len(lons) < 2:
         return None
 
-    dlat_steps = np.diff(lats)
-    dlon_steps = np.diff(lons)
+    # the increment of each axis is the average of all its steps, which smooths out the
+    # per-step floating-point noise a single step (e.g. the first) can carry; see
+    # _regular_axis for how the float32 quantisation noise is dealt with
+    lat_fit = _regular_axis(lats)
+    lon_fit = _regular_axis(lons)
 
-    # averaging over all the steps smooths out the per-step floating-point noise that
-    # a single step (e.g. the first) can carry, giving a value closer to the nominal increment
-    dlat_step = np.mean(dlat_steps)
-    dlon_step = np.mean(dlon_steps)
-
-    if not np.allclose(dlat_steps, dlat_step) or not np.allclose(dlon_steps, dlon_step):
+    if lat_fit is None or lon_fit is None:
         return None
 
-    dlat = abs(float(dlat_step))
-    dlon = abs(float(dlon_step))
+    # a float32 latitude axis reaching past the poles is not one: the gridspec that fits it
+    # would be clamped by eckit into a grid with fewer points than the axis has. Float64
+    # axes are taken as they are, as they always have been
+    if not _within_bounds(lats, (-90.0, 90.0)):
+        return None
 
-    north = float(np.max(lats))
-    west = float(np.min(lons))
+    dlat_step, south, north = lat_fit
+    dlon_step, west, east = lon_fit
+    dlat = abs(dlat_step)
+    dlon = abs(dlon_step)
 
     spec = {
         "grid": [dlon, dlat],
-        "area": [north, west, float(np.min(lats)), float(np.max(lons))],
+        "area": [north, west, south, east],
     }
 
-    if dlat_steps[0] > 0:
+    if dlat_step > 0:
         spec["order"] = "i+j+"
 
+    # the offset of the corners from the default (0, 0) reference is only snapped to 0
+    # when it really is 0: snapping a small but genuine residual, a few ulps of the
+    # coordinate, would move the lattice off the corner, which is enough for eckit to
+    # drop a line of points. The cleaned corners of a float32 axis are on the lattice to
+    # within float64 rounding, so they still end up with no "reference"
     lon_offset = _offset(west, dlon)
     lat_offset = _offset(north, dlat)
     if lon_offset or lat_offset:
