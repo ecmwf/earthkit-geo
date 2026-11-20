@@ -6,25 +6,27 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
+"""Regridding a GRIB message (a buffer, not an earthkit-data field) with MIR.
+
+The interpolation name list and the ``mir`` / ``earthkit-data`` skip marks come from
+``regrid_common``. The input is the tracked ``tests/data/o32.grib2``, read through
+``earthkit_test_data_path`` (never downloaded, so not a ``regrid_common.data_path`` case).
+"""
+
+from io import BytesIO
+
 import pytest
+from regrid_common import INTERPOLATION_NAMES, requires_ekd, requires_mir
 
 from earthkit.geo import regrid
-from earthkit.geo.utils.testing import (
-    NO_EKD,  # noqa: E402
-    NO_MIR,  # noqa: E402
-    earthkit_test_data_path,
-)
-
-INTERPOLATIONS = ["linear", "nearest-neighbour", "grid-box-average"]
+from earthkit.geo.utils.testing import earthkit_test_data_path
 
 
-@pytest.mark.skipif(NO_MIR, reason="No mir available")
-@pytest.mark.skipif(NO_EKD, reason="No access to earthkit-data")
+@requires_mir
+@requires_ekd
 @pytest.mark.parametrize("input_format", ["BytesIO", "bytes"])
-@pytest.mark.parametrize("interpolation", INTERPOLATIONS)
-def test_regrid_grib_message(input_format, interpolation):
-    from io import BytesIO
-
+@pytest.mark.parametrize("interpolation", INTERPOLATION_NAMES)
+def test_regrid_grib_message_to_ll(input_format, interpolation):
     from earthkit.data.field.grib.create import create_grib_field_from_buffer
 
     def check_header(contents):
