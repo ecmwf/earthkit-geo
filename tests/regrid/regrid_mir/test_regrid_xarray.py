@@ -6,34 +6,52 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
+"""Regrid tests for xarray objects regridded by MIR through ``earthkit.geo.regrid``.
+
+Three kinds of input are regridded: the ``xr.DataArray`` / ``xr.Dataset`` made from an
+earthkit-data "sample" GRIB (O32_t2.grib2, H8_nested_t2.grib2, test.grib), the NetCDF and
+covjson files of the "xr" test data subfolder (test_single.nc, efas.nc, cordex.nc,
+points.covjson), and small synthetic ``xr.Dataset`` objects built by the tests themselves.
+
+The shared parts come from ``regrid_common``: ``requires_mir`` and ``requires_ekd`` are
+the skip marks of the sample tests, ``IN_GITHUB`` is re-exported there, and
+``data_path("legacy", ..., subfolder="xr")`` is the single data access (it delegates to
+``earthkit.geo.utils.testing.get_test_data``). ``NO_COVJSON``, ``compare_dims`` and
+``covjson_to_xarray`` have no counterpart in ``regrid_common`` and are imported from
+``earthkit.geo.utils.testing``.
+"""
 
 import numpy as np
 import pytest
+from regrid_common import IN_GITHUB, NO_EKD, data_path, requires_ekd, requires_mir
 
 from earthkit.geo import regrid
-from earthkit.geo.utils.testing import (
-    IN_GITHUB,  # noqa: E402
-    NO_COVJSON,  # noqa: E402
-    NO_EKD,  # noqa: E402
-    NO_MIR,  # noqa: E402
-    compare_dims,
-    covjson_to_xarray,
-    get_test_data,
-)
+from earthkit.geo.utils.testing import NO_COVJSON, compare_dims, covjson_to_xarray
 
 if not NO_EKD:
-    from earthkit.data import from_source  # noqa
+    from earthkit.data import from_source
 
 
 xr = pytest.importorskip("xarray")
 
+# Being unable to run in the GitHub CI is a property of the tests of this file, and
+# regrid_common.py only provides the MIR and earthkit-data marks.
+skip_in_github = pytest.mark.skipif(IN_GITHUB, reason="Skipping test in GitHub CI")
+
+# The output grids of test_regrid_xarray_from_sample: the requested out_grid, the
+# gridspec the result is expected to report (its items must include these) and the
+# expected sizes of the "step" and coordinate / "values" dimensions.
 REFS = [
     ({"grid": [10, 10]}, {"grid": [10, 10]}, {"step": 2, "latitude": 19, "longitude": 36}),
     ({"grid": "N32"}, {"grid": "N32"}, {"step": 2, "values": 6114}),
     ({"grid": "H4", "order": "nested"}, {"grid": "H4", "order": "nested"}, {"step": 2, "values": 192}),
     ({"grid": "H4", "order": "ring"}, {"grid": "H4"}, {"step": 2, "values": 192}),
 ]
+REFS_IDS = ["ll-10x10", "n32", "h4-nested", "h4-ring"]
 
+# The same, for the regional output grids of test_regrid_xarray_from_ogg_to_subarea.
+# The fourth element is the area (north, west, south, east) the result coordinates must
+# span; the second case asks for an area larger than the source grid can cover.
 REFS_SUBAREA = [
     (
         {"grid": [10, 10], "area": [80, -20, -10, 60]},
@@ -49,17 +67,89 @@ REFS_SUBAREA = [
     ),
 ]
 
+# The inputs of test_regrid_xarray_from_sample: the earthkit-data sample GRIB, holding
+# two fields, and the object handed to regrid() -- the name of its "2t" data array, or
+# None for the whole Dataset.
+SAMPLE_CASES = [
+    pytest.param("O32_t2.grib2", "2t", id="ogg-da"),
+    pytest.param("H8_nested_t2.grib2", "2t", id="h-nested-da"),
+    pytest.param("H8_nested_t2.grib2", None, id="h-nested-ds"),
+]
 
-@pytest.mark.skipif(NO_MIR, reason="No mir available")
-@pytest.mark.skipif(NO_EKD, reason="No earthkit.data available")
-@pytest.mark.parametrize("out_grid,out_grid_ref,dims", REFS)
-def test_regrid_xarray_from_ogg(out_grid, out_grid_ref, dims):
+# A global {"grid": [10, 10]} result spans the poles: MIR returns 19 latitudes and 36
+# longitudes for it.
+OUT_DIMS_GLOBAL = {"latitude": 19, "longitude": 36}
+REF_LAT_GLOBAL = np.linspace(90.0, -90.0, 19)
+REF_LON_GLOBAL = np.linspace(0.0, 350.0, 36)
 
-    ds_in = from_source("sample", "O32_t2.grib2").to_fieldlist()
+# The {"grid": [5, 5]} output over the area of the synthetic 3x3 field of the 2D / 1D
+# tests: the linear regridding of its two levels (11..36 and 14..36, see
+# _synthetic_dataset) onto the area [50, 0, 30, 20]. The 1D test's auto-detected input
+# grid is the same grid, and the curved 2D test sees the first three longitudes of it.
+REF_3X3_TO_5X5 = np.array([
+    [
+        [11.0, 11.60916513, 12.0, 12.60709173, 13.0],
+        [16.0, 16.64829292, 17.0, 17.56959565, 18.0],
+        [21.0, 21.60735172, 22.0, 22.60876203, 23.0],
+        [26.0, 26.57403598, 27.0, 27.63057889, 28.0],
+        [31.0, 31.5, 32.0, 32.5, 33.0],
+    ],
+    [
+        [14.0, 14.60916513, 15.0, 15.60709173, 16.0],
+        [19.0, 19.64829292, 20.0, 20.56959565, 21.0],
+        [24.0, 24.60735172, 25.0, 25.60876203, 26.0],
+        [29.0, 29.57403598, 30.0, 30.63057889, 31.0],
+        [34.0, 34.5, 35.0, 35.5, 36.0],
+    ],
+])
+REF_LAT_5 = np.array([50.0, 45.0, 40.0, 35.0, 30.0])
+REF_LON_5 = np.array([0.0, 5.0, 10.0, 15.0, 20.0])
+
+# The coordinates of the coarser grids the curved-coordinate tests select from their
+# global result.
+REF_LAT_3 = np.array([50.0, 40.0, 30.0])
+
+# The parametrisations of the synthetic tests: both spellings of the coordinate names,
+# the input grid detected by MIR or stated by the test, and the input grids of the
+# NetCDF tests (None lets MIR detect the grid of the file).
+LATLON_NAMES = [("lat", "lon"), ("latitude", "longitude")]
+AUTO_IN_GRIDS = [False, True]
+IN_GRID_CASES = [None, {"grid": [30.0, 30.0]}]
+
+
+def _sample_fields(sample):
+    """The fieldlist of an earthkit-data "sample" GRIB source."""
+    return from_source("sample", sample).to_fieldlist()
+
+
+def _open_xr(name):
+    """The xr.Dataset of a file of the "xr" subfolder of the test data."""
+    return xr.open_dataset(data_path("legacy", name, subfolder="xr"))
+
+
+def _synthetic_dataset(dims, coords, data):
+    """The two-level xr.Dataset with the single data variable "a" the tests regrid."""
+    return xr.Dataset({"a": xr.Variable(dims, data)}, coords=coords)
+
+
+def _assert_latlons(r, ref_lat, ref_lon):
+    """Assert that a regridded object spans the reference latitude / longitude grids."""
+    assert np.allclose(r.latitude.values, ref_lat)
+    assert np.allclose(r.longitude.values, ref_lon)
+
+
+@requires_mir
+@requires_ekd
+@pytest.mark.parametrize("out_grid,out_grid_ref,dims", REFS, ids=REFS_IDS)
+@pytest.mark.parametrize("sample,var", SAMPLE_CASES)
+def test_regrid_xarray_from_sample(out_grid, out_grid_ref, dims, sample, var):
+    """Regrid a DataArray, or a whole Dataset, of a sample fieldlist onto every output grid."""
+    ds_in = _sample_fields(sample)
     assert len(ds_in) == 2
     ds = ds_in.to_xarray()
 
-    r = regrid(ds["2t"], out_grid=out_grid, interpolation="linear")
+    obj = ds if var is None else ds[var]
+    r = regrid(obj, out_grid=out_grid, interpolation="linear")
 
     compare_dims(r, dims, sizes=True)
 
@@ -67,12 +157,12 @@ def test_regrid_xarray_from_ogg(out_grid, out_grid_ref, dims):
 
 
 @pytest.mark.skip(reason="This test is currently failing")
-@pytest.mark.skipif(NO_MIR, reason="No mir available")
-@pytest.mark.skipif(NO_EKD, reason="No earthkit.data available")
+@requires_mir
+@requires_ekd
 @pytest.mark.parametrize("out_grid,out_grid_ref,dims,area_ref", REFS_SUBAREA)
 def test_regrid_xarray_from_ogg_to_subarea(out_grid, out_grid_ref, dims, area_ref):
-
-    ds_in = from_source("sample", "O32_t2.grib2").to_fieldlist()
+    """Regrid the OGG sample onto a regional output grid and check the area it covers."""
+    ds_in = _sample_fields("O32_t2.grib2")
     assert len(ds_in) == 2
     ds = ds_in.to_xarray()
 
@@ -95,27 +185,8 @@ def test_regrid_xarray_from_ogg_to_subarea(out_grid, out_grid_ref, dims, area_re
     assert np.isclose(west, area_ref[1])
 
 
-@pytest.mark.skipif(NO_MIR, reason="No mir available")
-@pytest.mark.skipif(NO_EKD, reason="No earthkit.data available")
-@pytest.mark.parametrize(
-    "out_grid,out_grid_ref,dims",
-    REFS,
-)
-def test_regrid_xarray_from_h_nested(out_grid, out_grid_ref, dims):
-
-    ds_in = from_source("sample", "H8_nested_t2.grib2").to_fieldlist()
-    assert len(ds_in) == 2
-    ds = ds_in.to_xarray()
-
-    r = regrid(ds["2t"], out_grid=out_grid, interpolation="linear")
-
-    compare_dims(r, dims, sizes=True)
-
-    assert r.earthkit.grid_spec.items() >= out_grid_ref.items()
-
-
-@pytest.mark.skipif(NO_MIR, reason="No mir available")
-@pytest.mark.skipif(NO_EKD, reason="No earthkit.data available")
+@requires_mir
+@requires_ekd
 @pytest.mark.parametrize(
     "sample,out_grid,out_grid_ref,dims",
     [
@@ -129,9 +200,8 @@ def test_regrid_xarray_from_h_nested(out_grid, out_grid_ref, dims):
     ],
 )
 def test_regrid_xarray_transposed_dims(sample, out_grid, out_grid_ref, dims):
-    ds_in = from_source("sample", sample).to_fieldlist()
-
-    ds = ds_in.to_xarray()
+    """A transposed (non-contiguous) data array regrids like the original dim order."""
+    ds = _sample_fields(sample).to_xarray()
     da = ds["2t"].transpose("longitude", "latitude", "values", "step", missing_dims="ignore")
 
     r = regrid(da, out_grid=out_grid, interpolation="linear")  # transposed dims (non-contiguous array)
@@ -143,29 +213,10 @@ def test_regrid_xarray_transposed_dims(sample, out_grid, out_grid_ref, dims):
     np.testing.assert_allclose(r.transpose(*r_ref.dims).values, r_ref.values)
 
 
-@pytest.mark.skipif(NO_MIR, reason="No mir available")
-@pytest.mark.skipif(NO_EKD, reason="No earthkit.data available")
-@pytest.mark.parametrize(
-    "out_grid,out_grid_ref,dims",
-    REFS,
-)
-def test_regrid_xarray_dataset_from_h_nested(out_grid, out_grid_ref, dims):
-
-    ds_in = from_source("sample", "H8_nested_t2.grib2").to_fieldlist()
-    assert len(ds_in) == 2
-    ds = ds_in.to_xarray()
-
-    r = regrid(ds, out_grid=out_grid, interpolation="linear")
-
-    compare_dims(r, dims, sizes=True)
-
-    assert r.earthkit.grid_spec.items() >= out_grid_ref.items()
-
-
-@pytest.mark.skipif(IN_GITHUB, reason="Skipping test in GitHub CI")
-@pytest.mark.parametrize("lat_name,lon_name", [("lat", "lon"), ("latitude", "longitude")])
-@pytest.mark.parametrize("auto_in_grid", [False, True])
-def test_regrid_xarray_2d_1(lat_name, lon_name, auto_in_grid):
+@skip_in_github
+@pytest.mark.parametrize("lat_name,lon_name", LATLON_NAMES)
+@pytest.mark.parametrize("auto_in_grid", AUTO_IN_GRIDS)
+def test_regrid_xarray_2d_coords_to_ll(lat_name, lon_name, auto_in_grid):
     # Dimensions:  (level: 2, lat: 3, lon: 3)
     # Coordinates:
     #   * level    (level) int64 16B 700 500
@@ -173,8 +224,6 @@ def test_regrid_xarray_2d_1(lat_name, lon_name, auto_in_grid):
     #   * lon      (lon) int64 24B 0 10 20
     # Data variables:
     #     a        (level, lat, lon) int64 144B 11 12 13 21 22 23 ... 25 26 34 35 36
-
-    import xarray as xr
 
     dims = {"level": 2, lat_name: 3, lon_name: 3}
     coords = {
@@ -191,9 +240,7 @@ def test_regrid_xarray_2d_1(lat_name, lon_name, auto_in_grid):
         dtype=np.float64,
     )
 
-    a = xr.Variable(dims, data)
-    v = {"a": a}
-    ds_in = xr.Dataset(v, coords=coords)
+    ds_in = _synthetic_dataset(dims, coords, data)
 
     in_grid = None if auto_in_grid else {"grid": [10, 10], "area": [50, 0, 30, 20]}
     out_grid = {"grid": [5, 5]}
@@ -203,35 +250,14 @@ def test_regrid_xarray_2d_1(lat_name, lon_name, auto_in_grid):
     out_dims = {"level": 2, "latitude": 5, "longitude": 5}
     compare_dims(r, out_dims, sizes=True)
 
-    ref_data = np.array([
-        [
-            [11.0, 11.60916513, 12.0, 12.60709173, 13.0],
-            [16.0, 16.64829292, 17.0, 17.56959565, 18.0],
-            [21.0, 21.60735172, 22.0, 22.60876203, 23.0],
-            [26.0, 26.57403598, 27.0, 27.63057889, 28.0],
-            [31.0, 31.5, 32.0, 32.5, 33.0],
-        ],
-        [
-            [14.0, 14.60916513, 15.0, 15.60709173, 16.0],
-            [19.0, 19.64829292, 20.0, 20.56959565, 21.0],
-            [24.0, 24.60735172, 25.0, 25.60876203, 26.0],
-            [29.0, 29.57403598, 30.0, 30.63057889, 31.0],
-            [34.0, 34.5, 35.0, 35.5, 36.0],
-        ],
-    ])
-
-    ref_lat = np.array([50.0, 45.0, 40.0, 35.0, 30.0])
-    ref_lon = np.array([0.0, 5.0, 10.0, 15.0, 20.0])
-
-    assert np.allclose(r.values, ref_data)
-    assert np.allclose(r.latitude.values, ref_lat)
-    assert np.allclose(r.longitude.values, ref_lon)
+    assert np.allclose(r.values, REF_3X3_TO_5X5)
+    _assert_latlons(r, REF_LAT_5, REF_LON_5)
 
 
-@pytest.mark.skipif(IN_GITHUB, reason="Skipping test in GitHub CI")
-@pytest.mark.parametrize("lat_name,lon_name", [("lat", "lon"), ("latitude", "longitude")])
-@pytest.mark.parametrize("auto_in_grid", [False, True])
-def test_regrid_xarray_2d_2(lat_name, lon_name, auto_in_grid):
+@skip_in_github
+@pytest.mark.parametrize("lat_name,lon_name", LATLON_NAMES)
+@pytest.mark.parametrize("auto_in_grid", AUTO_IN_GRIDS)
+def test_regrid_xarray_2d_curved_to_ll(lat_name, lon_name, auto_in_grid):
     # Dimensions:  (level: 2, y: 3, x: 2)
     # Coordinates:
     #   * level    (level) int64 16B 700 500
@@ -240,8 +266,6 @@ def test_regrid_xarray_2d_2(lat_name, lon_name, auto_in_grid):
     # Dimensions without coordinates: y, x
     # Data variables:
     #     a        (level, y, x) int64 96B 11 12 21 22 31 32 14 15 24 25 34 35
-
-    import xarray as xr
 
     dims = {"level": 2, "y": 3, "x": 2}
     coords = {
@@ -258,9 +282,7 @@ def test_regrid_xarray_2d_2(lat_name, lon_name, auto_in_grid):
         dtype=np.float64,
     )
 
-    a = xr.Variable(dims, data)
-    v = {"a": a}
-    ds_in = xr.Dataset(v, coords=coords)
+    ds_in = _synthetic_dataset(dims, coords, data)
 
     in_grid = (
         None
@@ -281,28 +303,8 @@ def test_regrid_xarray_2d_2(lat_name, lon_name, auto_in_grid):
         out_dims = {"level": 2, "latitude": 5, "longitude": 3}
         compare_dims(r, out_dims, sizes=True)
 
-        ref_data = np.array([
-            [
-                [11.0, 11.60916513, 12.0],
-                [16.0, 16.64829292, 17.0],
-                [21.0, 21.60735172, 22.0],
-                [26.0, 26.57403598, 27.0],
-                [31.0, 31.5, 32.0],
-            ],
-            [
-                [14.0, 14.60916513, 15.0],
-                [19.0, 19.64829292, 20.0],
-                [24.0, 24.60735172, 25.0],
-                [29.0, 29.57403598, 30.0],
-                [34.0, 34.5, 35.0],
-            ],
-        ])
-        ref_lat = np.array([50.0, 45.0, 40.0, 35.0, 30.0])
-        ref_lon = np.array([0.0, 5.0, 10.0])
-
-        assert np.allclose(r.values, ref_data)
-        assert np.allclose(r.latitude.values, ref_lat)
-        assert np.allclose(r.longitude.values, ref_lon)
+        assert np.allclose(r.values, REF_3X3_TO_5X5[:, :, :3])
+        _assert_latlons(r, REF_LAT_5, REF_LON_5[:3])
     else:
         out_dims = {"level": 2, "latitude": 37, "longitude": 72}
         compare_dims(r, out_dims, sizes=True)
@@ -312,20 +314,18 @@ def test_regrid_xarray_2d_2(lat_name, lon_name, auto_in_grid):
             [[14.0, 15.0], [24.0, 25.0], [34.0, 35.0]],
         ])
 
-        ref_lat = np.array([50.0, 40.0, 30.0])
         ref_lon = np.array([0.0, 10.0])
 
-        r_sub = r.sel(latitude=ref_lat, longitude=ref_lon)
+        r_sub = r.sel(latitude=REF_LAT_3, longitude=ref_lon)
 
         assert np.allclose(r_sub.values, ref_data)
-        assert np.allclose(r_sub.latitude.values, ref_lat)
-        assert np.allclose(r_sub.longitude.values, ref_lon)
+        _assert_latlons(r_sub, REF_LAT_3, ref_lon)
 
 
-@pytest.mark.skipif(IN_GITHUB, reason="Skipping test in GitHub CI")
-@pytest.mark.parametrize("lat_name,lon_name", [("lat", "lon"), ("latitude", "longitude")])
-@pytest.mark.parametrize("auto_in_grid", [False, True])
-def test_regrid_xarray_1d_1(lat_name, lon_name, auto_in_grid):
+@skip_in_github
+@pytest.mark.parametrize("lat_name,lon_name", LATLON_NAMES)
+@pytest.mark.parametrize("auto_in_grid", AUTO_IN_GRIDS)
+def test_regrid_xarray_1d_unstructured_to_ll(lat_name, lon_name, auto_in_grid):
     # Dimensions:  (level: 2, values: 9)
     # Coordinates:
     #   * level    (level) int64 16B 700 500
@@ -334,8 +334,6 @@ def test_regrid_xarray_1d_1(lat_name, lon_name, auto_in_grid):
     # Dimensions without coordinates: values
     # Data variables:
     #     a        (level, values) int64 144B 11 12 13 21 22 23 ... 24 25 26 34 35 36
-
-    import xarray as xr
 
     dims = {"level": 2, "values": 9}
     coords = {
@@ -352,9 +350,7 @@ def test_regrid_xarray_1d_1(lat_name, lon_name, auto_in_grid):
         dtype=np.float64,
     )
 
-    a = xr.Variable(dims, data)
-    v = {"a": a}
-    ds_in = xr.Dataset(v, coords=coords)
+    ds_in = _synthetic_dataset(dims, coords, data)
 
     in_grid = (
         None
@@ -370,34 +366,14 @@ def test_regrid_xarray_1d_1(lat_name, lon_name, auto_in_grid):
 
     if auto_in_grid:
         # the 9 points form a complete regular lat/lon grid (area [50, 0, 30, 20]), identical
-        # to the one used in test_regrid_xarray_2d_1, so the auto-detected input grid is
-        # confined to that area, unlike the explicit unstructured "latitudes"/"longitudes"
-        # in_grid below, which MIR interpolates over the whole globe
+        # to the one used in test_regrid_xarray_2d_coords_to_ll, so the auto-detected input
+        # grid is confined to that area, unlike the explicit unstructured
+        # "latitudes"/"longitudes" in_grid below, which MIR interpolates over the whole globe
         out_dims = {"level": 2, "latitude": 5, "longitude": 5}
         compare_dims(r, out_dims, sizes=True)
 
-        ref_data = np.array([
-            [
-                [11.0, 11.60916513, 12.0, 12.60709173, 13.0],
-                [16.0, 16.64829292, 17.0, 17.56959565, 18.0],
-                [21.0, 21.60735172, 22.0, 22.60876203, 23.0],
-                [26.0, 26.57403598, 27.0, 27.63057889, 28.0],
-                [31.0, 31.5, 32.0, 32.5, 33.0],
-            ],
-            [
-                [14.0, 14.60916513, 15.0, 15.60709173, 16.0],
-                [19.0, 19.64829292, 20.0, 20.56959565, 21.0],
-                [24.0, 24.60735172, 25.0, 25.60876203, 26.0],
-                [29.0, 29.57403598, 30.0, 30.63057889, 31.0],
-                [34.0, 34.5, 35.0, 35.5, 36.0],
-            ],
-        ])
-        ref_lat = np.array([50.0, 45.0, 40.0, 35.0, 30.0])
-        ref_lon = np.array([0.0, 5.0, 10.0, 15.0, 20.0])
-
-        assert np.allclose(r.values, ref_data)
-        assert np.allclose(r.latitude.values, ref_lat)
-        assert np.allclose(r.longitude.values, ref_lon)
+        assert np.allclose(r.values, REF_3X3_TO_5X5)
+        _assert_latlons(r, REF_LAT_5, REF_LON_5)
     else:
         out_dims = {"level": 2, "latitude": 37, "longitude": 72}
         compare_dims(r, out_dims, sizes=True)
@@ -407,28 +383,24 @@ def test_regrid_xarray_1d_1(lat_name, lon_name, auto_in_grid):
             [[14.0, 15.0, 16.0], [24.0, 25.30354886, 26.0], [34.0, 35.0, 36.0]],
         ])
 
-        ref_lat = np.array([50.0, 40.0, 30.0])
         ref_lon = np.array([0.0, 10.0, 20.0])
 
-        r_sub = r.sel(latitude=ref_lat, longitude=ref_lon)
+        r_sub = r.sel(latitude=REF_LAT_3, longitude=ref_lon)
 
         assert np.allclose(r_sub.values, ref_data)
-        assert np.allclose(r_sub.latitude.values, ref_lat)
-        assert np.allclose(r_sub.longitude.values, ref_lon)
+        _assert_latlons(r_sub, REF_LAT_3, ref_lon)
 
 
-@pytest.mark.skipif(IN_GITHUB, reason="Skipping test in GitHub CI")
-@pytest.mark.parametrize("in_grid", [None, {"grid": [30.0, 30.0]}])
-def test_regrid_xarray_from_netcdf_ll_to_ll(in_grid):
-    path = get_test_data("test_single.nc", subfolder="xr")
-    ds = xr.open_dataset(path)
-    da = ds["t2m"]
+@skip_in_github
+@pytest.mark.parametrize("in_grid", IN_GRID_CASES)
+def test_regrid_xarray_netcdf_ll_to_ll(in_grid):
+    """Regrid the NetCDF global lat/lon field onto a coarser global lat/lon grid."""
+    da = _open_xr("test_single.nc")["t2m"]
 
     out_grid = {"grid": [10, 10]}
     r = regrid(da, in_grid=in_grid, out_grid=out_grid, interpolation="nn")
 
-    out_dims = {"latitude": 19, "longitude": 36}
-    compare_dims(r, out_dims, sizes=True)
+    compare_dims(r, OUT_DIMS_GLOBAL, sizes=True)
 
     ref_data = np.array([
         280.8106,
@@ -468,20 +440,16 @@ def test_regrid_xarray_from_netcdf_ll_to_ll(in_grid):
         275.8106,
         280.8106,
     ])
-    ref_lat = np.linspace(90.0, -90.0, 19)
-    ref_lon = np.linspace(0.0, 350.0, 36)
 
     assert np.allclose(r.to_numpy()[2], ref_data)
-    assert np.allclose(r.latitude.values, ref_lat)
-    assert np.allclose(r.longitude.values, ref_lon)
+    _assert_latlons(r, REF_LAT_GLOBAL, REF_LON_GLOBAL)
 
 
-@pytest.mark.skipif(IN_GITHUB, reason="Skipping test in GitHub CI")
-@pytest.mark.parametrize("in_grid", [None, {"grid": [30.0, 30.0]}])
-def test_regrid_xarray_from_netcdf_ll_to_points(in_grid):
-    path = get_test_data("test_single.nc", subfolder="xr")
-    ds = xr.open_dataset(path)
-    da = ds["t2m"]
+@skip_in_github
+@pytest.mark.parametrize("in_grid", IN_GRID_CASES)
+def test_regrid_xarray_netcdf_ll_to_points(in_grid):
+    """Regrid the NetCDF global lat/lon field onto two lat/lon points."""
+    da = _open_xr("test_single.nc")["t2m"]
 
     lats = [40.0, 50.0]
     lons = [10.0, 20.0]
@@ -497,13 +465,13 @@ def test_regrid_xarray_from_netcdf_ll_to_points(in_grid):
     assert np.allclose(r.longitude.values, np.array(lons))
 
 
-@pytest.mark.skipif(IN_GITHUB, reason="Skipping test in GitHub CI")
+@skip_in_github
 # @pytest.mark.long_test
 @pytest.mark.download
 @pytest.mark.timeout(90)
 def test_regrid_xarray_laea_to_ll():
-    path = get_test_data("efas.nc", subfolder="xr")
-    ds = xr.open_dataset(path)
+    """Regrid the LAEA projected EFAS field onto a global lat/lon grid."""
+    ds = _open_xr("efas.nc")
 
     da = ds["dis06"]
 
@@ -512,8 +480,7 @@ def test_regrid_xarray_laea_to_ll():
 
     assert isinstance(r, xr.DataArray)
 
-    out_dims = {"latitude": 19, "longitude": 36}
-    compare_dims(r, out_dims, sizes=True)
+    compare_dims(r, OUT_DIMS_GLOBAL, sizes=True)
 
     ref_data = np.array([
         np.nan,
@@ -554,23 +521,19 @@ def test_regrid_xarray_laea_to_ll():
         np.nan,
     ])
 
-    ref_lat = np.linspace(90.0, -90.0, 19)
-    ref_lon = np.linspace(0.0, 350.0, 36)
-
     assert np.allclose(r.to_numpy()[3], ref_data, equal_nan=True)
-    assert np.allclose(r.latitude.values, ref_lat)
-    assert np.allclose(r.longitude.values, ref_lon)
+    _assert_latlons(r, REF_LAT_GLOBAL, REF_LON_GLOBAL)
 
 
-@pytest.mark.skipif(IN_GITHUB, reason="Skipping test in GitHub CI")
+@skip_in_github
 def test_regrid_xarray_cordex_rotated_ll_to_ll():
-    path = get_test_data("cordex.nc", subfolder="xr")
-    ds = xr.open_dataset(path)
+    """Regrid the CORDEX Dataset on a rotated lat/lon grid onto a global lat/lon grid."""
+    ds = _open_xr("cordex.nc")
 
     out_grid = {"grid": [10, 10]}
     r = regrid(ds, out_grid=out_grid, interpolation="nn")
 
-    out_dims = {"time": 2, "latitude": 19, "longitude": 36}
+    out_dims = {"time": 2, **OUT_DIMS_GLOBAL}
     compare_dims(r, out_dims, sizes=True)
 
     ref_data = np.array([
@@ -612,24 +575,20 @@ def test_regrid_xarray_cordex_rotated_ll_to_ll():
         np.nan,
     ])
 
-    ref_lat = np.linspace(90.0, -90.0, 19)
-    ref_lon = np.linspace(0.0, 350.0, 36)
-
     assert np.allclose(r["sfcWind"].to_numpy()[0][5], ref_data, equal_nan=True)
-    assert np.allclose(r.latitude.values, ref_lat)
-    assert np.allclose(r.longitude.values, ref_lon)
+    _assert_latlons(r, REF_LAT_GLOBAL, REF_LON_GLOBAL)
 
 
-@pytest.mark.skipif(IN_GITHUB, reason="Skipping test in GitHub CI")
+@skip_in_github
 @pytest.mark.skipif(NO_COVJSON, reason="No covjsonkit available")
 def test_regrid_xarray_covjson_unstructured_to_ll():
-    path = get_test_data("points.covjson", subfolder="xr")
-    ds = covjson_to_xarray(path)
+    """Regrid the unstructured covjson Dataset onto a global lat/lon grid."""
+    ds = covjson_to_xarray(data_path("legacy", "points.covjson", subfolder="xr"))
 
     out_grid = {"grid": [10, 10]}
     r = regrid(ds, out_grid=out_grid, interpolation="nn")
 
-    out_dims = {"datetimes": 1, "number": 1, "steps": 1, "latitude": 19, "longitude": 36}
+    out_dims = {"datetimes": 1, "number": 1, "steps": 1, **OUT_DIMS_GLOBAL}
     compare_dims(r, out_dims, sizes=True)
 
     ref_data = np.array([
@@ -671,9 +630,5 @@ def test_regrid_xarray_covjson_unstructured_to_ll():
         7.43803024,
     ])
 
-    ref_lat = np.linspace(90.0, -90.0, 19)
-    ref_lon = np.linspace(0.0, 350.0, 36)
-
     assert np.allclose(r["10u"].to_numpy()[0][0][0][2], ref_data, equal_nan=True)
-    assert np.allclose(r.latitude.values, ref_lat)
-    assert np.allclose(r.longitude.values, ref_lon)
+    _assert_latlons(r, REF_LAT_GLOBAL, REF_LON_GLOBAL)
