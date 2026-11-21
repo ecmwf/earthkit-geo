@@ -79,6 +79,9 @@ class CoordinateGuesser(ABC):
         """
         self.ds = ds
         self._coordinate_cache: Dict[Hashable, Coordinate] = {}
+        # the grids are keyed by their coordinate names, their dimensions and the
+        # variable's grid mapping (see _mapping_key): two variables sharing one
+        # coordinate pair only share a grid when they declare the same mapping
         self._grid_cache: Dict[Hashable, Grid] = {}
 
     def guess(self, c: xr.DataArray, coord: Hashable) -> Coordinate:
@@ -237,6 +240,61 @@ class CoordinateGuesser(ABC):
             f" {y_or_lat.name}{y_or_lat.variable.dims}"
         )
 
+    def _grid_mapping(self, variable: Any) -> Optional[Dict[str, Any]]:
+        """Resolve the CF grid mapping attributes of a variable.
+
+        The variable's ``grid_mapping`` attribute names the (scalar)
+        variable in the dataset carrying the mapping's attributes, e.g. a
+        ``rotated_latitude_longitude`` or a ``lambert_azimuthal_equal_area``
+        grid description.
+
+        Parameters
+        ----------
+        variable : Any
+            The variable to inspect.
+
+        Returns
+        -------
+        Dict[str, Any] or None
+            The grid mapping attributes, or None if the variable carries no
+            usable ``grid_mapping`` reference.
+        """
+        name = variable.attrs.get("grid_mapping")
+        if not isinstance(name, str) or not name:
+            return None
+
+        if name not in self.ds.variables:
+            LOG.debug(f"Grid mapping variable '{name}' not found in dataset")
+            return None
+
+        return dict(self.ds[name].attrs)
+
+    def _mapping_key(self, variable: Any) -> tuple:
+        """Hashable identity of the grid mapping a variable declares, for the grid cache key.
+
+        The grid derived for a coordinate pair can depend on the variable that uses
+        it: an unstructured lat/lon grid carries the variable's resolved grid
+        mapping (see :meth:`_grid_mapping`), and the projected or plain x/y grid
+        follows the variable's own ``grid_mapping`` attribute, falling back to its
+        ``crs`` attribute or to a candidate probed from the dataset. Everything the
+        resolution takes from the variable is in those two attributes, and
+        everything it takes from the dataset is the same for every variable of one
+        call, so a key carrying them both cannot mix up two variables whose
+        mappings differ, whatever order they are looked up in.
+
+        Parameters
+        ----------
+        variable : Any
+            The variable the grid is being derived for.
+
+        Returns
+        -------
+        tuple
+            A hashable standing for the variable's grid mapping declaration.
+        """
+        attrs = variable.attrs
+        return (repr(attrs.get("grid_mapping")), repr(attrs.get("crs")))
+
     def _lat_lon_provided(self, lat: Any, lon: Any, variable: Any) -> Any:
         """Determines the grid type when latitude and longitude are provided.
 
@@ -259,12 +317,20 @@ class CoordinateGuesser(ABC):
 
         dim_vars, unstructured = self._check_dims(variable, lon, lat)
 
-        if (lat.name, lon.name, dim_vars) in self._grid_cache:
-            return self._grid_cache[(lat.name, lon.name, dim_vars)]
+        # the grid of a coordinate pair keeps the variable's grid mapping, so the
+        # cache cannot be keyed by the coordinates alone
+        key = (lat.name, lon.name, dim_vars, self._mapping_key(variable))
 
-        grid: Grid = UnstructuredGrid(lat, lon, dim_vars) if unstructured else MeshedGrid(lat, lon, dim_vars)
+        if key in self._grid_cache:
+            return self._grid_cache[key]
 
-        self._grid_cache[(lat.name, lon.name, dim_vars)] = grid
+        grid: Grid = (
+            UnstructuredGrid(lat, lon, dim_vars, grid_mapping=self._grid_mapping(variable))
+            if unstructured
+            else MeshedGrid(lat, lon, dim_vars)
+        )
+
+        self._grid_cache[key] = grid
 
         return grid
 
@@ -290,8 +356,12 @@ class CoordinateGuesser(ABC):
 
         dim_vars, unstructured = self._check_dims(variable, x, y)
 
-        if (x.name, y.name, dim_vars) in self._grid_cache:
-            return self._grid_cache[(x.name, y.name, dim_vars)]
+        # the grid of a coordinate pair keeps the variable's grid mapping, so the
+        # cache cannot be keyed by the coordinates alone
+        key = (x.name, y.name, dim_vars, self._mapping_key(variable))
+
+        if key in self._grid_cache:
+            return self._grid_cache[key]
 
         grid_mapping = variable.attrs.get("grid_mapping", None)
 
@@ -345,9 +415,9 @@ class CoordinateGuesser(ABC):
             if grid_mapping in self.ds.variables:
                 grid_mapping = dict(self.ds[grid_mapping].attrs)
                 if unstructured:
-                    grid = UnstructuredProjectionGrid(x, y, grid_mapping)
+                    grid = UnstructuredProjectionGrid(x, y, grid_mapping, variable_dims=dim_vars)
                 else:
-                    grid = MeshProjectionGrid(x, y, grid_mapping)
+                    grid = MeshProjectionGrid(x, y, grid_mapping, variable_dims=dim_vars)
             else:
                 LOG.debug(f"Grid mapping variable '{grid_mapping}' not found in dataset")
         else:
@@ -357,7 +427,7 @@ class CoordinateGuesser(ABC):
                 grid = MeshedXYGrid(x, y, dim_vars)
 
         if grid is not None:
-            self._grid_cache[(x.name, y.name, dim_vars)] = grid
+            self._grid_cache[key] = grid
             return grid
 
         LOG.debug("Could not find a candidate for 'grid_mapping'")

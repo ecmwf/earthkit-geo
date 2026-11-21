@@ -14,9 +14,24 @@ Unless ``in_grid`` is given explicitly, the input grid of each variable is deter
 
 - if the dataset carries an earthkit-data ``"earthkit.grid_spec"`` attribute, that grid spec is used
   as-is ; otherwise
+- the grid spec is inferred from the coordinates and CF metadata of the variable, when they describe a
+  grid earthkit-geo can build and whose points they reproduce: a regular or rotated latitude-longitude
+  grid, a regular ``x``/``y`` grid in the plane of a projection (:ref:`grid-projected`), a HEALPix or a
+  reduced Gaussian grid ; otherwise
 - as a fallback, the latitude/longitude values of every point are extracted and used to build a generic :ref:`unstructured <gridspec-unstructured>` grid regardless of the original coordinate layout. See :ref:`regridding-unstructured` for more details.
 
-There are plans to improve this in the future, and automatically extract the grid spec from the coordinates when possible.
+The inference needs the metadata that states the grid to be part of the object handed to :func:`regrid`:
+a single ``DataArray`` cut out of a CF dataset no longer carries the grid mapping variable of the file,
+so its projected or rotated grid cannot be inferred from it. The fallback needs its points to be
+available too: either latitude/longitude coordinates, or a usable projection to derive them from. A
+``DataArray`` of a file which holds nothing but the projected ``x``/``y`` axes has neither once its grid
+mapping is lost, and cannot be regridded: keep the grid mapping variable as a scalar coordinate of the
+``DataArray``, or pass the ``Dataset``.
+
+A projected grid held by nothing but the 1D ``x``/``y`` axes of its plane, with no latitude/longitude
+coordinates, is detected when its grid mapping variable carries ``crs_wkt``, or ``proj4_params``
+together with the individual CF parameters: pyproj does not read ``proj4_params``, so a mapping
+carrying only that one takes the fallback.
 
 An explicitly provided ``in_grid`` always takes precedence over what can be inferred from the dataset.
 

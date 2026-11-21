@@ -20,19 +20,180 @@ wrapper combining an optional lat/lon grid with an optional x/y grid.
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 from earthkit.utils.decorators import thread_safe_cached_property
 
 from .grid_spec import (
     healpix_grid_spec_from_points,
+    proj_projection,
     reduced_gg_grid_spec_from_points,
     regular_ll_grid_spec,
     regular_ll_grid_spec_from_points,
+    regular_xy_grid_spec,
+    rotation_projection,
 )
 
 LOG = logging.getLogger(__name__)
+
+# how far the points of the eckit grid built from a candidate gridspec may sit
+# from the dataset's own coordinates before the spec is rejected, in degrees
+_GRID_MATCH_ATOL = 1e-3
+
+# the eckit regular_ll orders which iterate the grid with its longitude axis
+# outermost, keyed by the order which iterates it with the latitude axis
+# outermost in the same directions ("i+j+" for an ascending latitude axis,
+# the absent default for a descending one)
+_ROTATED_ORDER_SWAP = {"i+j+": "j+i+", None: "j-i+"}
+
+
+def _rotated_role(coord: Any) -> Optional[str]:
+    """The rotated frame role of a coordinate, ``"lat"`` / ``"lon"``, or None if it has none.
+
+    The axes of a CF rotated grid carry the ``grid_latitude`` /
+    ``grid_longitude`` standard names; failing that, an X/Y axis in angular
+    units is one.
+    """
+    standard_name = str(coord.attrs.get("standard_name", "")).lower()
+    axis = str(coord.attrs.get("axis", "")).upper()
+    units = str(coord.attrs.get("units", "")).lower()
+
+    if standard_name == "grid_latitude" or (axis == "Y" and "degree" in units):
+        return "lat"
+
+    if standard_name == "grid_longitude" or (axis == "X" and "degree" in units):
+        return "lon"
+
+    return None
+
+
+def _projected_role(coord: Any) -> Optional[str]:
+    """The projection plane role of a coordinate, ``"x"`` / ``"y"``, or None if it has none.
+
+    The axes of a CF projected grid carry the ``projection_x_coordinate`` /
+    ``projection_y_coordinate`` standard names; failing that, an X/Y axis in
+    units that are not angular is one. A coordinate with no units at all is
+    not: the roles are guessed from CF hints only.
+    """
+    standard_name = str(coord.attrs.get("standard_name", "")).lower()
+    axis = str(coord.attrs.get("axis", "")).upper()
+    units = str(coord.attrs.get("units", "")).lower()
+
+    if standard_name == "projection_y_coordinate" or (axis == "Y" and units and "degree" not in units):
+        return "y"
+
+    if standard_name == "projection_x_coordinate" or (axis == "X" and units and "degree" not in units):
+        return "x"
+
+    return None
+
+
+def _frame_axes(lat: Any, role_of: Any) -> Optional[Dict[str, Any]]:
+    """Get the two 1D frame axes a 2D lat/lon coordinate is defined on, by role.
+
+    A CF grid whose coordinates are given as a 2D field of true latitudes and
+    longitudes is defined on a frame of its own, be it a rotated one or the
+    plane of a projection: the frame is carried by the two 1D dimension
+    coordinates of that field.
+
+    Parameters
+    ----------
+    lat : Any
+        The 2D latitude of the grid, as its xarray DataArray.
+    role_of : Any
+        Callable mapping a dimension coordinate to its role in the frame, or
+        to ``None`` when it does not describe one.
+
+    Returns
+    -------
+    Dict[str, Any] or None
+        The frame axes as ``{role: coord}``, or ``None`` if the field is not
+        2D over exactly two recognised, 1D dimension coordinates.
+    """
+    if lat.ndim != 2:
+        return None
+
+    axes: Dict[str, Any] = {}
+    for dim in lat.dims:
+        coord = lat[dim] if dim in lat.coords else None
+        if coord is None or coord.ndim != 1:
+            return None
+
+        name = role_of(coord)
+        if name is None or name in axes:
+            return None
+        axes[name] = coord
+
+    if len(axes) != 2:
+        return None
+
+    return axes
+
+
+def _grid_spec_matches(spec: Any, shape: Any, lats: Any, lons: Any) -> bool:
+    """Whether the eckit-geo grid of ``spec`` reproduces the points of a grid.
+
+    Parameters
+    ----------
+    spec : Any
+        The candidate gridspec.
+    shape : Any
+        The expected ``(y, x)``, i.e. ``(latitude, longitude)``, shape of the
+        grid built from it.
+    lats : Any
+        The flat latitudes to match, in the grid's own point order.
+    lons : Any
+        The flat longitudes to match, in the grid's own point order.
+
+    Returns
+    -------
+    bool
+        True if the spec builds a grid of ``shape`` whose points sit within
+        :data:`_GRID_MATCH_ATOL` degrees of ``lats``/``lons`` (longitudes
+        compared modulo 360), False if it does not or cannot be built. A
+        non-finite coordinate on either side makes the check fail.
+
+    Notes
+    -----
+    Every coordinate takes part in the comparison: a spec is only returned
+    when each point of the eckit grid is within the tolerance of the data's,
+    which a NaN cannot satisfy. A dataset whose coordinates carry a NaN, even
+    at a single point, therefore keeps falling back to the unstructured
+    treatment, as it did before any gridspec was inferred from it; the check
+    cannot tell a coordinate that is missing from one that disagrees with the
+    spec, and a masked-out point must not vouch for the whole grid.
+    """
+    try:
+        from eckit.geo import Grid
+
+        grid = Grid(spec)
+        ek_lats, ek_lons = grid.to_latlons()
+    except Exception:
+        return False
+
+    if tuple(grid.shape) != tuple(shape):
+        return False
+
+    ek_lats = np.asarray(ek_lats, dtype=np.float64).reshape(-1)
+    ek_lons = np.asarray(ek_lons, dtype=np.float64).reshape(-1)
+    lats = np.asarray(lats, dtype=np.float64).reshape(-1)
+    lons = np.asarray(lons, dtype=np.float64).reshape(-1)
+
+    if ek_lats.size != lats.size or ek_lons.size != lons.size:
+        return False
+
+    if not (np.isfinite(ek_lats).all() and np.isfinite(ek_lons).all()):
+        return False
+
+    if not (np.isfinite(lats).all() and np.isfinite(lons).all()):
+        return False
+
+    if not bool(np.all(np.abs(ek_lats - lats) <= _GRID_MATCH_ATOL)):
+        return False
+
+    dlon = np.abs((ek_lons - lons + 180.0) % 360.0 - 180.0)
+    return bool(np.all(dlon <= _GRID_MATCH_ATOL))
 
 
 class XarrayGrid:
@@ -101,6 +262,8 @@ class XarrayGrid:
         """Str or None: The eckit-geo grid type, from :attr:`latlon_grid` when available."""
         if self.latlon_grid is not None:
             return self.latlon_grid.grid_type
+        elif self.xy_grid is not None:
+            return self.xy_grid.grid_type
         else:
             return None
 
@@ -109,12 +272,12 @@ class XarrayGrid:
         """Tuple[str, ...] or None: The variable's grid dimension names.
 
         From :attr:`latlon_grid` if available, otherwise from
-        :attr:`xy_grid`'s grid, or None if neither is available.
+        :attr:`xy_grid`, or None if neither is available.
         """
         if self.latlon_grid is not None:
             return self.latlon_grid.variable_dims
         elif self.xy_grid is not None:
-            return self.xy_grid.grid.variable_dims
+            return self.xy_grid.variable_dims
         else:
             return None
 
@@ -250,7 +413,7 @@ class MeshedGrid(LatLonGrid):
 class UnstructuredGrid(LatLonGrid):
     """Grid class for unstructured latitude and longitude coordinates."""
 
-    def __init__(self, lat: Any, lon: Any, variable_dims: Any) -> None:
+    def __init__(self, lat: Any, lon: Any, variable_dims: Any, grid_mapping: Any = None) -> None:
         """Initialize the UnstructuredGrid class.
 
         Parameters
@@ -261,6 +424,9 @@ class UnstructuredGrid(LatLonGrid):
             The longitudes.
         variable_dims : Any
             The variable dimensions.
+        grid_mapping : Any, optional
+            The CF grid mapping attributes of the variable, if it carries a
+            ``grid_mapping`` reference (see :class:`~.guesser.CoordinateGuesser`).
         """
         super().__init__(lat, lon, variable_dims)
         assert len(lat) == len(lon), (len(lat), len(lon))
@@ -268,6 +434,7 @@ class UnstructuredGrid(LatLonGrid):
         self.grid_dims = lat.variable.dims
         assert lon.variable.dims == self.grid_dims, (lon.variable.dims, self.grid_dims)
         assert set(self.variable_dims) == set(self.grid_dims), (self.variable_dims, self.grid_dims)
+        self.grid_mapping = grid_mapping
 
     @thread_safe_cached_property
     def latlons(self) -> Tuple[Any, Any]:
@@ -300,15 +467,131 @@ class UnstructuredGrid(LatLonGrid):
     def grid_spec(self):
         """Dict or None: The gridspec if the points form a known grid, else ``None``.
 
-        Tries, in order, a regular lat/lon grid, a HEALPix grid, and a
-        reduced Gaussian grid.
+        Tries, in order, a regular lat/lon grid, a HEALPix grid, a reduced
+        Gaussian grid, a CF rotated latitude/longitude grid and a CF projected
+        (regular x/y) grid.
         """
         lat, lon = self.latlons
         return (
             regular_ll_grid_spec_from_points(lat, lon)
             or healpix_grid_spec_from_points(lat, lon)
             or reduced_gg_grid_spec_from_points(lat, lon)
+            or self._rotated_ll_grid_spec()
+            or self._projected_xy_grid_spec()
         )
+
+    def _rotated_frame_axes(self) -> Optional[Dict[str, Any]]:
+        """Get the 1D rotated frame axes of the grid, by role.
+
+        The 2D ``lat``/``lon`` coordinates of a CF rotated grid are defined
+        on two 1D dimension coordinates carrying the rotated frame (see
+        :func:`_rotated_role`).
+
+        Returns
+        -------
+        Dict[str, Any] or None
+            The frame axes as ``{"lat": rlat, "lon": rlon}`` xarray
+            DataArrays, or ``None`` if the two axes are not found.
+        """
+        return _frame_axes(self.lat.variable, _rotated_role)
+
+    def _projected_frame_axes(self) -> Optional[Dict[str, Any]]:
+        """Get the 1D axes of the projection plane the grid sits in, by role.
+
+        The 2D ``lat``/``lon`` coordinates of a CF projected grid are defined
+        on two 1D dimension coordinates carrying the plane's x and y axes, in
+        the units of that plane, typically metres (see :func:`_projected_role`).
+
+        Returns
+        -------
+        Dict[str, Any] or None
+            The frame axes as ``{"x": x, "y": y}`` xarray DataArrays, or
+            ``None`` if the two axes are not found.
+        """
+        return _frame_axes(self.lat.variable, _projected_role)
+
+    def _rotated_ll_grid_spec(self) -> Optional[dict]:
+        """Build the gridspec of a CF rotated latitude/longitude grid, or ``None``.
+
+        The variable's grid mapping must describe a rotated latitude/longitude
+        grid (see :func:`~.grid_spec.rotation_projection`), its two 1D frame
+        axes must be regular (see :func:`~.grid_spec.regular_ll_grid_spec`)
+        and the eckit-geo grid built from the resulting spec must reproduce
+        the grid's own :attr:`latlons` within :data:`_GRID_MATCH_ATOL`
+        degrees. A spec is only returned once that check passes, so a grid
+        whose metadata disagrees with its coordinates keeps falling back to
+        the unstructured treatment.
+        """
+        projection = rotation_projection(self.grid_mapping)
+        if projection is None:
+            return None
+
+        axes = self._rotated_frame_axes()
+        if axes is None:
+            return None
+
+        rlat, rlon = axes["lat"], axes["lon"]
+        # eckit's rotation projects the spec's latitude slot as the rotated
+        # latitude, so the frame axes always sit in their own slots
+        spec = regular_ll_grid_spec(rlat.values, rlon.values)
+        if spec is None:
+            return None
+
+        # eckit iterates the points with the latitude axis outermost unless
+        # the order says otherwise; swap the order so that the spec iterates
+        # in the order the data indexes its grid (see _ROTATED_ORDER_SWAP)
+        if self.variable_dims[0] == rlon.dims[0]:
+            order = _ROTATED_ORDER_SWAP.get(spec.get("order"))
+            if order is None:
+                return None
+            spec = dict(spec, order=order)
+        elif self.variable_dims[0] != rlat.dims[0]:
+            return None
+
+        spec = dict(spec, projection=projection)
+
+        lat, lon = self.latlons
+        # the eckit grid is shaped (rotated latitudes, rotated longitudes),
+        # whichever of them the data varies fastest
+        if not _grid_spec_matches(spec, (len(rlat), len(rlon)), lat, lon):
+            LOG.debug("UnstructuredGrid: rotated gridspec %s does not match the grid points", spec)
+            return None
+
+        return spec
+
+    def _projected_xy_grid_spec(self) -> Optional[dict]:
+        """Build the gridspec of a CF projected (regular x/y) grid, or ``None``.
+
+        The variable's grid mapping must carry a PROJ description of the
+        projection (see :func:`~.grid_spec.proj_projection`), its two 1D frame
+        axes must be regular (see :func:`~.grid_spec.regular_xy_grid_spec`) and
+        the eckit-geo grid built from the resulting spec must reproduce the
+        grid's own :attr:`latlons` within :data:`_GRID_MATCH_ATOL` degrees. A
+        spec is only returned once that check passes, so a grid whose projection
+        metadata disagrees with its coordinates, or whose axes the data varies
+        fastest along in the other order (eckit scans a ``regular_xy`` grid with
+        its x axis fastest), keeps falling back to the unstructured treatment.
+        """
+        projection = proj_projection(self.grid_mapping)
+        if projection is None:
+            return None
+
+        axes = self._projected_frame_axes()
+        if axes is None:
+            return None
+
+        x, y = axes["x"], axes["y"]
+        spec = regular_xy_grid_spec(x.values, y.values, projection)
+        if spec is None:
+            return None
+
+        lat, lon = self.latlons
+        # the eckit grid is shaped (y values, x values), with x fastest
+        if not _grid_spec_matches(spec, (len(y), len(x)), lat, lon):
+            LOG.debug("UnstructuredGrid: projected gridspec %s does not match the grid points", spec)
+            return None
+
+        return spec
 
 
 class RawXYGrid(XYGrid):
@@ -406,7 +689,7 @@ class UnstructuredXYGrid(RawXYGrid):
 class ProjectionGrid(XYGrid):
     """Grid class for projected x and y coordinates."""
 
-    def __init__(self, x: Any, y: Any, projection: Any) -> None:
+    def __init__(self, x: Any, y: Any, projection: Any, variable_dims: Any = None) -> None:
         """Initialize the ProjectionGrid class.
 
         Parameters
@@ -417,9 +700,13 @@ class ProjectionGrid(XYGrid):
             The y-coordinates.
         projection : Any
             The projection information.
+        variable_dims : Any, optional
+            The variable dimensions, in the order the variable indexes them;
+            needed to lay the grid points out in the order the data holds them.
         """
         super().__init__(x, y)
         self.projection = projection
+        self.variable_dims = variable_dims
 
     def transformer(self) -> Any:
         """Get the transformer for the projection.
@@ -445,36 +732,204 @@ class MeshProjectionGrid(ProjectionGrid):
     """Grid class for meshed projected coordinates."""
 
     @thread_safe_cached_property
+    def _scans_x_fastest(self) -> Optional[bool]:
+        """Bool or None: whether the data holds the mesh with its x axis fastest.
+
+        The mesh is the product of the two 1D axes: with the variable indexed
+        ``(y, x)`` its x axis varies fastest, and with it indexed ``(x, y)`` its
+        y axis does. The order is read off the dimensions the two axes are
+        defined on, not their names, so a variable indexed by dimensions named
+        differently from the coordinates carrying them (as after
+        :meth:`xarray.Dataset.rename_dims`) keeps its own layout, as in
+        :class:`UnstructuredGrid`. ``None``: neither order matches the
+        variable's indexing, which cannot be told at all.
+        """
+        x_dims = tuple(self.x.variable.dims)
+        y_dims = tuple(self.y.variable.dims)
+
+        if self.variable_dims == y_dims + x_dims:
+            return True
+        if self.variable_dims == x_dims + y_dims:
+            return False
+        return None
+
+    @thread_safe_cached_property
+    def _points(self) -> Tuple[Any, Any]:
+        """The flat ``(x, y)`` values of the mesh, in the order the data holds them.
+
+        The order is the one :attr:`_scans_x_fastest` reads off the axes'
+        dimensions. An indexing that cannot be told keeps the ``(y, x)`` order,
+        the one a projected grid is usually stored in, and no
+        :attr:`grid_spec` is claimed for it.
+        """
+        xv = self.x.variable.values
+        yv = self.y.variable.values
+
+        if self._scans_x_fastest is False:
+            y, x = np.meshgrid(yv, xv)
+        else:
+            if self._scans_x_fastest is None:
+                LOG.warning(
+                    "MeshProjectionGrid: variable indexing %s matches neither the axes' dimensions %s and %s,"
+                    " taking the points with the x axis fastest",
+                    self.variable_dims,
+                    self.y.variable.dims,
+                    self.x.variable.dims,
+                )
+            x, y = np.meshgrid(xv, yv)
+
+        return x.flatten(), y.flatten()
+
+    @thread_safe_cached_property
     def latlons(self) -> Tuple[Any, Any]:
         """Get the grid points for the mesh projection grid."""
         transformer = self.transformer()
-        xv, yv = np.meshgrid(self.x.variable.values, self.y.variable.values)  # , indexing="ij")
+        xv, yv = self._points
         lon, lat = transformer.transform(xv, yv)
         return lat.flatten(), lon.flatten()
 
     @thread_safe_cached_property
     def xys(self) -> Tuple[Any, Any]:
         """Get the x and y points for the mesh projection grid."""
-        xv, yv = np.meshgrid(self.x.variable.values, self.y.variable.values)  # , indexing="ij")
-        return xv.flatten(), yv.flatten()
+        return self._points
+
+    @property
+    def grid_type(self):
+        """str: ``"regular_xy"`` when a gridspec is detected, else ``"unstructured"``."""
+        return "regular_xy" if self.grid_spec is not None else "unstructured"
+
+    @thread_safe_cached_property
+    def grid_spec(self) -> Optional[dict]:
+        """Dict or None: The gridspec if the axes form a regular projected grid, else ``None``.
+
+        The grid mapping must carry a PROJ description of the projection (see
+        :func:`~.grid_spec.proj_projection`) and the axes must be regular (see
+        :func:`~.grid_spec.regular_xy_grid_spec`), each range in the direction
+        its axis runs. The eckit-geo grid built from the resulting spec must also
+        reproduce the grid's own :attr:`latlons`, in their point order, within
+        :data:`_GRID_MATCH_ATOL` degrees. A spec is only returned once that check
+        passes, so a grid whose PROJ description disagrees with the CF attributes
+        it is made of, or whose data indexing does not hold the mesh with its x
+        axis fastest, known or not (eckit scans a ``regular_xy`` grid with its x
+        axis fastest and cannot be told otherwise), falls back to the
+        unstructured points of :attr:`latlons`, as a grid with no projection at
+        all did before.
+        """
+        projection = proj_projection(self.projection)
+        if projection is None:
+            return None
+
+        if self._scans_x_fastest is not True:
+            LOG.debug("MeshProjectionGrid: indexing %s does not scan the mesh x fastest", self.variable_dims)
+            return None
+
+        xv = self.x.variable.values
+        yv = self.y.variable.values
+
+        spec = regular_xy_grid_spec(xv, yv, projection)
+        if spec is None:
+            return None
+
+        lat, lon = self.latlons
+        # the eckit grid is shaped (y values, x values), with x fastest
+        if not _grid_spec_matches(spec, (len(yv), len(xv)), lat, lon):
+            LOG.debug("MeshProjectionGrid: projected gridspec %s does not match the grid points", spec)
+            return None
+
+        return spec
 
 
 class UnstructuredProjectionGrid(ProjectionGrid):
     """Grid class for unstructured projected coordinates."""
 
+    def __init__(self, x: Any, y: Any, projection: Any, variable_dims: Any = None) -> None:
+        """Initialize the UnstructuredProjectionGrid class.
+
+        Parameters
+        ----------
+        x : Any
+            The x-coordinates.
+        y : Any
+            The y-coordinates.
+        projection : Any
+            The projection information.
+        variable_dims : Any, optional
+            The variable dimensions, in the order the variable indexes them;
+            needed to lay the grid points out in the order the data holds them.
+            Defaults to the dimensions the two coordinates are defined on.
+        """
+        super().__init__(x, y, projection, variable_dims=variable_dims)
+        assert len(x) == len(y), (len(x), len(y))
+        self.grid_dims = tuple(x.variable.dims)
+        assert y.variable.dims == self.grid_dims, (y.variable.dims, self.grid_dims)
+        if self.variable_dims is None:
+            self.variable_dims = self.grid_dims
+        # the point order is read off the dimensions, which are compared as the
+        # tuple xarray spells them whatever way the grid is built
+        self.variable_dims = tuple(self.variable_dims)
+        assert set(self.variable_dims) == set(self.grid_dims), (self.variable_dims, self.grid_dims)
+
+    @thread_safe_cached_property
+    def _points(self) -> Tuple[Any, Any]:
+        """Tuple[Any, Any]: The flat ``(x, y)`` values, one point per index of the grid dimension.
+
+        The two coordinates are paired, index by index, and not crossed into a
+        mesh of their values: a grid held as the two 1D axes of a plane is a
+        :class:`MeshProjectionGrid`. The pairs come out in the order the data
+        indexes them, which for a variable indexed in the other order than the
+        coordinates are defined on means transposing them, as in
+        :class:`UnstructuredXYGrid`.
+        """
+        assert 1 <= len(self.variable_dims) <= 2, self.variable_dims
+
+        if len(self.variable_dims) == 1 or self.variable_dims == self.grid_dims:
+            return self.x.variable.values.flatten(), self.y.variable.values.flatten()
+
+        LOG.warning(
+            "UnstructuredProjectionGrid: variable indexing %s does not match grid indexing %s",
+            self.variable_dims,
+            self.grid_dims,
+        )
+
+        x = self.x.variable.values.transpose().flatten()
+        y = self.y.variable.values.transpose().flatten()
+
+        return x, y
+
     @thread_safe_cached_property
     def latlons(self) -> Tuple[Any, Any]:
-        """Get the grid points for the unstructured projection grid."""
+        """Tuple[Any, Any]: The flat ``(lat, lon)`` points, the :attr:`_points` in degrees.
+
+        The plane coordinates are transformed with the CRS the projection
+        describes (see :meth:`ProjectionGrid.transformer`).
+        """
         transformer = self.transformer()
-        xv, yv = self.xyz
+        xv, yv = self._points
         lon, lat = transformer.transform(xv, yv)
         return lat.flatten(), lon.flatten()
 
     @thread_safe_cached_property
     def xys(self) -> Tuple[Any, Any]:
-        """Get the x and y points for the mesh projection grid."""
+        """Tuple[Any, Any]: The flat ``(x, y)`` points, one pair per index of the grid dimension."""
         if self.projection == "epsg:4326":
-            # WGS84, no transformation needed
-            return self.y.variable.values.flatten(), self.x.variable.values.flatten()
-        xv, yv = np.meshgrid(self.x.variable.values, self.y.variable.values)  # , indexing="ij")
-        return xv.flatten(), yv.flatten()
+            # WGS84, no transformation needed; the pair has always been returned
+            # the other way round for that projection, and latlons does not
+            # follow it, taking its points from _points
+            x, y = self._points
+            return y, x
+
+        return self._points
+
+    @property
+    def grid_type(self) -> str:
+        """str: Always ``"unstructured"``: the points are a scatter over the plane."""
+        return "unstructured"
+
+    @property
+    def grid_spec(self) -> None:
+        """None: A scatter of projected points has no regular gridspec.
+
+        The loader therefore builds the eckit-geo grid out of the
+        :attr:`latlons`, as it does for every grid without a spec.
+        """
+        return None

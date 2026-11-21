@@ -82,3 +82,54 @@ def test_regrid_with_mir_gridspec(gs_in, gs_out):
 
         result_grid = Grid(gs_out)  # NOTE: not necessarily true
         assert values_res.shape == result_grid.shape
+
+
+# The 3 x 3 grid of the tests below, in the plane of a LAEA projection centred on (52 N, 10 E).
+# PROJ_SOURCE_SPEC spells its projection the way the xarray loader detects it from a CF
+# proj4_params attribute.
+PROJ = "+proj=laea +lat_0=52 +lon_0=10 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs"
+PROJ_SOURCE_SPEC = {
+    "type": "regular_xy",
+    "x": [-50000, 50000, 50000],
+    "y": [50000, -50000, -50000],
+    "projection": {"type": "proj", "source": PROJ},
+}
+
+
+def test_mir_backend_grid_spec_passthrough():
+    """The MIR backend returns a grid spec as it is, projected gridspecs included.
+
+    Converting a PROJ-source projected input grid into its unstructured lat/lon points
+    is the job of the data handlers (see
+    :func:`earthkit.geo.grids._regrid.data.utils.scatter_projected_grid`), not of the
+    backend: :meth:`~earthkit.geo.grids._regrid.backends.mir.MirBackend.get_grid_spec`
+    only extracts the spec from a ``Grid`` and passes a plain spec through unchanged.
+    """
+    from eckit.geo import Grid
+
+    from earthkit.geo.grids._regrid.backends.mir import MirBackend
+
+    projected = Grid(PROJ_SOURCE_SPEC)
+    assert MirBackend.get_grid_spec(projected) == projected.spec
+    assert MirBackend.get_grid_spec(PROJ_SOURCE_SPEC) == PROJ_SOURCE_SPEC
+
+
+@requires_mir
+def test_regrid_array_projected_input_to_ll():
+    """A PROJ-source projected array regrids onto a lat/lon grid, its points where they are."""
+    # the 3 x 3 input, its values numbered in the row-major (y, x) order of the projected grid
+    values = np.arange(9, dtype=np.float64)
+    out_grid = {"grid": [1, 1], "area": [53, 9, 51, 11]}
+
+    result, result_spec = regrid_array(values, PROJ_SOURCE_SPEC, out_grid, interpolation="nearest-neighbour")
+
+    assert result.shape == (3, 3)
+    assert result_spec.items() >= out_grid.items()
+    # the output points 53/52/51 N by 9/10/11 E, each nearest to the input point of the same
+    # corner of the grid: this only holds when MIR was given the input points in the order
+    # of the values, and where the projection says they are
+    assert np.array_equal(result.reshape(-1), values)
+
+    # linear interpolation over the three middle longitudes keeps the centre value
+    result, _ = regrid_array(values, PROJ_SOURCE_SPEC, out_grid, interpolation="linear")
+    assert np.isclose(result[1, 1], 4.0)

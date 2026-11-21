@@ -7,9 +7,12 @@ Regridding is driven by the :ref:`gridspec <grid-spec>`: the input and output gr
 as a gridspec, and the selected backend interpolates between them accordingly.
 
 Not all grids can currently be described by a gridspec. The gridspec, as an object/framework, is not
-yet fully formulated, so for some grids there is no gridspec representation available at all. A common
-example is data defined on a projection (for example, a Lambert Azimuthal Equal Area or a rotated pole
-grid), described by 1D ``x``/``y`` coordinates together with 2D ``latitude``/``longitude`` coordinates.
+yet fully formulated, so for some grids there is no gridspec representation available at all. Even for
+a grid a gridspec does describe, the fallback below applies whenever the metadata stating that gridspec
+does not reach the regridding code. Data defined on a projection (for example, a Lambert Azimuthal Equal
+Area or a rotated pole grid), described by 1D ``x``/``y`` coordinates together with 2D
+``latitude``/``longitude`` coordinates, is a common case of that: whether regridding sees the projected
+or rotated grid, or only its points, depends on the input object, as the xarray example below shows.
 
 For high-level data (such as GRIB fields or xarray objects), when the gridspec of the input data
 cannot be specified or inferred, regridding automatically falls back to treating the input grid as
@@ -67,11 +70,14 @@ so it can be used to bypass the fallback if the grid's gridspec is in fact known
 Xarray data
 ------------
 
-For xarray data, the gridspec can only be inferred automatically if the dataset carries the
-earthkit-data ``"earthkit.grid_spec"`` attribute (set, for example, when the data was produced from
-GRIB via earthkit-data's xarray engine).
+For xarray data, the gridspec of a variable comes from the earthkit-data ``"earthkit.grid_spec"``
+attribute (set, for example, when the data was produced from GRIB via earthkit-data's xarray engine)
+when the dataset carries one. Failing that, it is inferred from the coordinates and CF metadata the
+variable has: a regular or rotated latitude/longitude grid, a regular ``x``/``y`` grid in the plane of
+a projection, a HEALPix or a reduced Gaussian grid is recognised when the variable's own coordinates
+describe it (see :ref:`grid-types` and :ref:`grid-projected`).
 
-- If this attribute is not present, but the gridspec is nonetheless known by other means, it can be
+- If no gridspec is available this way but the gridspec is nonetheless known by other means, it can be
   passed explicitly via the ``in_grid`` keyword argument to :func:`regrid`.
 - Otherwise — if the gridspec is not known, or not yet available for this kind of grid — regridding
   automatically falls back to treating the input as an unstructured grid, built from the dataset's
@@ -83,8 +89,9 @@ Example: a field on a projection
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The following loads a river discharge field defined on a Lambert Azimuthal Equal Area projection
-(1D ``x``/``y`` plus 2D ``latitude``/``longitude`` coordinates). This kind of grid has no gridspec
-representation yet, so the earthkit-data grid spec attribute is unavailable:
+(1D ``x``/``y`` plus 2D ``latitude``/``longitude`` coordinates). The projection of such a grid is
+stated in a grid mapping variable of the NetCDF file, and nothing sets the earthkit-data grid spec
+attribute for data read from NetCDF, so it is unavailable here:
 
 .. code-block:: python
 
@@ -93,18 +100,25 @@ representation yet, so the earthkit-data grid spec attribute is unavailable:
 
     ds = ekd.from_source("sample", "efas.nc").to_xarray()
 
-    ds.earthkit.grid_spec  # None: no gridspec available for this grid
+    ds.earthkit.grid_spec  # None: no gridspec is attached to data read from NetCDF
 
     # the target grid: a regular 0.1x0.1 degree latitude-longitude grid over a fixed area
     out_grid = {"grid": [0.1, 0.1], "area": [75, -30, 30, 40]}
 
-    # since no gridspec can be inferred for the input, earthkit-geo falls back to treating
-    # it as unstructured, extracting the per-point latitude/longitude values automatically
+    # a single DataArray does not keep the grid mapping variable of its dataset, so the projection
+    # of its grid cannot be inferred and earthkit-geo falls back to treating it as unstructured,
+    # extracting the per-point latitude/longitude values automatically
     r = regrid(ds.dis06, out_grid=out_grid, interpolation="nn")
 
 Because the input had no gridspec attribute to begin with, the output does not get one either::
 
     r.earthkit.grid_spec  # still None
+
+A ``Dataset`` of the same file, which keeps the grid mapping variable of its variables, is inferred as
+a ``regular_xy`` grid in the plane of that projection instead of falling back. (Its integer variable
+cannot be regridded either way: MIR's array input takes float32 or float64 values.) MIR cannot read a
+projection given as a PROJ source string as an input grid, so the MIR backend hands that grid over as
+the unstructured lat/lon grid of the same points: the regridded values are the ones the fallback gives.
 
 If the input grid's gridspec happens to be known even though it is not attached to the dataset, it can
 be supplied explicitly to avoid the fallback::

@@ -94,8 +94,50 @@ def grid_from_xr_grid(xr_grid):
     return create_unstructured_grid_object(lat, lon)
 
 
-def adjust_variable_dim_order(variable_dims, coordinates):
-    """Reorder a variable's two grid dimensions to ``(lat, lon)`` if given as ``(lon, lat)``.
+# the eckit-geo grid types that are scanned axis by axis; whether they iterate
+# their points with the x axis fastest is decided by their scan order, see
+# :func:`_scans_x_fastest`
+_STRUCTURED_GRID_TYPES = ("regular_xy", "regular_ll")
+
+# the eckit default scan order, used by a gridspec that does not name one
+_DEFAULT_ORDER = "i+j-"
+
+
+def _scans_x_fastest(grid) -> bool:
+    """Whether the points of an eckit-geo grid iterate with its x axis fastest.
+
+    Parameters
+    ----------
+    grid : eckit.geo.Grid
+        The grid to inspect.
+
+    Returns
+    -------
+    bool
+        True for a ``regular_xy`` grid and for a ``regular_ll`` grid whose
+        scan order leaves the x axis (the longitude of a ``regular_ll``)
+        fastest, False for any other grid type, for an unrecognised grid and
+        for the orders that iterate the grid with its x axis outermost.
+
+    Notes
+    -----
+    eckit spells a scan order ``<outer><dir><inner><dir>``, naming first the
+    axis whose points are furthest apart (the rows, ``i``: y for a
+    ``regular_xy``, the latitude for a ``regular_ll``) and then the axis whose
+    points are consecutive (the columns, ``j``); an order without a name is
+    :data:`_DEFAULT_ORDER`, which is i-outermost. The points therefore sit x
+    fastest exactly when the order starts with ``i``: only then does data
+    laid out (x, y) have to be transposed to (y, x) before it is flattened
+    onto the grid (see :func:`adjust_variable_dim_order`).
+    """
+    if getattr(grid, "type", None) not in _STRUCTURED_GRID_TYPES:
+        return False
+    order = getattr(grid, "order", None) or grid.spec.get("order") or _DEFAULT_ORDER
+    return order.startswith("i")
+
+
+def adjust_variable_dim_order(variable_dims, coordinates, swap_xy=False):
+    """Reorder a variable's two grid dimensions to ``(lat, lon)``, or ``(y, x)``, if needed.
 
     Parameters
     ----------
@@ -103,17 +145,28 @@ def adjust_variable_dim_order(variable_dims, coordinates):
         The two grid dimension names of the variable, in their current order.
     coordinates : List[Coordinate]
         The variable's guessed coordinates, used to identify which
-        dimension is latitude and which is longitude.
+        dimension is latitude and which is longitude, or x and y.
+    swap_xy : bool
+        Whether the variable's input grid is an explicitly given eckit grid
+        that iterates its points with the x axis fastest (see
+        :func:`_scans_x_fastest`), given by the user or by an earthkit-data
+        accessor. Only then are ``(x, y)`` dimensions swapped to ``(y, x)``:
+        an unstructured explicit grid and a structured one scanned with the
+        x axis outermost hold their points in the order the data was laid
+        out, and a detected grid is built to match that order in the first
+        place.
 
     Returns
     -------
     List[str]
-        The dimension names, reordered to ``(lat, lon)`` if needed.
+        The dimension names, reordered to ``(lat, lon)``, and to ``(y, x)``
+        when ``swap_xy``, if needed.
 
     Notes
     -----
-    This is needed to ensure the order is (lat, lon) when data is passed to
-    MIR. When scanning mode support will be added, this function may not be needed.
+    This is needed to ensure the order is (lat, lon), and (y, x) for a
+    projected grid, when data is passed to MIR. When scanning mode support
+    will be added, this function may not be needed.
     """
     if variable_dims and len(variable_dims) == 2:
         order = [None, None]
@@ -124,9 +177,15 @@ def adjust_variable_dim_order(variable_dims, coordinates):
                         order[i] = "lat"
                     elif c.is_lon:
                         order[i] = "lon"
+                    elif c.is_y:
+                        order[i] = "y"
+                    elif c.is_x:
+                        order[i] = "x"
                     break
 
         if order == ["lon", "lat"]:
+            variable_dims = [variable_dims[1], variable_dims[0]]
+        elif swap_xy and order == ["x", "y"]:
             variable_dims = [variable_dims[1], variable_dims[0]]
 
     return variable_dims
@@ -162,6 +221,17 @@ def variables(ds, user_ek_grid=None):
     from .guesser import DefaultCoordinateGuesser
 
     guess = DefaultCoordinateGuesser(ds)
+
+    # the input grid, when it is given explicitly rather than detected from the
+    # dataset: by the user, or by an earthkit-data accessor. When it iterates
+    # its points with the x axis fastest, the dimensions of data laid out
+    # (x, y) are reordered to (y, x) to match it (below); a grid scanned the
+    # other way round, like an unstructured one, takes the data in its own
+    # dimension order, and so does a detected grid, which is built to match it
+    ek_grid = create_grid_object(user_ek_grid)
+    if ek_grid is None:
+        ek_grid = grid_from_earthkit(ds)
+    swap_xy = _scans_x_fastest(ek_grid)
 
     skip = set()
 
@@ -216,7 +286,7 @@ def variables(ds, user_ek_grid=None):
         xr_grid = guess.grid(coordinates, variable)
 
         variable_dims = xr_grid.variable_dims
-        variable_dims = adjust_variable_dim_order(variable_dims, coordinates)
+        variable_dims = adjust_variable_dim_order(variable_dims, coordinates, swap_xy=swap_xy)
 
         def _check_values_geo() -> None:
             """Handle the case where lat, lon is a coordinate but not a dimension and their
@@ -248,15 +318,12 @@ def variables(ds, user_ek_grid=None):
 
         _check_values_geo()
 
-        ek_grid = create_grid_object(user_ek_grid)
-
-        if ek_grid is None:
-            ek_grid = grid_from_earthkit(ds)
-            if ek_grid is None:
-                ek_grid = grid_from_xr_grid(xr_grid)
+        variable_ek_grid = ek_grid
+        if variable_ek_grid is None:
+            variable_ek_grid = grid_from_xr_grid(xr_grid)
 
         v = Variable(variable)
-        v.ek_grid = ek_grid
+        v.ek_grid = variable_ek_grid
         v.xr_grid = xr_grid
         v.geo_dims = variable_dims
 
