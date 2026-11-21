@@ -13,6 +13,8 @@
 See :ref:`gridspec <grid-spec>` for the gridspec format.
 """
 
+import warnings
+from fractions import Fraction
 from typing import Any, Optional
 
 import numpy as np
@@ -36,6 +38,11 @@ def _round6(value: float) -> float:
     return float(f"{value:.6g}")
 
 
+def _round12(value: float) -> float:
+    """Re-read ``value`` at 12 decimals, the precision a gridspec carries its increments at."""
+    return float(f"{value:.12f}")
+
+
 # how far a point of a float32 axis may sit from the lattice its cleaned increment and ends
 # describe, in ulps of the coordinate magnitude. Axes built by arange, by linspace or in
 # float32 stay within 1.4 ulps of it, over grids of up to 3600 points; an axis that is only
@@ -47,6 +54,16 @@ _LATTICE_ULPS = 4.0
 # points of the axis: eckit counts the increments that fit in the area, so an area a fraction
 # of an increment too short loses a line of points
 _SPAN_ATOL = 1e-9
+
+# an increment with more than 6 significant digits, such as the 1/12 degree of a 5-minute
+# ocean grid, is beyond what rounding a float32 axis recovers: it is recovered by snapping
+# the mean step to the fraction k/n it sits on, denominators up to this bound
+_SNAP_MAX_DENOM = 240
+
+# the mean step of a float32 axis is biased by the quantisation of its two ends, spread over
+# all its steps; a fraction further than this relative distance from the mean step was not
+# the increment the axis was built on, and is not offered to the axis check
+_SNAP_RTOL = 1e-6
 
 
 def _max_drift(values: np.ndarray, first: float, step: float) -> float:
@@ -66,14 +83,16 @@ def _axis_atol(values: np.ndarray) -> float:
     return _LATTICE_ULPS * np.finfo(values.dtype).eps * max(float(np.max(np.abs(values))), 1.0)
 
 
-def _reproduces_axis(values: np.ndarray, step: float, low: float, high: float) -> bool:
+def _reproduces_axis(values: np.ndarray, step: float, low: float, high: float, span_atol: float = _SPAN_ATOL) -> bool:
     """Whether the increment ``step`` and the ends ``low``/``high`` describe ``values``.
 
     The ends must span exactly ``len(values) - 1`` increments, so that the grid built from
     them has as many points as the axis, and the axis rebuilt from the end the increment
-    starts at must match the points.
+    starts at must match the points. ``span_atol`` is how far the span may sit from those
+    increments; a snapped axis is re-read at 12 decimals, which loosens it, see
+    :func:`_snapped_axis`.
     """
-    if abs((high - low) - (len(values) - 1) * abs(step)) > _SPAN_ATOL:
+    if abs((high - low) - (len(values) - 1) * abs(step)) > span_atol:
         return False
     return _max_drift(values, low if step > 0 else high, step) <= _axis_atol(values)
 
@@ -88,6 +107,50 @@ def _within_bounds(values: np.ndarray, bounds: tuple) -> bool:
     low, high = bounds
     atol = _axis_atol(values)
     return float(np.min(values)) >= low - atol and float(np.max(values)) <= high + atol
+
+
+def _snapped_axis(values: np.ndarray, step64: float) -> Optional[tuple]:
+    """Fit a regular axis whose increment is a simple fraction of a degree.
+
+    Returns ``(step, low, high)``, or ``None`` when no fraction reproduces the axis.
+
+    An increment with more than 6 significant digits, such as the 1/12 degree of a
+    5-minute ocean grid, is lost by the 6-digit cleaning of :func:`_regular_axis`: the
+    cleaning rounds it to 0.083333, whose multiples are so far from the true lattice that
+    they miss the far end of the axis by hundreds of ulps. It is recovered here instead by
+    snapping the mean step to the closest fraction k/n with a small denominator, taking the
+    near end of the axis (its first point, or its last when descending) snapped onto that
+    fraction's lattice as the low end and the point exactly ``len(values) - 1`` increments
+    beyond it as the high end. Step and ends are re-read at the 12 decimals a gridspec
+    carries its increments at, which is what eckit round-trips them through. As for the
+    cleaned axis, the candidate is only kept when :func:`_reproduces_axis` finds it
+    describes the axis: an axis that merely averages out near a simple fraction while its
+    points wander off its lattice is rejected. The span check is loosened by an ulp of the
+    12-decimal rounding per increment, the price of re-reading step and ends.
+    """
+    if not np.isfinite(step64) or step64 == 0.0:
+        return None
+
+    magnitude = abs(step64)
+    candidates = set()
+    for denom in range(2, _SNAP_MAX_DENOM + 1):
+        # k/n is only worth reducing when k is the multiple of 1/n the mean step sits on
+        fraction = Fraction(round(magnitude * denom), denom)
+        if fraction.numerator and abs(float(fraction) - magnitude) <= magnitude * _SNAP_RTOL:
+            candidates.add(fraction)
+
+    start = float(values[0]) if step64 > 0 else float(values[-1])
+    for fraction in sorted(candidates, key=lambda f: abs(float(f) - magnitude)):
+        unit = float(fraction)
+        lattice = round(start / unit) * unit
+        step = _round12(unit) if step64 > 0 else -_round12(unit)
+        low = _round12(lattice)
+        high = _round12(lattice + (len(values) - 1) * unit)
+        span_atol = _SPAN_ATOL + len(values) * 1e-12
+        if _reproduces_axis(values, step, low, high, span_atol=span_atol):
+            return step, low, high
+
+    return None
 
 
 def _regular_axis(values: np.ndarray) -> Optional[tuple]:
@@ -110,10 +173,16 @@ def _regular_axis(values: np.ndarray) -> Optional[tuple]:
     along it, fails that check, and so does one whose ends really are off the increment lattice
     (10.03125, say).
 
+    A nominal value with more than 6 significant digits, the increment of a simple fraction such
+    as the 1/12 degree of a 5-minute grid, survives neither that rounding nor the strict bar;
+    :func:`_snapped_axis` recovers it from the lattice of the closest small fraction instead, and
+    is held to the same check.
+
     Both of those keep the raw increment and ends, but only when the steps are uniform to
     np.allclose's default tolerances: that is the bar this fitting was held to before single
     precision was taken into account, so an axis that used to be detected still is, with the very
-    same gridspec. An axis that neither cleans up nor meets it is not a regular axis.
+    same gridspec. An axis that neither cleans up nor snaps onto a simple fraction nor meets it
+    is not a regular axis.
     """
     steps = np.diff(values)
     step = float(np.mean(steps))
@@ -130,6 +199,9 @@ def _regular_axis(values: np.ndarray) -> Optional[tuple]:
         cleaned = (_round6(step64), _round6(low), _round6(high))
         if _reproduces_axis(values, *cleaned):
             return cleaned
+        snapped = _snapped_axis(values, step64)
+        if snapped is not None:
+            return snapped
 
     if not strict:
         return None
@@ -198,6 +270,179 @@ def regular_ll_grid_spec(lats: Any, lons: Any) -> Optional[dict]:
         spec["reference"] = [lon_offset, lat_offset]
 
     return spec
+
+
+def rotation_projection(mapping: Any) -> Optional[dict]:
+    """Build the eckit-geo rotation projection of a CF rotated latitude-longitude grid.
+
+    Parameters
+    ----------
+    mapping : Any
+        The CF grid mapping attributes of the variable, e.g. the attributes
+        of its ``grid_mapping`` variable.
+
+    Returns
+    -------
+    dict or None
+        The ``projection`` entry for a gridspec, or ``None`` if ``mapping``
+        is not a usable ``rotated_latitude_longitude`` description.
+
+    Notes
+    -----
+    eckit describes the rotation by its south pole. In this eckit the
+    ``south_pole`` pair is ``[longitude, latitude]`` (verified numerically
+    against the points of a rotated grid), the antipode of the CF north
+    pole: ``grid_north_pole_longitude + 180``, ``-grid_north_pole_latitude``.
+    A non-zero ``north_pole_grid_longitude`` (rotating the grid about its
+    own pole, an angle eckit's rotation projection cannot carry) is
+    rejected.
+    """
+    if not isinstance(mapping, dict):
+        return None
+
+    if mapping.get("grid_mapping_name") != "rotated_latitude_longitude":
+        return None
+
+    try:
+        pole_latitude = float(mapping["grid_north_pole_latitude"])
+        pole_longitude = float(mapping["grid_north_pole_longitude"])
+        # absent means 0.0, the CF default
+        angle = float(mapping.get("north_pole_grid_longitude", 0.0) or 0.0)
+    except (KeyError, TypeError, ValueError):
+        return None
+
+    if not np.isfinite(angle) or not np.isclose(angle, 0.0):
+        return None
+
+    south_pole_longitude = (pole_longitude + 180.0) % 360.0
+    return {"type": "rotation", "south_pole": [south_pole_longitude, -pole_latitude]}
+
+
+def _proj_string(value: Any) -> Optional[str]:
+    """The PROJ definition in ``value``, a CF attribute holding one, or ``None`` if it holds none."""
+    if isinstance(value, bytes):
+        value = value.decode("utf-8", errors="replace")
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return None
+
+
+def _proj_string_from_wkt(value: Any) -> Optional[str]:
+    """The PROJ definition of a CF ``crs_wkt`` attribute, read with pyproj, or ``None``.
+
+    Anything pyproj makes of it that is not a usable definition (an unreadable WKT, a CRS
+    whose PROJ translation PROJ itself refuses, ...) yields ``None``, as detection has
+    nothing to check the grid's points against then.
+
+    pyproj warns that a PROJ string cannot carry all a WKT says (its datum, mainly). That
+    loss is what the point check of
+    :meth:`~.grid.UnstructuredGrid._projected_xy_grid_spec` is there to catch, so the
+    general warning is silenced here; the grid keeps its unstructured treatment if the
+    translated definition does not reproduce the dataset's own coordinates.
+    """
+    wkt = _proj_string(value)
+    if wkt is None:
+        return None
+
+    try:
+        from pyproj import CRS
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            return _proj_string(CRS.from_wkt(wkt).to_proj4())
+    except Exception:
+        return None
+
+
+def proj_projection(mapping: Any) -> Optional[dict]:
+    """Build the eckit-geo PROJ projection of a CF grid mapping.
+
+    Parameters
+    ----------
+    mapping : Any
+        The CF grid mapping attributes of the variable, e.g. the attributes
+        of its ``grid_mapping`` variable.
+
+    Returns
+    -------
+    dict or None
+        The ``projection`` entry for a gridspec, or ``None`` if ``mapping``
+        carries no usable PROJ description of the projection.
+
+    Notes
+    -----
+    The definition is read from the CF ``proj4_params`` attribute and, when
+    that is absent, from ``crs_wkt`` translated with pyproj. Nothing is
+    assembled from the individual projection attributes (a centre latitude,
+    an ellipsoid, ...): a PROJ string that merely looks right would describe a
+    grid no point of the file confirms, and no gridspec at all, which is what
+    detection falls back to, is the safer answer. A
+    ``rotated_latitude_longitude`` mapping is left to :func:`rotation_projection`.
+    """
+    if not isinstance(mapping, dict):
+        return None
+
+    if mapping.get("grid_mapping_name") == "rotated_latitude_longitude":
+        return None
+
+    source = _proj_string(mapping.get("proj4_params"))
+    if source is None:
+        source = _proj_string_from_wkt(mapping.get("crs_wkt"))
+    if source is None:
+        return None
+
+    return {"type": "proj", "source": source}
+
+
+def _xy_range(step: float, low: float, high: float) -> list:
+    """The ``[start, stop, step]`` range of a fitted axis, in the direction it runs."""
+    return [low, high, step] if step > 0 else [high, low, step]
+
+
+def regular_xy_grid_spec(x: Any, y: Any, projection: Any) -> Optional[dict]:
+    """Build the gridspec for a regular grid in the plane of a projection.
+
+    Parameters
+    ----------
+    x : Any
+        The distinct x coordinates of the grid, in the units of the projection plane.
+    y : Any
+        The distinct y coordinates of the grid, in the same units.
+    projection : Any
+        The ``projection`` entry the grid carries (see :func:`proj_projection`).
+
+    Returns
+    -------
+    dict or None
+        The gridspec as a dict, or ``None`` if ``x``/``y`` do not describe two
+        regular axes.
+
+    Notes
+    -----
+    The axes are fitted by :func:`_regular_axis`, the same fitting a regular
+    lat/lon grid uses, so a single precision axis is cleaned the same way. Its
+    tolerance is a few ulps of the coordinate, which for coordinates in metres
+    is a couple of metres rather than the hundred-thousandths of a degree it
+    means for latitudes and longitudes.
+    """
+    x = np.asarray(x)
+    y = np.asarray(y)
+
+    if len(x) < 2 or len(y) < 2:
+        return None
+
+    x_fit = _regular_axis(x)
+    y_fit = _regular_axis(y)
+
+    if x_fit is None or y_fit is None:
+        return None
+
+    return {
+        "type": "regular_xy",
+        "x": _xy_range(*x_fit),
+        "y": _xy_range(*y_fit),
+        "projection": projection,
+    }
 
 
 def _unique_in_order(values: np.ndarray) -> np.ndarray:

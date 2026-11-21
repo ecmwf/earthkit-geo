@@ -17,6 +17,7 @@ array.
 import logging
 
 from .handler import DataHandler
+from .utils import scatter_projected_grid
 
 LOG = logging.getLogger(__name__)
 
@@ -59,7 +60,9 @@ class NumpyDataHandler(DataHandler):
         data : numpy.ndarray
             The values to regrid, defined on ``in_grid``.
         in_grid : Any, optional
-            The input grid or grid spec.
+            The input grid or grid spec. A PROJ-source projected grid is
+            converted to its unstructured lat/lon points (see
+            :func:`~earthkit.geo.grids._regrid.data.utils.scatter_projected_grid`).
         out_grid : Any, optional
             The output grid or grid spec.
         **kwargs : dict
@@ -74,6 +77,10 @@ class NumpyDataHandler(DataHandler):
             grid spec.
         """
         backend = self.backend_from_kwargs(kwargs)
+        # MIR cannot parse a "+proj=..." source string as an input grid, so a
+        # PROJ-source projected grid is scattered to its unstructured lat/lon points
+        # before reaching the backend; out_grid is passed on as it is.
+        in_grid = scatter_projected_grid(in_grid)
         return backend.regrid(data, in_grid, out_grid, **kwargs)
 
 

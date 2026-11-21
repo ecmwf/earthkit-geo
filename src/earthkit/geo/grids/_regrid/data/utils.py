@@ -131,3 +131,59 @@ def create_unstructured_grid_object(lats, lons):
     lats = np.asarray(lats).flatten()
     lons = np.asarray(lons).flatten()
     return Grid({"latitudes": lats, "longitudes": lons})
+
+
+def _is_proj_source(projection) -> bool:
+    """Whether a grid spec projection is described by a PROJ source string."""
+    if not isinstance(projection, dict) or projection.get("type") != "proj":
+        return False
+    return isinstance(projection.get("source"), str)
+
+
+def scatter_projected_grid(grid):
+    """Convert a PROJ-source projected grid into the unstructured lat/lon grid of its points.
+
+    Parameters
+    ----------
+    grid : eckit.geo.Grid, earthkit.geo.grids.Grid, dict, str or None
+        The grid to scatter, as a ``Grid`` object, a plain grid spec dict or a
+        JSON string. A ``regular_xy`` grid whose projection is a PROJ source
+        string, such as ``{"type": "proj", "source": "+proj=laea ..."}`` (the
+        way the xarray loader spells a projection detected from a CF
+        ``proj4_params`` attribute), is converted into the unstructured lat/lon
+        grid of its points. A plain dict spec of that kind, with or without its
+        top-level ``"type"``, is turned into a ``Grid`` first.
+
+    Returns
+    -------
+    eckit.geo.Grid, earthkit.geo.grids.Grid, dict, str or None
+        ``grid.to_unstructured_ll()`` for a PROJ-source projected grid,
+        otherwise ``grid`` itself, unchanged and the same object: any other
+        grid, dict spec or JSON string is passed through as it is, and None
+        stays None.
+
+    Raises
+    ------
+    Exception
+        Whatever ``eckit.geo.Grid`` raises if a dict PROJ spec cannot be
+        parsed into a grid (see :func:`create_grid_object`).
+
+    Notes
+    -----
+    The conversion keeps the point order of the projected grid, i.e. its x axis
+    scanned fastest, which is the order data laid out on the grid is in, so the
+    values still match their points. Backends that cannot parse a ``+proj=...``
+    source string as an input grid can use this to take the points as a grid
+    they do read.
+    """
+    from eckit.geo import Grid
+
+    original = grid
+    if isinstance(grid, dict) and _is_proj_source(grid.get("projection")):
+        # a plain spec of the PROJ kind: eckit decides which grid type it describes
+        grid = create_grid_object(grid)
+
+    if isinstance(grid, Grid) and grid.type == "regular_xy" and _is_proj_source(grid.spec.get("projection")):
+        return grid.to_unstructured_ll()
+    # anything not scattered is handed back as it came in, even a dict spec that was parsed above
+    return original

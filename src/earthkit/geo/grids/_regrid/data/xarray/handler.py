@@ -24,7 +24,7 @@ import logging
 from earthkit.geo.utils import ensure_list
 
 from ..handler import DataHandler
-from ..utils import create_grid_object
+from ..utils import create_grid_object, scatter_projected_grid
 from .output import XarrayOutputGeographyBuilder
 
 LOG = logging.getLogger(__name__)
@@ -316,7 +316,12 @@ class XarrayDataHandler(DataHandler):
         if set(in_dims) == set(out_dims):
             exclude_dims = set(in_dims)
 
-        in_grid = variable.ek_grid
+        # Backends cannot be expected to parse a PROJ-source projected input grid
+        # (e.g. the regular_xy grid the loader detects from a CF grid mapping), so
+        # the handler converts it here into the unstructured lat/lon grid of its
+        # points, which every backend reads (see scatter_projected_grid). Only the
+        # input grid is converted: the output grid must keep its own shape.
+        in_grid = scatter_projected_grid(variable.ek_grid)
         out_grid_shape = out_grid.shape
 
         method = _RegridMethod(in_grid, out_grid, **kwargs)

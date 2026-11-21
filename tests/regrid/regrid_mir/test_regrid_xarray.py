@@ -466,11 +466,340 @@ def test_regrid_xarray_netcdf_ll_to_points(in_grid):
 
 
 @skip_in_github
+@pytest.mark.download
+@pytest.mark.timeout(180)
+def test_regrid_xarray_laea_dataset_to_ll():
+    """Regrid the whole LAEA projected EFAS Dataset onto a lat/lon grid over its area.
+
+    A Dataset keeps the scalar grid mapping variable of the file, so its variables are
+    detected on a ``regular_xy`` grid in the plane of the PROJ projection of that mapping.
+    MIR cannot read that gridspec as an input grid, so the xarray regrid handler hands the
+    backend the same points as an unstructured lat/lon grid (via
+    :func:`~earthkit.geo.grids._regrid.data.utils.scatter_projected_grid`). This checks
+    that the scattered points are the grid of the data: every finite output point carries
+    the value of its nearest input point, with the input points read from the file's own 2D
+    coordinates, like the CORDEX test below. The output grid covers the area of the sample
+    instead of the whole globe, for the reason given in that test.
+    """
+    ds = _open_xr("efas.nc")[["dis06", "upArea", "lambert_azimuthal_equal_area"]]
+
+    from earthkit.geo.grids._regrid.data.xarray.loader import variables
+
+    # the fallback is only exercised when the input grid is the detected projected one
+    assert [v.ek_grid.type for v in variables(ds)] == ["regular_xy", "regular_xy"]
+
+    out_grid = {"grid": [1, 1], "area": [60, -10, 35, 40]}
+    r = regrid(ds, out_grid=out_grid, interpolation="nn")
+
+    assert isinstance(r, xr.Dataset)
+
+    out_dims = {"latitude": 26, "longitude": 51}
+    compare_dims(r, out_dims, sizes=True)
+    _assert_latlons(r, np.linspace(60.0, 35.0, 26), np.linspace(-10.0, 40.0, 51))
+
+    from scipy.spatial import cKDTree
+
+    def _xyz(lats, lons):
+        lats = np.radians(lats)
+        lons = np.radians(lons)
+        return np.stack([np.cos(lats) * np.cos(lons), np.cos(lats) * np.sin(lons), np.sin(lats)], axis=-1)
+
+    # the input points and values, in the (y, x) row-major order of the projected grid
+    in_xyz = _xyz(ds["latitude"].values.reshape(-1), ds["longitude"].values.reshape(-1))
+    grid_lat, grid_lon = np.meshgrid(r["latitude"].values, r["longitude"].values, indexing="ij")
+    out_xyz = _xyz(grid_lat.reshape(-1), grid_lon.reshape(-1))
+    _, nearest = cKDTree(in_xyz).query(out_xyz, k=1)
+
+    for name in ("dis06", "upArea"):
+        values = r[name].to_numpy().reshape(-1)
+        finite = np.isfinite(values)
+        assert int(finite.sum()) == 781
+        expected = ds[name].to_numpy().reshape(-1)[nearest[finite]]
+        assert np.max(np.abs(values[finite] - expected)) == 0.0
+
+
+@skip_in_github
+@pytest.mark.long_test
+@pytest.mark.download
+@pytest.mark.timeout(180)
+def test_regrid_xarray_polar_stereo_north_to_ll():
+    """Regrid the polar stereographic AMSR2 sample onto a regional lat/lon grid.
+
+    The sample keeps its grid as two 1D projected axes and a CF grid mapping described by
+    its ``crs_wkt`` alone, so its variable is detected on the ``regular_xy`` grid of that
+    PROJ projection. Like the efas Dataset above, MIR cannot read that gridspec as an input
+    grid, so the xarray regrid handler hands the backend the same points as an
+    unstructured lat/lon grid (via
+    :func:`~earthkit.geo.grids._regrid.data.utils.scatter_projected_grid`). A
+    ``xr.DataArray`` only keeps the grid when the mapping variable travels with it as a
+    scalar coordinate: without it nothing interprets the projected axes any more and the
+    detection raises ``NotImplementedError``, as it does for the x/y files with no grid
+    mapping. The output grid covers part of the data area instead of the whole globe, for
+    the reason given in the CORDEX test below. The sample is a sea ice field with missing
+    sea, so the finite pattern is checked too: an output point carries a value exactly when
+    the projection covers the axes at it and the nearest input point found below has one.
+    """
+    ds = _open_xr("polar_stereo_north_amsr2.nc")
+
+    from earthkit.geo.grids._regrid.data.xarray.loader import variables
+
+    # the fallback is only exercised when the input grid is the detected projected one
+    assert [v.ek_grid.type for v in variables(ds)] == ["regular_xy"]
+
+    out_grid = {"grid": [2, 2], "area": [80, -170, 60, -100]}
+    r = regrid(ds, out_grid=out_grid, interpolation="nearest-neighbour")
+
+    assert isinstance(r, xr.Dataset)
+
+    out_dims = {"latitude": 11, "longitude": 36}
+    compare_dims(r, out_dims, sizes=True)
+    _assert_latlons(r, np.linspace(80.0, 60.0, 11), np.linspace(-170.0, -100.0, 36))
+
+    # the DataArray with its grid mapping kept as a scalar coordinate regrids identically
+    da = ds["z"].assign_coords(polar_stereographic=ds["polar_stereographic"])
+    r_da = regrid(da, out_grid=out_grid, interpolation="nearest-neighbour")
+
+    assert isinstance(r_da, xr.DataArray)
+    compare_dims(r_da, out_dims, sizes=True)
+    assert np.array_equal(r_da.to_numpy(), r["z"].to_numpy(), equal_nan=True)
+
+    values = r["z"].to_numpy()
+
+    from pyproj import CRS, Transformer
+
+    # the output points in the plane of the projection of the file itself
+    transformer = Transformer.from_crs(
+        "EPSG:4326", CRS.from_wkt(str(ds["polar_stereographic"].attrs["crs_wkt"])), always_xy=True
+    )
+    x = ds["x"].values
+    y = ds["y"].values
+    grid_lon, grid_lat = np.meshgrid(r["longitude"].values, r["latitude"].values)
+    px, py = transformer.transform(grid_lon, grid_lat)
+
+    # the nearest cell of the file's regular axes, and the offset of the point from it:
+    # only points far from a cell boundary have an unambiguous nearest input point
+    fx = (px - x[0]) / (x[1] - x[0])
+    fy = (py - y[0]) / (y[1] - y[0])
+    ix = np.rint(fx).astype(int)
+    iy = np.rint(fy).astype(int)
+    inside = (ix >= 0) & (ix < x.size) & (iy >= 0) & (iy < y.size)
+    nearest = ds["z"].to_numpy()[np.clip(iy, 0, y.size - 1), np.clip(ix, 0, x.size - 1)]
+
+    finite = np.isfinite(values)
+    assert np.array_equal(finite, inside & np.isfinite(nearest))
+    assert float(values[finite].min()) >= 0.0
+    assert float(values[finite].max()) <= 100.0
+
+    unambiguous = finite & (np.abs(fx - ix) < 0.49) & (np.abs(fy - iy) < 0.49)
+    assert int(unambiguous.sum()) >= 150
+    assert np.max(np.abs(values[unambiguous] - nearest[unambiguous])) == 0.0
+
+
+# A Lambert azimuthal equal-area projection on GRS80, with the false easting
+# and northing of the efas sample, described the way CF files describe a
+# projection (same as the dataset of test_regrid_xarray_laea_dataset_to_ll).
+LAEA_PROJ4 = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
+
+
+def _synthetic_laea_dataset():
+    """A small synthetic Dataset on the plane of a LAEA projection.
+
+    Returns
+    -------
+    xr.Dataset
+        The dataset, with its data variable "a" over the 1D ``x``/``y`` axes of
+        the projection plane (5 km, ``y`` descending), the 2D
+        ``latitude``/``longitude`` coordinates pyproj computes for them, and
+        the scalar CF grid mapping variable naming the projection.
+    """
+    from pyproj import CRS, Transformer
+
+    x_values = 4321000.0 + 5000.0 * np.arange(6)
+    y_values = 3210000.0 - 5000.0 * np.arange(4)
+
+    transformer = Transformer.from_crs(CRS.from_proj4(LAEA_PROJ4), "EPSG:4326", always_xy=True)
+    xv, yv = np.meshgrid(x_values, y_values)
+    lon2d, lat2d = transformer.transform(xv, yv)
+
+    ds = xr.Dataset(
+        {
+            "a": xr.Variable(
+                ["y", "x"],
+                np.arange(24, dtype=np.float64).reshape(4, 6),
+                attrs={"grid_mapping": "mapping"},
+            )
+        },
+        coords={
+            "x": (["x"], x_values, {"standard_name": "projection_x_coordinate", "units": "m"}),
+            "y": (["y"], y_values, {"standard_name": "projection_y_coordinate", "units": "m"}),
+            "latitude": (["y", "x"], lat2d, {"standard_name": "latitude", "units": "degrees_north"}),
+            "longitude": (["y", "x"], lon2d, {"standard_name": "longitude", "units": "degrees_east"}),
+        },
+    )
+    ds["mapping"] = xr.DataArray(
+        0.0,
+        attrs={"grid_mapping_name": "lambert_azimuthal_equal_area", "proj4_params": LAEA_PROJ4},
+    )
+    return ds
+
+
+@requires_mir
+@skip_in_github
+def test_regrid_xarray_projected_explicit_grid_transposed_dims():
+    """A projected field ordered (x, y) regrids like its (y, x) original on an explicit grid.
+
+    A structured explicit eckit grid (here the regular_xy one of the LAEA
+    projection) iterates its points with its x axis fastest, so the loader
+    reorders the (x, y) grid dimensions of the data to (y, x) before handing
+    it to the backend; without that the transposed field is read point by
+    point in the wrong order (see
+    :func:`earthkit.geo.grids._regrid.data.xarray.loader.adjust_variable_dim_order`).
+    """
+    ds = _synthetic_laea_dataset()
+
+    from earthkit.geo.grids._regrid.data.xarray.loader import variables
+
+    # the detected projected grid, given explicitly as the input grid
+    ek_grid = variables(ds)[0].ek_grid
+    assert ek_grid.type == "regular_xy"
+
+    # the data transposed onto the (x, y) dim order, the coordinates left as they are
+    ds_t = ds.assign(a=ds["a"].transpose("x", "y"))
+
+    assert list(variables(ds_t, user_ek_grid=ek_grid)[0].geo_dims) == ["y", "x"]
+
+    out_grid = {"grid": [0.5, 0.5], "area": [60, -10, 45, 20]}
+
+    ref = regrid(ds, in_grid=ek_grid, out_grid=out_grid, interpolation="nn")["a"].values
+    r = regrid(ds_t, in_grid=ek_grid, out_grid=out_grid, interpolation="nn")["a"].values
+
+    np.testing.assert_allclose(r, ref, equal_nan=True)
+
+
+@requires_mir
+@skip_in_github
+def test_regrid_xarray_projected_unstructured_explicit_grid_transposed_dims():
+    """A transposed field regrids identically on its detected and its explicit unstructured grid.
+
+    An unstructured eckit grid holds its points in the order the data was
+    laid out, not the x-fastest order of a structured one, so the loader must
+    leave the (x, y) dimensions of the variable alone when that is the given
+    input grid (see
+    :func:`earthkit.geo.grids._regrid.data.xarray.loader.adjust_variable_dim_order`).
+    """
+    ds_t = _synthetic_laea_dataset().transpose("x", "y")
+
+    from earthkit.geo.grids._regrid.data.xarray.loader import variables
+
+    auto = variables(ds_t)[0]
+    assert auto.ek_grid.type == "unstructured_ll"
+    assert list(variables(ds_t, user_ek_grid=auto.ek_grid)[0].geo_dims) == ["x", "y"]
+
+    out_grid = {"grid": [0.5, 0.5], "area": [60, -10, 45, 20]}
+
+    ref = regrid(ds_t, out_grid=out_grid, interpolation="nn")["a"].values
+    r = regrid(ds_t, in_grid=auto.ek_grid, out_grid=out_grid, interpolation="nn")["a"].values
+
+    np.testing.assert_allclose(r, ref, equal_nan=True)
+
+
+def _synthetic_rotated_dataset():
+    """A small synthetic Dataset on a CF rotated lat/lon grid.
+
+    The true latitudes and longitudes are those of the eckit-geo grid carrying
+    the rotation, so its detected gridspec reproduces the points exactly (see
+    the same construction in tests/xarray_grid/test_xarray_grid.py).
+
+    Returns
+    -------
+    xr.Dataset
+        The dataset, with its data variable "a" over the descending 1D
+        ``rlat`` and ascending 1D ``rlon`` axes of the rotated frame, the 2D
+        ``latitude``/``longitude`` coordinates of their rotated grid, and the
+        scalar CF grid mapping variable naming the rotation.
+    """
+    from eckit.geo import Grid
+
+    mapping = {
+        "grid_mapping_name": "rotated_latitude_longitude",
+        "grid_north_pole_latitude": 40.0,
+        "grid_north_pole_longitude": -170.0,
+    }
+    rlat_values = np.array([30.0, 20.0, 10.0])  # descending, the default scan
+    rlon_values = np.array([-20.0, -10.0, 0.0, 10.0])
+
+    # eckit describes the rotation by its south pole, the antipode of the CF
+    # north pole, as a [longitude, latitude] pair
+    spec = {
+        "grid": [10.0, 10.0],
+        "area": [rlat_values[0], rlon_values[0], rlat_values[-1], rlon_values[-1]],
+        "projection": {"type": "rotation", "south_pole": [10.0, -40.0]},
+    }
+    lat_flat, lon_flat = (np.asarray(a, dtype=np.float64) for a in Grid(spec).to_latlons())
+    lat2d = lat_flat.reshape(3, 4)
+    lon2d = lon_flat.reshape(3, 4)
+
+    ds = xr.Dataset(
+        {
+            "a": xr.Variable(
+                ["rlat", "rlon"],
+                np.arange(12, dtype=np.float64).reshape(3, 4),
+                attrs={"grid_mapping": "mapping"},
+            )
+        },
+        coords={
+            "rlat": (["rlat"], rlat_values, {"standard_name": "grid_latitude", "units": "degrees"}),
+            "rlon": (["rlon"], rlon_values, {"standard_name": "grid_longitude", "units": "degrees"}),
+            "latitude": (["rlat", "rlon"], lat2d, {"standard_name": "latitude", "units": "degrees_north"}),
+            "longitude": (["rlat", "rlon"], lon2d, {"standard_name": "longitude", "units": "degrees_east"}),
+        },
+    )
+    ds["mapping"] = xr.DataArray(0.0, attrs=mapping)
+    return ds
+
+
+@requires_mir
+@skip_in_github
+def test_regrid_xarray_rotated_explicit_outer_order_grid_transposed_dims():
+    """A transposed rotated field regrids identically on its detected and its explicit grid.
+
+    The auto path detects the transposed field's grid as a regular_ll with an
+    order that scans the longitude (the x of the rotation) outermost: the data
+    already lies in that point order, so the loader must leave its (rlon,
+    rlat) dimensions alone for that explicit grid too (see
+    :func:`earthkit.geo.grids._regrid.data.xarray.loader._scans_x_fastest`).
+    """
+    ds_t = _synthetic_rotated_dataset().transpose("rlon", "rlat")
+
+    from earthkit.geo.grids._regrid.data.xarray.loader import variables
+
+    auto = variables(ds_t)[0]
+    assert auto.ek_grid.order == "j-i+"
+    assert list(variables(ds_t, user_ek_grid=auto.ek_grid)[0].geo_dims) == ["rlon", "rlat"]
+
+    out_grid = {"grid": [0.5, 0.5], "area": [65, -25, 20, 65]}
+
+    ref = regrid(ds_t, out_grid=out_grid, interpolation="nn")["a"].values
+    r = regrid(ds_t, in_grid=auto.ek_grid, out_grid=out_grid, interpolation="nn")["a"].values
+
+    np.testing.assert_allclose(r, ref, equal_nan=True)
+
+
+@skip_in_github
 # @pytest.mark.long_test
 @pytest.mark.download
 @pytest.mark.timeout(90)
 def test_regrid_xarray_laea_to_ll():
-    """Regrid the LAEA projected EFAS field onto a global lat/lon grid."""
+    """Regrid the LAEA projected EFAS field onto a global lat/lon grid.
+
+    The input is a DataArray, which loses the scalar grid mapping variable on the way to
+    the loader, so its grid is still detected from its 2D latitudes/longitudes as
+    unstructured. The same file regridded as a whole Dataset is detected as a
+    ``regular_xy`` grid in the plane of the file's PROJ projection, which no backend can
+    read as an input grid: the xarray regrid handler converts it into its unstructured
+    points before calling the backend (see
+    :func:`test_regrid_xarray_laea_dataset_to_ll`).
+    """
     ds = _open_xr("efas.nc")
 
     da = ds["dis06"]
@@ -527,56 +856,64 @@ def test_regrid_xarray_laea_to_ll():
 
 @skip_in_github
 def test_regrid_xarray_cordex_rotated_ll_to_ll():
-    """Regrid the CORDEX Dataset on a rotated lat/lon grid onto a global lat/lon grid."""
+    """Regrid the CORDEX Dataset on a rotated lat/lon grid onto a lat/lon grid over its area.
+
+    The output grid covers the true (unrotated) footprint of the sample instead of the
+    whole globe: this MIR cannot regrid a regional gridded input onto a global grid (its
+    matrix methods raise where the unstructured path would return all-the-NaN output).
+    That is a MIR limitation of gridded inputs, unrelated to the rotation.
+    """
     ds = _open_xr("cordex.nc")
 
-    out_grid = {"grid": [10, 10]}
+    out_grid = {"grid": [0.25, 0.25], "area": [42.25, 10.0, 39.75, 13.0]}
     r = regrid(ds, out_grid=out_grid, interpolation="nn")
 
-    out_dims = {"time": 2, **OUT_DIMS_GLOBAL}
+    # MIR crops the requested area to the 0.25 grid points inside the input footprint
+    out_dims = {"time": 2, "latitude": 9, "longitude": 9}
     compare_dims(r, out_dims, sizes=True)
 
+    ref_lat = np.linspace(42.0, 40.0, 9)
+    ref_lon = np.linspace(10.5, 12.5, 9)
+    _assert_latlons(r, ref_lat, ref_lon)
+
+    result = r["sfcWind"].to_numpy()
+
+    # the middle (41 degree) row of the first time slice
     ref_data = np.array([
         np.nan,
-        4.9234657,
-        np.nan,
-        np.nan,
-        3.0825672,
-        np.nan,
-        np.nan,
-        np.nan,
-        np.nan,
-        np.nan,
-        np.nan,
-        np.nan,
-        np.nan,
-        np.nan,
-        np.nan,
-        np.nan,
-        np.nan,
-        np.nan,
-        np.nan,
-        np.nan,
-        np.nan,
-        np.nan,
-        np.nan,
-        np.nan,
-        np.nan,
-        np.nan,
-        np.nan,
-        np.nan,
-        np.nan,
-        np.nan,
-        np.nan,
-        np.nan,
-        np.nan,
-        np.nan,
-        np.nan,
-        np.nan,
+        6.6690645,
+        7.027647,
+        6.617398,
+        6.356368,
+        5.8406057,
+        5.609106,
+        5.520202,
+        5.442434,
     ])
+    assert np.allclose(result[0][4], ref_data, equal_nan=True)
 
-    assert np.allclose(r["sfcWind"].to_numpy()[0][5], ref_data, equal_nan=True)
-    _assert_latlons(r, REF_LAT_GLOBAL, REF_LON_GLOBAL)
+    # every finite output point carries the value of its nearest input point, computed
+    # from the file's own 2D coordinates: this checks that the grid MIR was given from
+    # the auto-detected rotated gridspec is the grid the file describes
+    def _xyz(lats, lons):
+        lats = np.radians(lats)
+        lons = np.radians(lons)
+        return np.stack([np.cos(lats) * np.cos(lons), np.cos(lats) * np.sin(lons), np.sin(lats)], axis=-1)
+
+    in_lat = ds["lat"].values.reshape(-1)
+    in_lon = ds["lon"].values.reshape(-1)
+    grid_lat, grid_lon = np.meshgrid(r["latitude"].values, r["longitude"].values, indexing="ij")
+    out_xyz = _xyz(grid_lat.reshape(-1), grid_lon.reshape(-1))[:, None]
+    in_xyz = _xyz(in_lat, in_lon)[None, :]
+    dist = np.linalg.norm(out_xyz - in_xyz, axis=2)
+    nearest = dist.argmin(axis=1).reshape(grid_lat.shape)
+
+    for time in range(2):
+        values = result[time]
+        finite = np.isfinite(values)
+        assert int(finite.sum()) == 69
+        expected = ds["sfcWind"].values[time].reshape(-1)[nearest[finite]]
+        assert np.max(np.abs(values[finite] - expected)) == 0.0
 
 
 @skip_in_github
