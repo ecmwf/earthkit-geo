@@ -53,11 +53,40 @@ class MirBackend(Backend):
         raise ValueError(f"Invalid area format: {area}")
 
     @staticmethod
-    def adjust_options(grid, kwargs):
-        """Move a temporary ``"area"`` grid-spec key into the MIR job options.
+    def normalise_rotation(rotation):
+        """Normalise a ``rotation`` value into the string format MIR expects.
 
-        This is a temporary workaround for representing ``area`` in a grid
-        spec: MIR expects it as a job option, not a grid-spec key.
+        Parameters
+        ----------
+        rotation : str, list or tuple
+            The south pole of the rotation, either already a string, or a
+            2-element ``[south_pole_lat, south_pole_lon]`` sequence.
+
+        Returns
+        -------
+        str
+            ``rotation`` unchanged if it was already a string, otherwise its
+            2 elements joined with ``"/"``.
+
+        Raises
+        ------
+        ValueError
+            If ``rotation`` is neither a string nor a 2-element list/tuple.
+        """
+        if isinstance(rotation, str):
+            return rotation
+        if isinstance(rotation, (list, tuple)):
+            if len(rotation) == 2:
+                return "/".join(map(str, rotation))
+
+        raise ValueError(f"Invalid rotation format: {rotation}")
+
+    @staticmethod
+    def adjust_options(grid, kwargs):
+        """Move temporary ``"area"`` and ``"rotation"`` grid-spec keys into the MIR job options.
+
+        This is a temporary workaround for representing ``area`` and ``rotation``
+        in a grid spec: MIR expects them as job options, not grid-spec keys.
 
         Parameters
         ----------
@@ -69,21 +98,24 @@ class MirBackend(Backend):
         Returns
         -------
         Tuple[dict, dict]
-            ``(grid, kwargs)`` unchanged if ``grid`` has no ``"area"`` key,
-            otherwise copies of both with ``"area"`` removed from ``grid``
-            and added (normalised via :meth:`normalise_area`) to ``kwargs``.
+            ``(grid, kwargs)`` unchanged if ``grid`` has neither key, otherwise
+            copies of both with the keys removed from ``grid`` and added
+            (normalised via :meth:`normalise_area` / :meth:`normalise_rotation`)
+            to ``kwargs``.
         """
-        # TODO: remove this once we have a better way to handle area in gridspec
-        if "area" in grid:
+        # TODO: remove this once we have a better way to handle area and rotation in gridspec
+        normalise = {"area": MirBackend.normalise_area, "rotation": MirBackend.normalise_rotation}
+        keys = [k for k in normalise if k in grid]
+        if keys:
             warn(
-                "The area key is a temporary workaround for area in gridspec",
+                f"The {'/'.join(keys)} key is a temporary workaround for {'/'.join(keys)} in gridspec",
                 DeprecationWarning,
                 stacklevel=2,
             )
             grid = grid.copy()
             kwargs = kwargs.copy()
-            area = grid.pop("area")
-            kwargs["area"] = MirBackend.normalise_area(area)
+            for k in keys:
+                kwargs[k] = normalise[k](grid.pop(k))
         return grid, kwargs
 
     @staticmethod
@@ -131,6 +163,7 @@ class MirBackend(Backend):
         in_grid,
         out_grid,
         interpolation="linear",
+        rotation=None,
     ):
         """Interpolate an array from ``in_grid`` onto ``out_grid`` via MIR.
 
@@ -145,6 +178,9 @@ class MirBackend(Backend):
         interpolation : str, default="linear"
             The interpolation method (e.g. ``"linear"``, ``"grid-box-average"``,
             ``"nearest-neighbour"``).
+        rotation : str, list or tuple, optional
+            The south pole of the output rotation, passed on by the field list
+            handler. Not supported for arrays: raises ``ValueError``.
 
         Returns
         -------
@@ -161,6 +197,9 @@ class MirBackend(Backend):
 
         in_grid = self.get_grid_spec(in_grid)
         out_grid = self.get_grid_spec(out_grid)
+
+        if rotation is not None or (isinstance(out_grid, dict) and "rotation" in out_grid):
+            raise ValueError("rotation in the output gridspec is only supported for GRIB input, not for arrays")
 
         out_grid, kwargs = self.adjust_options(out_grid, {})
 
@@ -187,6 +226,7 @@ class MirBackend(Backend):
         message,
         out_grid,
         interpolation="linear",
+        rotation=None,
     ):
         """Interpolate a GRIB message directly onto ``out_grid`` via MIR.
 
@@ -198,6 +238,9 @@ class MirBackend(Backend):
             The output grid spec.
         interpolation : str, default="linear"
             The interpolation method.
+        rotation : str, list or tuple, optional
+            The south pole of the output rotation, passed on by the field list
+            handler. Added to the MIR job options like ``area``.
 
         Returns
         -------
@@ -220,6 +263,8 @@ class MirBackend(Backend):
             del kwargs[k]
 
         out_grid, kwargs = self.adjust_options(out_grid, kwargs)
+        if rotation is not None:
+            kwargs["rotation"] = self.normalise_rotation(rotation)
 
         in_data = mir.GribMemoryInput(message)
         out = BytesIO()

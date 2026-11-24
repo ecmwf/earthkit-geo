@@ -353,3 +353,11 @@ def test_regrid_numpy_any_to_points(interpolation, in_grid, in_shape):
     out_grid = {"latitudes": lats, "longitudes": lons}
     res_v, _ = regrid_array(values, in_grid=in_grid, out_grid=out_grid, interpolation=interpolation)
     assert res_v.shape == (len(lats),), f"Expected shape {(len(lats), len(lons))}, got {res_v.shape}"
+
+
+@requires_mir
+def test_regrid_numpy_rotation_not_supported():
+    v_in = np.ones((37, 72))
+    out_grid = {"grid": [10, 10], "rotation": [-43, 10]}
+    with pytest.raises(ValueError, match="only supported for GRIB"):
+        regrid_array(v_in, {"grid": [5, 5]}, out_grid)

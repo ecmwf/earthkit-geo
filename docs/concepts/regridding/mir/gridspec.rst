@@ -190,7 +190,9 @@ rotated regular latitude-longitude grid:
     {"grid": [5, 5], "rotation": [-40, -20]}
 
 where ``rotation`` is a shortcut for a rotation projection, and gives the latitude and then the
-longitude of its south pole (:ref:`grid-projection`). A projected grid, named from the catalogue:
+longitude of its south pole (:ref:`grid-projection`). Like ``area``, ``rotation`` is passed to MIR
+as a job option for now, and works for GRIB input only (an array output cannot describe a rotated
+grid, so array input raises ``ValueError``). A projected grid, named from the catalogue:
 
 .. code-block::
 

@@ -60,6 +60,11 @@ class FieldListDataHandler(DataHandler):
         """
         backend = self.backend_from_kwargs(kwargs)
         in_grid = create_grid_object(in_grid)
+        # TODO: remove with MirBackend.adjust_options. An eckit Grid turns "rotation" into a
+        # projection that the MIR GRIB path does not implement, so it goes to the backend as an option.
+        if isinstance(out_grid, dict) and "rotation" in out_grid:
+            out_grid = out_grid.copy()
+            kwargs["rotation"] = out_grid.pop("rotation")
         out_grid = create_grid_object(out_grid)
 
         if out_grid is None:
