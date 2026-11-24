@@ -32,6 +32,7 @@ class GridWrapper:
             A grid spec (dict/str) or an existing ``eckit.geo.Grid`` instance.
         """
         self._grid = create_grid_object(grid)
+        self._latlons = None
 
     def __getattr__(self, name):
         """Delegate unknown attribute access to the wrapped ``Grid``."""
@@ -40,15 +41,22 @@ class GridWrapper:
     def to_latlons(self):
         """Get the flat latitude and longitude arrays for the grid.
 
+        The arrays are computed by the grid once and then cached: the
+        geography builder asks for them while deciding the output dimensions
+        and again while building the coordinates, and computing them can be
+        expensive on a large grid.
+
         Returns
         -------
         Tuple[np.ndarray, np.ndarray]
             The latitude and longitude arrays.
         """
-        import numpy as np
+        if self._latlons is None:
+            import numpy as np
 
-        lat, lon = self._grid.to_latlons()
-        return np.array(lat), np.array(lon)
+            lat, lon = self._grid.to_latlons()
+            self._latlons = (np.array(lat), np.array(lon))
+        return self._latlons
 
     def is_spectral(self):
         """bool: Whether the grid is spectral (always False here)."""
@@ -56,6 +64,12 @@ class GridWrapper:
 
     def to_distinct_latlons(self, field_shape):
         """Get the distinct (1D) latitude and longitude arrays for a 2D field.
+
+        The grid is a regular mesh when its latitudes are constant along
+        every row of the field and its longitudes constant along every
+        column (which a rotated grid is not, however few points its rows
+        and columns have); the distinct arrays are then the latitude of
+        each row and the longitude of each column.
 
         Parameters
         ----------
@@ -68,79 +82,21 @@ class GridWrapper:
             The distinct latitude and longitude arrays, or ``(None, None)``
             if the grid is not a regular mesh matching ``field_shape``.
         """
+        import numpy as np
+
         if len(self._grid.shape) == 2:
             lat, lon = self.to_latlons()
             lat = lat.reshape(self._grid.shape)
             lon = lon.reshape(self._grid.shape)
-            d_lat = self._distinct_lats(lat)
-            if d_lat is not None:
-                d_lon = self._distinct_lons(lon)
-                if d_lon is not None and len(d_lat) == field_shape[0] and len(d_lon) == field_shape[1]:
-                    return d_lat, d_lon
+            if (
+                np.allclose(lat, lat[:, :1])
+                and np.allclose(lon, lon[:1, :])
+                and lat.shape[0] == field_shape[0]
+                and lon.shape[1] == field_shape[1]
+            ):
+                return lat[:, 0], lon[0, :]
 
         return None, None
-
-    @staticmethod
-    def _distinct_lats(lats):
-        """Get the distinct (1D) latitude array for a 2D meshed latitude array.
-
-        Parameters
-        ----------
-        lats : np.ndarray
-            2D array of latitudes.
-
-        Returns
-        -------
-        Optional[np.ndarray]
-            The distinct latitudes per row, or None if the rows are not
-            regularly spaced.
-        """
-        import numpy as np
-
-        assert len(lats.shape) == 2
-        rows = lats.shape[0]
-        r = np.ones(rows)
-        if rows > 0:
-            for i in range(rows):
-                vals = lats[i, :]
-                delta = np.diff(vals)
-                if np.allclose(delta, delta[0]):
-                    r[i] = vals[0]
-                else:
-                    return None
-            return r
-        return None
-
-    @staticmethod
-    def _distinct_lons(lons):
-        """Get the distinct (1D) longitude array for a 2D meshed longitude array.
-
-        Parameters
-        ----------
-        lons : np.ndarray
-            2D array of longitudes.
-
-        Returns
-        -------
-        Optional[np.ndarray]
-            The distinct longitudes per column, or None if the columns are
-            not regularly spaced.
-        """
-        import numpy as np
-
-        assert len(lons.shape) == 2
-        cols = lons.shape[1]
-        r = np.ones(cols)
-        if cols > 0:
-            for i in range(cols):
-                vals = lons[:, i]
-                delta = np.diff(vals)
-                if np.allclose(delta, delta[0]):
-                    r[i] = vals[0]
-                else:
-                    return None
-            return r
-        return None
 
 
 class XarrayOutputGeographyBuilder:
@@ -160,17 +116,73 @@ class XarrayOutputGeographyBuilder:
             The output grid spec (dict/str) or an ``eckit.geo.Grid`` instance.
         """
         self.grid = GridWrapper(grid)
+        self._distinct = None
 
     @property
     def shape(self):
         """Tuple[int, ...]: The shape of the output grid."""
         return self.grid.shape
 
+    def _distinct_latlons(self):
+        """Decide whether the grid carries distinct 1D latitudes and longitudes.
+
+        This is the decision :meth:`coords` makes between latitude/longitude
+        coordinates on their own dimensions and 2D ones on ``(y, x)``, cached
+        so that :meth:`geo_dims` and :meth:`coords` share it, as well as the
+        latitudes and longitudes the grid computes for it.
+
+        Returns
+        -------
+        Tuple[Optional[np.ndarray], Optional[np.ndarray]]
+            The distinct latitude and longitude arrays when the grid is a
+            regular mesh matching its shape, or ``(None, None)``.
+        """
+        if self._distinct is None:
+            lat = lon = None
+            if len(self.shape) == 2:
+                try:
+                    d_lat, d_lon = self.grid.to_distinct_latlons(self.shape)
+                except Exception as e:
+                    LOG.debug("Could not extract distinct lat/lon coordinates: %s", e)
+                else:
+                    if (
+                        d_lat is not None
+                        and d_lon is not None
+                        and len(d_lat) == self.shape[0]
+                        and len(d_lon) == self.shape[1]
+                    ):
+                        lat, lon = d_lat, d_lon
+            self._distinct = (lat, lon)
+        return self._distinct
+
     def geo_dims(self):
-        """Determine the geographical dimensions of the dataset."""
+        """Determine the geographical dimensions of the dataset.
+
+        The decision is the one :meth:`coords` makes, shared through
+        :meth:`_distinct_latlons`: a 2D grid has distinct 1D latitudes and
+        longitudes (constant along every row and column, which a rotated
+        grid is not) only when its coordinates are built on the ``latitude``
+        and ``longitude`` dimensions; any other 2D grid carries 2D
+        coordinates on ``(y, x)``.
+
+        Returns
+        -------
+        List[str]
+            ``["latitude", "longitude"]`` for a 2D grid with distinct 1D
+            latitudes and longitudes, ``["y", "x"]`` for any other 2D grid
+            (e.g. a rotated one), and ``["values"]`` for a 1D grid.
+
+        Raises
+        ------
+        ValueError
+            If the grid has no geography this builder supports.
+        """
         num = len(self.shape)
         if num >= 2:
-            return ["latitude", "longitude"]
+            lat, lon = self._distinct_latlons()
+            if lat is not None and lon is not None:
+                return ["latitude", "longitude"]
+            return ["y", "x"]
         if num == 1:
             return ["values"]
 
@@ -209,27 +221,14 @@ class XarrayOutputGeographyBuilder:
                 except Exception:
                     pass
             elif len(field_shape) == 2:
-                try:
-                    lat, lon = self.grid.to_distinct_latlons(field_shape)
-                    if (
-                        lat is not None
-                        and lon is not None
-                        and len(lat) == field_shape[0]
-                        and len(lon) == field_shape[1]
-                    ):
-                        coords["latitude"] = lat
-                        coords["longitude"] = lon
-                        coords_dim["latitude"] = ("latitude",)
-                        coords_dim["longitude"] = ("longitude",)
-                        dims["latitude"] = lat.size
-                        dims["longitude"] = lon.size
-                        assert coords["latitude"].size == field_shape[0]
-                        assert coords["longitude"].size == field_shape[1]
-                        assert dims["latitude"] == field_shape[0]
-                        assert dims["longitude"] == field_shape[1]
-                except Exception as e:
-                    print(e)
-                    pass
+                lat, lon = self._distinct_latlons()
+                if lat is not None and lon is not None:
+                    coords["latitude"] = lat
+                    coords["longitude"] = lon
+                    coords_dim["latitude"] = ("latitude",)
+                    coords_dim["longitude"] = ("longitude",)
+                    dims["latitude"] = lat.size
+                    dims["longitude"] = lon.size
 
                 if not coords or not dims:
                     lat, lon = self.grid.to_latlons()

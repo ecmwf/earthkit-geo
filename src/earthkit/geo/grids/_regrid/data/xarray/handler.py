@@ -144,7 +144,14 @@ class XarrayDataHandler(DataHandler):
         xr.Dataset or xr.DataArray
             The regridded data, with updated geographical coordinates and
             (where possible) an updated grid_spec attribute. The return type
-            matches the type of ``values``.
+            matches the type of ``values``. Chunked (dask-backed) input stays
+            lazy: the result is only computed by the caller, and its geography
+            already describes the grid the backend produces (see
+            :meth:`_regrid_variable`). When no ``out_dims`` are given, the
+            geographical dimensions follow the grid the backend returns: they
+            are derived from the requested grid and renamed to the geography
+            of the returned one if the two classify it differently; a
+            requested ``out_dims`` is never renamed.
 
         Raises
         ------
@@ -197,6 +204,9 @@ class XarrayDataHandler(DataHandler):
         # the output geography builder which can provide the output grid and the output coordinates
         out_geo = XarrayOutputGeographyBuilder(out_grid)
 
+        # The output dimensions are taken from the user or, failing that, derived
+        # from the REQUESTED grid; they are matched to the geography of the grid
+        # the backend really returns at the end of this method.
         out_dims = out_dims_arg
         if out_dims is None:
             out_dims = out_geo.geo_dims()
@@ -224,6 +234,33 @@ class XarrayDataHandler(DataHandler):
         # with the new grid spec
         out_grid = create_grid_object(res_out_grid)
         out_geo = XarrayOutputGeographyBuilder(out_grid)
+
+        # The dimensions to regrid onto were derived above from the REQUESTED grid,
+        # while the coordinates are built from the grid the backend really returned.
+        # The two can classify their geography differently (e.g. the requested
+        # regular mesh becomes, after the backend adjusted it, a grid without
+        # distinct latitudes/longitudes), so when the caller did not choose the
+        # dimensions, follow the final geography and rename them. A rename only
+        # touches the dimension labels and works on a lazy result too; a
+        # user-provided out_dims always wins and is never renamed.
+        if out_dims_arg is None:
+            final_dims = out_geo.geo_dims()
+            if final_dims != out_dims:
+                if len(final_dims) != len(out_dims):
+                    raise ValueError(
+                        f"Cannot match the output dimensions {out_dims} of the regridded data to the "
+                        f"geography dimensions {final_dims} of the grid the backend returned: they "
+                        "differ in number. Please provide an 'out_dims' argument."
+                    )
+                clash = sorted(set(final_dims) & (set(ds_out.sizes) - set(out_dims)))
+                if clash:
+                    raise ValueError(
+                        f"Cannot rename the output dimensions {out_dims} of the regridded data to "
+                        f"{final_dims}: the result already has the dimensions {clash}. Please "
+                        "provide an 'out_dims' argument."
+                    )
+                ds_out = ds_out.rename(dict(zip(out_dims, final_dims)))
+
         ds_out = self.add_geo_coords(ds_out, out_geo.coords())
         ds_out = self.update_attributes(ds_out, out_grid)
 
@@ -254,6 +291,19 @@ class XarrayDataHandler(DataHandler):
         Tuple[xr.DataArray, Any]
             The regridded ``xr.DataArray`` and the (possibly updated) output
             grid spec as returned by the point-to-point regrid method.
+
+        Notes
+        -----
+        A backend may interpolate onto another grid than the one that was asked
+        for (see :meth:`~earthkit.geo.grids._regrid.backends.mir.MirBackend.regrid`),
+        so the grid spec of the result is the one it reports, not the requested
+        one. ``apply_ufunc`` only learns it while running the backend, which for
+        a dask-backed variable happens when the graph is computed, long after the
+        output sizes of the graph have been fixed. For that case the backend is
+        therefore run once here on a dummy slice of the geographical dimensions
+        before the graph is built, and the output sizes and the result grid come
+        from the spec that probe returns. Eager variables are untouched by this:
+        their backend is called exactly as often as before.
         """
 
         # regrid() can change the specified output gridspec.
@@ -322,9 +372,30 @@ class XarrayDataHandler(DataHandler):
         # points, which every backend reads (see scatter_projected_grid). Only the
         # input grid is converted: the output grid must keep its own shape.
         in_grid = scatter_projected_grid(variable.ek_grid)
-        out_grid_shape = out_grid.shape
 
         method = _RegridMethod(in_grid, out_grid, **kwargs)
+
+        # With a dask-backed variable apply_ufunc() does not run the backend while
+        # it builds the graph, so the grid the backend really produces is still
+        # unknown at that point (see the Notes above). Ask for it with one dummy
+        # call on a slice of the geographical dimensions only, in the in_dims order
+        # the backend is handed the data in. The probe costs one full spatial
+        # interpolation of one slice; whether MIR reuses the weights it computed
+        # for it depends on its configuration and on the worker process, so
+        # correctness must not rely on that reuse.
+        lazy = var.chunks is not None
+        if lazy:
+            import numpy as np
+
+            method(np.zeros(tuple(var.sizes[dim] for dim in in_dims), dtype=var.dtype))
+
+        # The shape the output sizes of the graph are taken from: the grid of the
+        # probe when there was one, and the requested grid otherwise, whose shape
+        # the backend cannot disagree with before apply_ufunc() has run it.
+        if lazy and method.out_grid is not None:
+            out_grid_shape = create_grid_object(method.out_grid).shape
+        else:
+            out_grid_shape = out_grid.shape
 
         import xarray as xr
 
@@ -344,7 +415,12 @@ class XarrayDataHandler(DataHandler):
             keep_attrs="identical",
         )
 
-        res_out_grid = method.out_grid.copy() if method.out_grid is not None else method.out_grid
+        # The grid spec the backend reported, which the caller builds the output
+        # geography from. Only a plain spec is copied: it is the value the method
+        # keeps updating, and a Grid has no copy() to take a defensive copy with.
+        res_out_grid = method.out_grid
+        if isinstance(res_out_grid, dict):
+            res_out_grid = res_out_grid.copy()
         return res, res_out_grid
 
 
