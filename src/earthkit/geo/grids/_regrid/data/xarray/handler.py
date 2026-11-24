@@ -11,9 +11,10 @@
 
 Provides :class:`XarrayDataHandler`, the entry point used by the generic
 regrid machinery (see ``..handler.DataHandler``) when the data to regrid is
-an ``xarray.Dataset`` or ``xarray.DataArray``. It uses :mod:`~.loader` to
-identify the geographical variables and their input grid, builds the output
-geography via :class:`XarrayGeographyBuilder`, and regrids each variable
+an ``xarray.Dataset`` or ``xarray.DataArray``. It uses
+:mod:`~earthkit.geo.grids.xarray.loader` to identify the geographical
+variables and their input grid, builds the output geography via
+:class:`XarrayGeographyBuilder`, and regrids each variable
 with ``xarray.apply_ufunc`` (dask-aware) delegating the actual point-to-point
 interpolation to ``..numpy.NumpyDataHandler``.
 """
@@ -25,7 +26,6 @@ from earthkit.geo.utils import ensure_list
 
 from ..handler import DataHandler
 from ..utils import create_grid_object, scatter_projected_grid
-from .output import XarrayOutputGeographyBuilder
 
 LOG = logging.getLogger(__name__)
 
@@ -173,7 +173,8 @@ class XarrayDataHandler(DataHandler):
 
         import xarray as xr
 
-        from .loader import variables as get_variables
+        from earthkit.geo.grids.xarray.loader import variables as get_variables
+        from earthkit.geo.grids.xarray.output import XarrayOutputGeographyBuilder
 
         input_is_dataset = isinstance(ds, xr.Dataset)
         if not input_is_dataset:
@@ -274,7 +275,8 @@ class XarrayDataHandler(DataHandler):
         backend : Any
             The backend providing the ``regrid`` method.
         variable : Variable
-            The variable to regrid, as produced by :func:`~.loader.variables`.
+            The variable to regrid, as produced by
+            :func:`~earthkit.geo.grids.xarray.loader.variables`.
         out_grid : Any
             The output grid.
         in_dims_arg : Optional[List[str]]

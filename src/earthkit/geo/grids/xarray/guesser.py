@@ -17,7 +17,12 @@ common naming fallbacks) and classifies each one into a
 point, scalar, or unsupported). It also assembles the resulting
 coordinates into a :class:`~.grid.Grid`/:class:`~.grid.XarrayGrid` for a
 given variable. :class:`DefaultCoordinateGuesser` is the concrete
-implementation used by :mod:`~.loader`.
+implementation used by :mod:`~.loader`; :class:`RulesCoordinateGuesser`
+classifies the geography coordinates from user-supplied rules (the format
+of an earthkit-data flavour ``rules`` section). Subclasses extend the
+classification through the :meth:`CoordinateGuesser._guess_non_geo`,
+:meth:`CoordinateGuesser._scalar`, :meth:`CoordinateGuesser._unsupported`
+and :meth:`CoordinateGuesser._grid_cache_key` hooks.
 """
 
 import logging
@@ -154,15 +159,110 @@ class CoordinateGuesser(ABC):
         if d is not None:
             return d
 
+        d = self._guess_non_geo(coordinate, attributes)
+        if d is not None:
+            return d
+
         if coordinate.shape in ((1,), tuple()):
-            return ScalarCoordinate(coordinate)
+            return self._scalar(coordinate)
 
         # LOG.warning(
         #     f"Coordinate {coord} not supported\n{axis=}, {name=},"
         #     f" {long_name=}, {standard_name=}, units\n\n{coordinate}\n\n{type(coordinate.values)} {coordinate.shape}"
         # )
 
-        return UnsupportedCoordinate(coordinate)
+        return self._unsupported(coordinate)
+
+    def _guess_non_geo(self, c: xr.DataArray, attributes: CoordinateAttributes) -> Optional[Coordinate]:
+        """Classify a coordinate that is not geography.
+
+        Extension hook called by :meth:`_guess` after all geography
+        matchers have declined the coordinate and before the scalar /
+        unsupported fallback. The base implementation classifies nothing;
+        subclasses may return a :class:`~.coordinates.Coordinate` (e.g. a
+        time, step, level or ensemble coordinate of their own) or None to
+        let the fallback apply.
+
+        Parameters
+        ----------
+        c : xr.DataArray
+            The coordinate to classify.
+        attributes : CoordinateAttributes
+            The attributes of the coordinate.
+
+        Returns
+        -------
+        Optional[Coordinate]
+            The classified coordinate, or None.
+        """
+        return None
+
+    def _scalar(self, c: xr.DataArray) -> ScalarCoordinate:
+        """Build the coordinate for an unmatched scalar coordinate.
+
+        Factory used by :meth:`_guess`; subclasses may override it to
+        return their own :class:`~.coordinates.ScalarCoordinate` subclass.
+
+        Parameters
+        ----------
+        c : xr.DataArray
+            The coordinate to wrap.
+
+        Returns
+        -------
+        ScalarCoordinate
+            The scalar coordinate.
+        """
+        return ScalarCoordinate(c)
+
+    def _unsupported(self, c: xr.DataArray) -> UnsupportedCoordinate:
+        """Build the coordinate for an unmatched non-scalar coordinate.
+
+        Factory used by :meth:`_guess`; subclasses may override it to
+        return their own :class:`~.coordinates.UnsupportedCoordinate` subclass.
+
+        Parameters
+        ----------
+        c : xr.DataArray
+            The coordinate to wrap.
+
+        Returns
+        -------
+        UnsupportedCoordinate
+            The unsupported coordinate.
+        """
+        return UnsupportedCoordinate(c)
+
+    def _grid_cache_key(
+        self, first: Coordinate, second: Coordinate, dim_vars: Tuple[Hashable, ...], variable: Any
+    ) -> tuple:
+        """Build the key under which a coordinate pair's grid is cached.
+
+        Factory used by :meth:`_lat_lon_provided` and :meth:`_x_y_provided`.
+        The default combines the two coordinate names, the variable's grid
+        dimensions and the variable's grid-mapping identity (see
+        :meth:`_mapping_key`); a subclass that lets the grid depend on
+        anything else from the variable must override this so the cache
+        cannot mix up two variables whose grids differ.
+
+        Parameters
+        ----------
+        first : Coordinate
+            The first coordinate of the pair, in cache key order: ``lat``
+            for a latitude/longitude pair, ``x`` for an x/y pair.
+        second : Coordinate
+            The second coordinate of the pair (``lon``, respectively ``y``).
+        dim_vars : Tuple[Hashable, ...]
+            The variable's grid dimensions.
+        variable : Any
+            The variable the grid is being derived for.
+
+        Returns
+        -------
+        tuple
+            A hashable cache key.
+        """
+        return (first.name, second.name, dim_vars, self._mapping_key(variable))
 
     def grid(self, coordinates: Any, variable: Any) -> Any:
         """Determines the grid type for the given coordinates and variable.
@@ -319,7 +419,7 @@ class CoordinateGuesser(ABC):
 
         # the grid of a coordinate pair keeps the variable's grid mapping, so the
         # cache cannot be keyed by the coordinates alone
-        key = (lat.name, lon.name, dim_vars, self._mapping_key(variable))
+        key = self._grid_cache_key(lat, lon, dim_vars, variable)
 
         if key in self._grid_cache:
             return self._grid_cache[key]
@@ -358,7 +458,7 @@ class CoordinateGuesser(ABC):
 
         # the grid of a coordinate pair keeps the variable's grid mapping, so the
         # cache cannot be keyed by the coordinates alone
-        key = (x.name, y.name, dim_vars, self._mapping_key(variable))
+        key = self._grid_cache_key(x, y, dim_vars, variable)
 
         if key in self._grid_cache:
             return self._grid_cache[key]
@@ -672,6 +772,176 @@ class DefaultCoordinateGuesser(CoordinateGuesser):
             return YCoordinate(c)
 
         if attributes.name == "y":
+            return YCoordinate(c)
+
+        return None
+
+
+class RulesCoordinateGuesser(CoordinateGuesser):
+    """Implementation of CoordinateGuesser that matches geography coordinates against rules.
+
+    The ``rules`` mapping has the same format as the ``rules`` section of an
+    earthkit-data flavour (a mapping from a coordinate key to a single rule
+    or a list of rules, each rule a mapping from coordinate attributes --
+    ``axis``, ``name``, ``long_name``, ``standard_name``, ``units`` -- to the
+    string values they must equal for the rule to match). Only the geography
+    keys ``point``, ``longitude``, ``latitude``, ``x`` and ``y`` are consulted
+    here; other keys (e.g. ``time`` or ``level``) are ignored and should be
+    handled by a subclass through :meth:`~.CoordinateGuesser._guess_non_geo`
+    or its own matchers.
+
+    Unlike :class:`DefaultCoordinateGuesser`, the geography matchers use
+    *only* the rules: a coordinate that matches no rule is classified by the
+    :meth:`~.CoordinateGuesser._guess_non_geo` hook or falls back to
+    scalar/unsupported, without the CF-convention heuristics.
+    """
+
+    def __init__(self, ds: xr.Dataset, rules: Optional[Dict[str, Any]] = None) -> None:
+        """Initializes the RulesCoordinateGuesser.
+
+        Parameters
+        ----------
+        ds : xr.Dataset
+            The dataset to guess coordinates from.
+        rules : Dict[str, Any], optional
+            The rules to use for guessing, keyed by coordinate role
+            (``"point"``, ``"longitude"``, ``"latitude"``, ``"x"``, ``"y"``
+            and, for subclasses, further non-geography keys).
+        """
+        super().__init__(ds)
+        self.rules: Dict[str, Any] = dict(rules) if rules else {}
+
+    def _match(self, c: xr.DataArray, key: str, attributes: CoordinateAttributes) -> Optional[Dict[str, Any]]:
+        """Matches the coordinate against the rules.
+
+        Parameters
+        ----------
+        c : xr.DataArray
+            The coordinate to match.
+        key : str
+            The key to match in the rules.
+        attributes : CoordinateAttributes
+            The values to match against.
+
+        Returns
+        -------
+        Optional[Dict[str, Any]]
+            The matched rule if any, else None.
+        """
+        if key not in self.rules:
+            return None
+
+        rules = self.rules[key]
+
+        if not isinstance(rules, list):
+            rules = [rules]
+
+        for rule in rules:
+            ok = True
+            for k, v in rule.items():
+                if isinstance(v, str) and attributes.get(k) != v:
+                    ok = False
+            if ok:
+                return rule
+
+        return None
+
+    def _is_point(self, c: xr.DataArray, attributes: CoordinateAttributes) -> Optional[PointCoordinate]:
+        """Checks if the coordinate is a point coordinate using the rules.
+
+        Parameters
+        ----------
+        c : xr.DataArray
+            The coordinate to check.
+        attributes : CoordinateAttributes
+            The attributes of the coordinate.
+
+        Returns
+        -------
+        Optional[PointCoordinate]
+            The PointCoordinate if matched, else None.
+        """
+        if self._match(c, "point", attributes):
+            return PointCoordinate(c)
+
+        return None
+
+    def _is_longitude(self, c: xr.DataArray, attributes: CoordinateAttributes) -> Optional[LongitudeCoordinate]:
+        """Checks if the coordinate is a longitude using the rules.
+
+        Parameters
+        ----------
+        c : xr.DataArray
+            The coordinate to check.
+        attributes : CoordinateAttributes
+            The attributes of the coordinate.
+
+        Returns
+        -------
+        Optional[LongitudeCoordinate]
+            The LongitudeCoordinate if matched, else None.
+        """
+        if self._match(c, "longitude", attributes):
+            return LongitudeCoordinate(c)
+
+        return None
+
+    def _is_latitude(self, c: xr.DataArray, attributes: CoordinateAttributes) -> Optional[LatitudeCoordinate]:
+        """Checks if the coordinate is a latitude using the rules.
+
+        Parameters
+        ----------
+        c : xr.DataArray
+            The coordinate to check.
+        attributes : CoordinateAttributes
+            The attributes of the coordinate.
+
+        Returns
+        -------
+        Optional[LatitudeCoordinate]
+            The LatitudeCoordinate if matched, else None.
+        """
+        if self._match(c, "latitude", attributes):
+            return LatitudeCoordinate(c)
+
+        return None
+
+    def _is_x(self, c: xr.DataArray, attributes: CoordinateAttributes) -> Optional[XCoordinate]:
+        """Checks if the coordinate is an x coordinate using the rules.
+
+        Parameters
+        ----------
+        c : xr.DataArray
+            The coordinate to check.
+        attributes : CoordinateAttributes
+            The attributes of the coordinate.
+
+        Returns
+        -------
+        Optional[XCoordinate]
+            The XCoordinate if matched, else None.
+        """
+        if self._match(c, "x", attributes):
+            return XCoordinate(c)
+
+        return None
+
+    def _is_y(self, c: xr.DataArray, attributes: CoordinateAttributes) -> Optional[YCoordinate]:
+        """Checks if the coordinate is a y coordinate using the rules.
+
+        Parameters
+        ----------
+        c : xr.DataArray
+            The coordinate to check.
+        attributes : CoordinateAttributes
+            The attributes of the coordinate.
+
+        Returns
+        -------
+        Optional[YCoordinate]
+            The YCoordinate if matched, else None.
+        """
+        if self._match(c, "y", attributes):
             return YCoordinate(c)
 
         return None

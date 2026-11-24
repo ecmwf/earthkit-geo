@@ -14,12 +14,13 @@ Wraps an ``xarray`` coordinate variable (e.g. ``latitude``, ``longitude``,
 subclass that records what role the coordinate plays in the grid (lat, lon,
 x, y, point, scalar, ...). Instances are produced by
 :mod:`~.guesser` and consumed by
-:mod:`~earthkit.geo.grids._regrid.data.xarray.grid` to build the geographical
+:mod:`~earthkit.geo.grids.xarray.grid` to build the geographical
 grid for a variable.
 """
 
 from __future__ import annotations
 
+import datetime
 import logging
 from typing import Any, Dict, Optional, Tuple, Union
 
@@ -50,8 +51,51 @@ def is_scalar(variable: Any) -> bool:
     return False
 
 
+def datetime64_to_datetime(value: Any) -> Optional[datetime.datetime]:
+    """Convert a numpy ``datetime64`` scalar to a plain :class:`datetime.datetime`.
+
+    Parameters
+    ----------
+    value : Any
+        A ``numpy.datetime64`` scalar or 0-d array.
+
+    Returns
+    -------
+    Optional[datetime.datetime]
+        The value as a naive UTC datetime, or None for ``NaT``.
+    """
+    if np.isnat(value):
+        return None
+    seconds = value.astype("datetime64[s]").astype(int)
+    return datetime.datetime.fromtimestamp(int(seconds), datetime.timezone.utc).replace(tzinfo=None)
+
+
+def timedelta64_to_timedelta(value: Any) -> Optional[datetime.timedelta]:
+    """Convert a numpy ``timedelta64`` scalar to a plain :class:`datetime.timedelta`.
+
+    Parameters
+    ----------
+    value : Any
+        A ``numpy.timedelta64`` scalar or 0-d array.
+
+    Returns
+    -------
+    Optional[datetime.timedelta]
+        The value as a timedelta with seconds resolution, or None for ``NaT``.
+    """
+    if np.isnat(value):
+        return None
+    seconds = value.astype("timedelta64[s]").astype(int)
+    return datetime.timedelta(seconds=int(seconds))
+
+
 def extract_single_value(variable: Any) -> Any:
     """Extract a single value from the variable.
+
+    ``numpy.datetime64`` values are returned as :class:`datetime.datetime`
+    (naive UTC, seconds resolution) and ``numpy.timedelta64`` values as
+    :class:`datetime.timedelta`, matching the earthkit-data xarray reader;
+    anything else is returned as-is.
 
     Parameters
     ----------
@@ -64,6 +108,20 @@ def extract_single_value(variable: Any) -> Any:
         The extracted single value.
     """
     shape = variable.shape
+
+    if np.issubdtype(variable.values.dtype, np.datetime64):
+        if len(shape) == 0:
+            return datetime64_to_datetime(variable.values)
+        if shape == (1,):
+            return datetime64_to_datetime(variable.values[0])
+        assert False, (shape, variable.values[:2])
+
+    if np.issubdtype(variable.values.dtype, np.timedelta64):
+        if len(shape) == 0:
+            return timedelta64_to_timedelta(variable.values)
+        if shape == (1,):
+            return timedelta64_to_timedelta(variable.values[0])
+        assert False, (shape, variable.values)
 
     if shape == (1,):
         return variable.values[0]
@@ -82,21 +140,29 @@ class Coordinate:
     is_lat = False
     is_lon = False
     is_time = False
+    is_step = False
+    is_date = False
+    is_member = False
     is_x = False
     is_y = False
     is_point = False
 
-    def __init__(self, variable: xr.DataArray) -> None:
+    def __init__(self, variable: xr.DataArray, **kwargs: Any) -> None:
         """Initialize the coordinate.
 
         Parameters
         ----------
         variable : Any
             The variable representing the coordinate.
+        **kwargs : Any
+            Extra keyword arguments, kept in :attr:`kwargs` and passed back
+            to the constructor by :meth:`reduced`; subclasses with extra
+            constructor arguments may store them there so that reduced
+            copies carry them over.
         """
         self.variable = variable
         self.scalar = is_scalar(variable)
-        self.kwargs: Dict[str, Any] = {}  # Used when creating a new coordinate (reduced method)
+        self.kwargs: Dict[str, Any] = kwargs  # Used when creating a new coordinate (reduced method)
 
     def __len__(self) -> int:
         """Get the length of the coordinate.

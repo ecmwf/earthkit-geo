@@ -19,10 +19,12 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy"
 ]
 dependencies = [
+  "earthkit-utils>=1.0.3",
   "eckit>=2.5.0.32",
   "filelock",
   "mir-python>=1.30.2.32",
   "multiurl",
+  "numpy",
   "pyproj",
   "pyyaml",
   "requests",

@@ -502,7 +502,7 @@ def test_regrid_xarray_laea_dataset_to_ll():
     """
     ds = _open_xr("efas.nc")[["dis06", "upArea", "lambert_azimuthal_equal_area"]]
 
-    from earthkit.geo.grids._regrid.data.xarray.loader import variables
+    from earthkit.geo.grids.xarray.loader import variables
 
     # the fallback is only exercised when the input grid is the detected projected one
     assert [v.ek_grid.type for v in variables(ds)] == ["regular_xy", "regular_xy"]
@@ -560,7 +560,7 @@ def test_regrid_xarray_polar_stereo_north_to_ll():
     """
     ds = _open_xr("polar_stereo_north_amsr2.nc")
 
-    from earthkit.geo.grids._regrid.data.xarray.loader import variables
+    from earthkit.geo.grids.xarray.loader import variables
 
     # the fallback is only exercised when the input grid is the detected projected one
     assert [v.ek_grid.type for v in variables(ds)] == ["regular_xy"]
@@ -672,11 +672,11 @@ def test_regrid_xarray_projected_explicit_grid_transposed_dims():
     reorders the (x, y) grid dimensions of the data to (y, x) before handing
     it to the backend; without that the transposed field is read point by
     point in the wrong order (see
-    :func:`earthkit.geo.grids._regrid.data.xarray.loader.adjust_variable_dim_order`).
+    :func:`earthkit.geo.grids.xarray.loader.adjust_variable_dim_order`).
     """
     ds = _synthetic_laea_dataset()
 
-    from earthkit.geo.grids._regrid.data.xarray.loader import variables
+    from earthkit.geo.grids.xarray.loader import variables
 
     # the detected projected grid, given explicitly as the input grid
     ek_grid = variables(ds)[0].ek_grid
@@ -704,11 +704,11 @@ def test_regrid_xarray_projected_unstructured_explicit_grid_transposed_dims():
     laid out, not the x-fastest order of a structured one, so the loader must
     leave the (x, y) dimensions of the variable alone when that is the given
     input grid (see
-    :func:`earthkit.geo.grids._regrid.data.xarray.loader.adjust_variable_dim_order`).
+    :func:`earthkit.geo.grids.xarray.loader.adjust_variable_dim_order`).
     """
     ds_t = _synthetic_laea_dataset().transpose("x", "y")
 
-    from earthkit.geo.grids._regrid.data.xarray.loader import variables
+    from earthkit.geo.grids.xarray.loader import variables
 
     auto = variables(ds_t)[0]
     assert auto.ek_grid.type == "unstructured_ll"
@@ -786,11 +786,11 @@ def test_regrid_xarray_rotated_explicit_outer_order_grid_transposed_dims():
     order that scans the longitude (the x of the rotation) outermost: the data
     already lies in that point order, so the loader must leave its (rlon,
     rlat) dimensions alone for that explicit grid too (see
-    :func:`earthkit.geo.grids._regrid.data.xarray.loader._scans_x_fastest`).
+    :func:`earthkit.geo.grids.xarray.loader._scans_x_fastest`).
     """
     ds_t = _synthetic_rotated_dataset().transpose("rlon", "rlat")
 
-    from earthkit.geo.grids._regrid.data.xarray.loader import variables
+    from earthkit.geo.grids.xarray.loader import variables
 
     auto = variables(ds_t)[0]
     assert auto.ek_grid.order == "j-i+"
@@ -1210,7 +1210,7 @@ def test_regrid_xarray_dask_transposed_dims(in_process_scheduler):
     loader detects for it are (latitude, longitude), so the array the backend sees, at
     the probe as well as in the graph, is the 3 x 4 geographical slice in that order.
     """
-    from earthkit.geo.grids._regrid.data.xarray.loader import variables
+    from earthkit.geo.grids.xarray.loader import variables
 
     ds = _tiny_ll_dataset()
     ds = ds.assign(a=ds["a"].transpose("longitude", "latitude", "level"))
@@ -1323,7 +1323,7 @@ def _global_ll_dataarray():
 
 def test_regrid_xarray_geo_dims_match_coords():
     """The derived output dimensions of the geography builder are those of its coordinates."""
-    from earthkit.geo.grids._regrid.data.xarray.output import XarrayOutputGeographyBuilder
+    from earthkit.geo.grids.xarray.output import XarrayOutputGeographyBuilder
 
     # a regular lat/lon grid, a rotated one and a 1D unstructured grid
     specs = [
@@ -1345,7 +1345,7 @@ def test_regrid_xarray_geo_dims_match_coords():
 
 def test_regrid_xarray_geo_dims_computes_latlons_once():
     """geo_dims() and coords() share the one computation of the grid's latitudes/longitudes."""
-    from earthkit.geo.grids._regrid.data.xarray.output import XarrayOutputGeographyBuilder
+    from earthkit.geo.grids.xarray.output import XarrayOutputGeographyBuilder
 
     class _CountingGrid:
         """Delegates to the wrapped grid, counting the to_latlons() calls it sees."""
@@ -1410,7 +1410,7 @@ def test_regrid_xarray_rotated_out_grid_default_out_dims_lazy(in_process_schedul
 
 def test_regrid_xarray_geo_dims_small_rotated_grid_not_regular_mesh():
     """A rotated grid is no regular mesh, not even when its rows and columns hold 2 points."""
-    from earthkit.geo.grids._regrid.data.xarray.output import XarrayOutputGeographyBuilder
+    from earthkit.geo.grids.xarray.output import XarrayOutputGeographyBuilder
 
     # its true latitudes differ along every row, but rows and columns of two points
     # trivially have equal spacing: only a constancy test classifies it correctly

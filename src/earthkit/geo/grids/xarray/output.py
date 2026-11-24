@@ -9,7 +9,7 @@
 
 import logging
 
-from ..utils import create_grid_object
+from earthkit.geo.grids._regrid.data.utils import create_grid_object
 
 LOG = logging.getLogger(__name__)
 

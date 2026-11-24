@@ -10,7 +10,9 @@
 """xarray backend for the regrid data-handler dispatch mechanism.
 
 Exposes ``handler``, the :class:`~.handler.XarrayDataHandler` class used
-to regrid ``xarray.Dataset``/``xarray.DataArray`` objects.
+to regrid ``xarray.Dataset``/``xarray.DataArray`` objects. The xarray
+geography code it builds on lives in the public package
+:mod:`earthkit.geo.grids.xarray`.
 """
 
 from .handler import XarrayDataHandler

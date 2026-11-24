@@ -10,7 +10,7 @@
 import numpy as np
 import pytest
 
-from earthkit.geo.grids._regrid.data.xarray.loader import variables as get_variables
+from earthkit.geo.grids.xarray.loader import variables as get_variables
 from earthkit.geo.utils.testing import NO_COVJSON, covjson_to_xarray, get_test_data
 
 xr = pytest.importorskip("xarray")
@@ -399,7 +399,7 @@ def test_xarray_grid_polar_stereo_north():
     assert spec["x"] == [-3846875.0, 3746875.0, 6250.0]
     assert spec["y"] == [-5346875.0, 5846875.0, 6250.0]
 
-    from earthkit.geo.grids._regrid.data.xarray.grid_spec import proj_projection
+    from earthkit.geo.grids.xarray.grid_spec import proj_projection
 
     projection = proj_projection(dict(ds["polar_stereographic"].attrs))
     assert projection["type"] == "proj"
@@ -1077,7 +1077,7 @@ def test_xarray_grid_explicit_grid_from_accessor(monkeypatch):
     # loader reorders (x, y) data onto it when it scans x fastest, and keeps
     # the order when it does not (the accessor is the loader's
     # grid_from_earthkit, replaced here so no earthkit-data is needed)
-    from earthkit.geo.grids._regrid.data.xarray import loader
+    from earthkit.geo.grids.xarray import loader
 
     ds = _projected_dataset()
     ds_t = ds.transpose("x", "y")

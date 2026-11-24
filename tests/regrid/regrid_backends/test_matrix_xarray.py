@@ -123,7 +123,7 @@ def test_regrid_matrix_xarray_projected_input_no_weights(tmp_path):
     import json
 
     from earthkit.geo.grids._regrid.backends.precomputed import MatrixBackend
-    from earthkit.geo.grids._regrid.data.xarray.loader import variables
+    from earthkit.geo.grids.xarray.loader import variables
 
     class _RecordingBackend(MatrixBackend):
         """Matrix backend recording the input grids its regrid() is called with."""
