@@ -14,14 +14,14 @@ import warnings
 import numpy as np
 import pytest
 
-from earthkit.geo.grids._regrid.data.xarray.coordinates import Coordinate
-from earthkit.geo.grids._regrid.data.xarray.grid import (
+from earthkit.geo.grids.xarray.coordinates import Coordinate
+from earthkit.geo.grids.xarray.grid import (
     MeshedGrid,
     MeshProjectionGrid,
     UnstructuredGrid,
     UnstructuredProjectionGrid,
 )
-from earthkit.geo.grids._regrid.data.xarray.grid_spec import (
+from earthkit.geo.grids.xarray.grid_spec import (
     healpix_grid_spec_from_points,
     reduced_gg_grid_spec_from_points,
 )
@@ -1018,7 +1018,7 @@ def test_unstructured_grid_spec_rotated_unrecognised_axes():
 
 
 def test_rotation_projection():
-    from earthkit.geo.grids._regrid.data.xarray.grid_spec import rotation_projection
+    from earthkit.geo.grids.xarray.grid_spec import rotation_projection
 
     projection = rotation_projection(ROTATED_MAPPING)
     # eckit describes the rotation by its south pole, [longitude, latitude]
@@ -1419,7 +1419,7 @@ def test_unstructured_grid_spec_projected_nan_free_shift_is_rejected():
 def test_grid_spec_matches_rejects_non_finite_points():
     # the point check itself, on a plain regular lat/lon grid: a non-finite
     # coordinate of either side fails it, it never passes on a NaN
-    from earthkit.geo.grids._regrid.data.xarray.grid import _grid_spec_matches
+    from earthkit.geo.grids.xarray.grid import _grid_spec_matches
 
     spec = {"grid": [10.0, 10.0], "area": [50.0, 0.0, -50.0, 50.0]}
     grid = eckit_geo.Grid(spec)
@@ -1821,7 +1821,7 @@ def test_unstructured_projection_grid_points_2d(caplog):
     # which the grid says out loud rather than handing out a mis-ordered scatter
     transposed = _unstructured_projected_grid(x_values, y_values, variable_dims=("j", "i"), dim_names=("i", "j"))
 
-    with caplog.at_level(logging.WARNING, logger="earthkit.geo.grids._regrid.data.xarray.grid"):
+    with caplog.at_level(logging.WARNING, logger="earthkit.geo.grids.xarray.grid"):
         x, y = transposed.xys
 
     assert "does not match grid indexing" in caplog.text
@@ -1882,7 +1882,7 @@ def test_unstructured_projection_grid_rejects_unpaired_coordinates():
 
 
 def test_proj_projection():
-    from earthkit.geo.grids._regrid.data.xarray.grid_spec import proj_projection
+    from earthkit.geo.grids.xarray.grid_spec import proj_projection
 
     assert proj_projection(PROJECTED_MAPPING) == {"type": "proj", "source": LAEA_PROJ4}
 
@@ -1903,7 +1903,7 @@ def test_proj_projection():
 
 
 def test_regular_xy_grid_spec():
-    from earthkit.geo.grids._regrid.data.xarray.grid_spec import regular_xy_grid_spec
+    from earthkit.geo.grids.xarray.grid_spec import regular_xy_grid_spec
 
     projection = {"type": "proj", "source": LAEA_PROJ4}
 

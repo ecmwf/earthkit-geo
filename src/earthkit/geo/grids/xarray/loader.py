@@ -21,7 +21,8 @@ import itertools
 import logging
 from typing import Any
 
-from ..utils import create_grid_object, create_unstructured_grid_object
+from earthkit.geo.grids._regrid.data.utils import create_grid_object, create_unstructured_grid_object
+
 from .patch import patch_dataset
 
 LOG = logging.getLogger(__name__)
