@@ -66,7 +66,7 @@ class _GridWrapper(dict):
             for a few other grid families ``eckit.geo.Grid`` cannot parse
             reliably, and :class:`_EckitGridWrapper` otherwise.
         """
-        # in some environments eckit.geoGrid generate a lot of erros when
+        # in some environments eckit.geoGrid generate a lot of errors when
         # initializing with some specific gridspecs. We use dedicated classes
         # for these gridspecs to avoid the issue.
         if isinstance(d, dict):
