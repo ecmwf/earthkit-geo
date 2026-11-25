@@ -25,7 +25,7 @@ export UV_PRERELEASE=allow
 {% endblock %}
 {% block test %}
 cd "$CI_SOURCE_DIR"
-# TEMPORARY: projected and rotated gridspecs (regular_xy) need an eckit-geo newer than the CI builds; re-enable once they pass.
+# TEMPORARY: the released mir and eckit wheels do not support projected and rotated gridspecs (regular_xy); re-enable once they pass.
 broken_gridspec=(
   "tests/regrid/regrid_backends/test_matrix_xarray.py::test_regrid_matrix_xarray_projected_input_no_weights"
   "tests/regrid/regrid_mir/test_mir_grid.py::test_mir_backend_grid_spec_passthrough"
