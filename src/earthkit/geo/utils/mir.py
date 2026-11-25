@@ -126,7 +126,6 @@ def mir_make_matrix(
     job = mir.Job()
 
     return_matrix = False
-    remove_tmp = False
     if output is None:
         import tempfile
         temp_dir = tempfile.TemporaryDirectory()
@@ -172,10 +171,11 @@ def mir_make_matrix(
         mir_cached_matrix_to_file(str(mat), output)
         mat.unlink()
         assert Path(output).exists()
-    if remove_tmp:
-        temp_dir.cleanup()
+
     if return_matrix:
-        return mir_cached_matrix_to_array(mat)
+        matrix = mir_cached_matrix_to_array(mat)
+        temp_dir.cleanup()
+        return matrix
 
 
 if __name__ == "__main__":
