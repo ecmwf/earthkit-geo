@@ -90,59 +90,26 @@ def _yaml_from_dict(d):
 
     return yaml.dump(d, default_flow_style=True).strip()
 
-def _get_hash(s: str):
+def _get_lat_lon_hash(lat, lon):
     import hashlib
-    return hashlib.md5(s.encode()).hexdigest()
-
-def _str_reduce_arrays_for_hash(array_1, array_2=None):
-    if array_1 is None:
-        return 'None'
-    array_1_cos_sum = np.cos(np.deg2rad(array_1)).sum()
-    array_1_sin_sum = np.sin(np.deg2rad(array_1)).sum()
-                         
-    array_1_str = "_".join(
-        [
-            str(np.log(np.abs(array_1_cos_sum)+1e-16)), 
-            str(np.log(np.abs(array_1_sin_sum)+1e-16)), 
-            str(array_1.shape)
-        ]
-    )
-
-    if array_2 is None:
-        return array_1_str
-    array_2_cos_sum = np.cos(np.deg2rad(array_2)).sum()
-    array_2_sin_sum = np.sin(np.deg2rad(array_2)).sum()
-    array_2_str = "_".join(
-        [
-            str(np.log(np.abs(array_2_cos_sum)+1e-16)), 
-            str(np.log(np.abs(array_2_sin_sum)+1e-16)), 
-            str(array_2.shape)
-        ]
-    )
-    array_1_2_str = "_".join(
-        [
-            str(np.log(np.abs(array_1_cos_sum + array_2_cos_sum)+1e-16)),
-            str(np.log(np.abs(array_1_cos_sum + array_2_sin_sum)+1e-16)),
-            str(np.log(np.abs(array_1_sin_sum + array_2_cos_sum)+1e-16)),
-            str(np.log(np.abs(array_1_sin_sum + array_2_sin_sum)+1e-16)),
-        ]
-    )
-    return array_1_str + array_2_str + array_1_2_str
+    import json
+    key = {
+        "latitudes": np.asarray(lat).ravel().tolist(),
+        "longitudes": np.asarray(lon).ravel().tolist(),
+    }
+    return hashlib.sha256(json.dumps(key, sort_keys=True).encode("utf-8")).hexdigest()
 
 def _griddef_from_latlon(lat, lon, dir=None):
-    version = 1
-    
-    coord = str(version) + _str_reduce_arrays_for_hash(lat, lon)
-    hash = _get_hash(coord)
 
-    name = Path(hash + ".griddef")
+    hash = _get_lat_lon_hash(lat, lon)
+    filename = Path(hash + ".griddef")
     if dir:
-        name = dir / name
+        filename = dir / filename
 
-    if not name.exists():
-        mir_write_latlon_to_griddef(name, lat, lon)
+    if not filename.exists():
+        mir_write_latlon_to_griddef(filename, lat, lon)
 
-    return str(name)
+    return str(filename)
 
 def mir_make_matrix(
     in_grid: Optional[Dict] = None,
@@ -159,18 +126,11 @@ def mir_make_matrix(
     job = mir.Job()
 
     return_matrix = False
+    remove_tmp = False
     if output is None:
-        version = 1
-        coord = (
-            str(version)
-            + str(kwargs)
-            + _str_reduce_arrays_for_hash(in_lat, in_lon)
-            + _str_reduce_arrays_for_hash(out_lat,out_lon)
-            + str(_yaml_from_dict(in_grid))
-            + str(_yaml_from_dict(out_grid))
-        )
-        hash = _get_hash(coord)
-        output = mir.cache() + f"tmp-interpolation-matrix-{hash}.mat"
+        import tempfile
+        temp_dir = tempfile.TemporaryDirectory()
+        output = temp_dir + "/tmp-interpolation-matrix.mat"
         return_matrix = True
     mat = Path(output)
     ext = mat.suffix
@@ -212,7 +172,8 @@ def mir_make_matrix(
         mir_cached_matrix_to_file(str(mat), output)
         mat.unlink()
         assert Path(output).exists()
-
+    if remove_tmp:
+        temp_dir.cleanup()
     if return_matrix:
         return mir_cached_matrix_to_array(mat)
 
