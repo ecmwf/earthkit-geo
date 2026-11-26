@@ -1503,3 +1503,48 @@ def test_regrid_xarray_rotated_small_grid_default_out_dims_lazy(in_process_sched
 
     assert list(lazy.dims) == ["y", "x"]
     _assert_lazy_like_eager(lazy, eager, {"y": 3, "x": 2})
+
+
+@requires_mir
+def test_regrid_xarray_regional_ll_to_global_ll_changes_grid():
+    """MIR clips a requested global 1 x 1 grid to the area of the regional lat/lon input.
+
+    The input is a plain numpy DataArray on the 0.25 degree grid over the area
+    [72, -25, 30, 45] (169 x 281 points) whose grid earthkit-geo detects from its
+    coordinates; the request is the global {"grid": [1, 1]}. As in the CORDEX test
+    above, MIR does not regrid a regional gridded input onto a global grid: the whole
+    degree points of the request that fall outside the source area are dropped, and the
+    result comes back on the 1 x 1 grid restricted to that area -- 43 latitudes by 71
+    longitudes, not the 181 x 360 global grid. The result carries no earthkit grid spec
+    (:meth:`XarrayDataHandler.update_attributes` only writes one for objects that
+    already have it, i.e. earthkit-data results), so the grid it is on is read back with
+    the earthkit-geo xarray parser instead.
+    """
+    from earthkit.geo.grids.xarray import variables
+
+    out_grid = {"grid": [1, 1]}
+
+    lats = np.linspace(72.0, 30.0, 169)  # 72 .. 30 by -0.25 degrees
+    lons = np.linspace(-25.0, 45.0, 281)  # -25 .. 45 by 0.25 degrees
+    da = xr.DataArray(
+        np.arange(169 * 281, dtype=np.float64).reshape(169, 281),
+        dims=("latitude", "longitude"),
+        coords={"latitude": lats, "longitude": lons},
+        name="a",
+    )
+
+    r = regrid(da, out_grid=out_grid, interpolation="linear")
+
+    # the 1 degree points inside the source area: the grid changed, and no NaN padding
+    # was added outside it the way the unstructured path would fill it
+    assert list(r.dims) == ["latitude", "longitude"]
+    compare_dims(r, {"latitude": 43, "longitude": 71}, sizes=True)
+    assert dict(r.sizes) != {"latitude": 181, "longitude": 360}
+    _assert_latlons(r, np.linspace(72.0, 30.0, 43), np.linspace(-25.0, 45.0, 71))
+    assert np.isfinite(r.values).all()
+
+    # the parser finds the requested 1 x 1 resolution, over the clipped area, not the
+    # global grid. Its increment is the average of the coordinate steps, which only
+    # hits the whole degree up to float noise, hence the approximated spec
+    (v,) = variables(r.to_dataset())
+    assert v.xr_grid.grid_spec == pytest.approx({"grid": [1.0, 1.0], "area": [72.0, -25.0, 30.0, 45.0]})
