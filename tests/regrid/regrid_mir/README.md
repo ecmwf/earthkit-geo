@@ -759,12 +759,16 @@ From running every pair of the table once (`.ecmwf-multi-agents/notes/regrid-mat
   and `pi_C` raise `Representation::gridBoxes() not implemented` (4 BROKEN pairs). Expect the
   same of any ORCA, FESOM or ICON source if that selection grows; nearest-neighbour and linear
   are fine on those grids.
-- **The returned gridspec can keep the rotation of the source**: three pairs (`ll-rotation`
-  and `ll-rotated_ll-alias` onto `ll-1x1-area`, `O32-rotated` onto `O32`) return the target
-  shape described as a rotated grid, which is a different grid than the one asked for. Their
-  values pass every check, so they live in `CLIPPED` with the rotated spec and stay visible as
-  regression tests rather than as xfails. The GRIB matrix's six same-geometry rotated cases are
-  the opposite situation: MIR does not interpolate at all but copies the rotated input back
+- **The returned gridspec can keep the rotation of the source**: the probe found three pairs
+  doing it; one is left — `O32-rotated` onto `O32` returns the target shape described as a
+  rotated grid, which is a different grid than the one asked for. Its values pass every check,
+  so it lives in `CLIPPED` with the rotated spec and stays visible as a regression test rather
+  than as an xfail. The other two, `ll-rotation` and `ll-rotated_ll-alias` onto `ll-1x1-area`,
+  stopped leaking the rotation when the backend began passing the target's area inside the grid
+  spec (2026-11-26): they return the target spec itself, are ordinary matrix pairs with no
+  `CLIPPED` entry, and their references were regenerated for the new result. The GRIB matrix's
+  six same-geometry rotated cases are the opposite situation: MIR does not interpolate at all but
+  copies the rotated input back
   unchanged, so the output grid *and* values are wrong — that is a verified MIR bug, recorded as
   strict-xfail `KnownBug` entries ([The GRIB matrix](#the-grib-matrix)).
 - **Onto a reduced Gaussian target, a clip is not exactly the target points inside the source

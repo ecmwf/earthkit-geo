@@ -533,11 +533,11 @@ BROKEN = {
 # area, never copied blindly from the run. A combination which is neither the target nor a
 # sensible clip is BROKEN, not CLIPPED.
 #
-# All 37 entries come from the probe (_dev/probe/clipped.json and _dev/probe/atypical.json) and
+# All 35 entries come from the probe (_dev/probe/clipped.json and _dev/probe/atypical.json) and
 # all 34 clips are produced by the 12 covered regional sources; H8-ring is never clipped at all.
-# The last three entries are not clips in the "sub-area" sense: they keep the target shape but
-# carry the source's rotation into the returned spec (finding F3); they live here because their
-# values are valid and the odd spec should stay visible as a regression test, not as an xfail.
+# The last entry is not a clip in the "sub-area" sense: it keeps the target shape but carries the
+# source's rotation into the returned spec (finding F3); it lives here because its values are
+# valid and the odd spec should stay visible as a regression test, not as an xfail.
 CLIPPED = {
     # 32 hand-verified clips (probe section 4): for each of these, keeping the target points whose
     # (lat, lon) lie inside the source Grid.bounding_box() reproduces the returned gridspec
@@ -622,19 +622,13 @@ CLIPPED = {
     # Finding F3 (the 3 atypical pairs of _dev/probe/atypical.json, not clips of an area): the
     # result has the target shape but the returned gridspec carries the source's rotation into
     # the unrotated target, so its uid differs from the target's (probable MIR bug). Every value
-    # check passes, so they stay visible here instead of as an xfail.
+    # check passes, so the pair stays visible here instead of as an xfail. It is the only one
+    # left: since the backend passes a target's area inside the grid spec (2026-11-26), the two
+    # rotated ll-1x1-area pairs of the probe -- ll-rotation and ll-rotated_ll-alias -- return
+    # the target spec itself and are ordinary matrix pairs with no entry here; their references
+    # were regenerated for the new (correct) result.
     ("nearest-neighbour", "O32-rotated", "O32"): {
         "grid": "O32",
-        "projection": {"south_pole": [-30, 40], "type": "rotation"},
-    },
-    ("nearest-neighbour", "ll-rotated_ll-alias", "ll-1x1-area"): {
-        "grid": [1, 1],
-        "area": [72, -25, 25, 45],
-        "projection": {"south_pole": [90, 30], "type": "rotation"},
-    },
-    ("nearest-neighbour", "ll-rotation", "ll-1x1-area"): {
-        "grid": [1, 1],
-        "area": [72, -25, 25, 45],
         "projection": {"south_pole": [-30, 40], "type": "rotation"},
     },
 }
