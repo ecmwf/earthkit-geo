@@ -33,6 +33,17 @@ coordinates, is detected when its grid mapping variable carries ``crs_wkt``, or 
 together with the individual CF parameters: pyproj does not read ``proj4_params``, so a mapping
 carrying only that one takes the fallback.
 
+A global reduced Gaussian grid held by nothing but a ``reduced_gaussian_index`` coordinate, with no
+latitude/longitude coordinates of its own, is detected from its CF ``reduced_gaussian`` grid mapping
+variable (``grid_mapping_name = "reduced_gaussian"``). An octahedral grid (``grid_subtype = "octahedral"``)
+gives ``{"grid": "O<N>"}``. A classical one (``grid_subtype = "normal"``) gives ``{"grid": "N<N>"}``, but
+only when its points per latitude (``points_per_latitude`` or ``accumulated_points_per_latitude``) are
+those of the classical grid of that resolution. The ``reduced_gaussian_index`` values must number the
+points ``0, 1, 2, ...`` with no gaps, so a subset of the grid, or points numbered in another order, is not
+detected, nor is a grid whose ``longitude_of_first_meridian`` is not 0. The direction of the latitude
+table does not matter. The point order is always that of the CF convention, from north to south and from
+west to east.
+
 An explicitly provided ``in_grid`` always takes precedence over what can be inferred from the dataset.
 
 Determining the input dimensions

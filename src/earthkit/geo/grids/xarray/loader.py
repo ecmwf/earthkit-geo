@@ -197,8 +197,11 @@ def variables(ds, user_ek_grid=None):
 
     Skips coordinate/auxiliary variables (referenced via ``coordinates``,
     ``bounds``, ``climatology`` or ``grid_mapping`` attributes) and data
-    variables with fewer than two grid coordinates. For each remaining
-    variable, guesses its coordinates and grid via
+    variables with fewer than two grid coordinates. A variable with fewer
+    than two grid coordinates is only kept when the dataset describes its
+    points with a CF reduced Gaussian grid mapping instead of with lat/lon
+    coordinates (see :meth:`~.guesser.CoordinateGuesser.reduced_gaussian_grid`).
+    For each remaining variable, guesses its coordinates and grid via
     :class:`~.guesser.DefaultCoordinateGuesser` and resolves the
     corresponding eckit-geo grid.
 
@@ -281,10 +284,15 @@ def variables(ds, user_ek_grid=None):
         grid_coords: int = sum(1 for c in coordinates if c.is_grid)
 
         if grid_coords < 2:
-            LOG.debug("Skipping %s (not 2D): %s", variable, [(c, c.is_grid, c.is_dim) for c in coordinates])
-            continue
-
-        xr_grid = guess.grid(coordinates, variable)
+            # the points of a CF reduced Gaussian grid are numbered by a grid
+            # mapping rather than described by lat/lon coordinates, so they are
+            # recognised from the mapping; anything else is skipped, as it was
+            xr_grid = guess.reduced_gaussian_grid(variable)
+            if xr_grid is None:
+                LOG.debug("Skipping %s (not 2D): %s", variable, [(c, c.is_grid, c.is_dim) for c in coordinates])
+                continue
+        else:
+            xr_grid = guess.grid(coordinates, variable)
 
         variable_dims = xr_grid.variable_dims
         variable_dims = adjust_variable_dim_order(variable_dims, coordinates, swap_xy=swap_xy)

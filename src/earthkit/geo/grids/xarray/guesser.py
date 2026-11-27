@@ -16,7 +16,10 @@ common naming fallbacks) and classifies each one into a
 :class:`~.coordinates.Coordinate` subclass (latitude, longitude, x, y,
 point, scalar, or unsupported). It also assembles the resulting
 coordinates into a :class:`~.grid.Grid`/:class:`~.grid.XarrayGrid` for a
-given variable. :class:`DefaultCoordinateGuesser` is the concrete
+given variable; a variable whose points are not described by coordinates of
+their own, but numbered by a CF reduced Gaussian grid mapping, gets its grid
+from :meth:`CoordinateGuesser.reduced_gaussian_grid`.
+:class:`DefaultCoordinateGuesser` is the concrete
 implementation used by :mod:`~.loader`; :class:`RulesCoordinateGuesser`
 classifies the geography coordinates from user-supplied rules (the format
 of an earthkit-data flavour ``rules`` section). Subclasses extend the
@@ -49,16 +52,23 @@ from .grid import (
     MeshedGrid,
     MeshedXYGrid,
     MeshProjectionGrid,
+    ReducedGaussianGrid,
     UnstructuredGrid,
     UnstructuredProjectionGrid,
     UnstructuredXYGrid,
     XarrayGrid,
 )
+from .grid_spec import cf_reduced_gaussian_grid_spec
 
 # CoordinateAttributes = namedtuple("CoordinateAttributes", ["axis", "name", "long_name", "standard_name", "units"])
 
 
 LOG = logging.getLogger(__name__)
+
+# the two CF attributes by which a reduced Gaussian grid mapping names the variable
+# counting its points per latitude, and whether that variable holds the running
+# total of them rather than the counts themselves (Appendix F, "Reduced Gaussian")
+_POINTS_PER_LATITUDE = (("points_per_latitude", False), ("accumulated_points_per_latitude", True))
 
 
 class CoordinateAttributes(DotDict):
@@ -88,6 +98,10 @@ class CoordinateGuesser(ABC):
         # variable's grid mapping (see _mapping_key): two variables sharing one
         # coordinate pair only share a grid when they declare the same mapping
         self._grid_cache: Dict[Hashable, Grid] = {}
+        # the grids of the variables whose points a reduced Gaussian grid mapping
+        # numbers, keyed the same way; a mapping is read and its point index
+        # checked once, whatever number of variables sit on it
+        self._reduced_gaussian_cache: Dict[Hashable, Optional[ReducedGaussianGrid]] = {}
 
     def guess(self, c: xr.DataArray, coord: Hashable) -> Coordinate:
         """Guesses the type of a coordinate.
@@ -536,6 +550,166 @@ class CoordinateGuesser(ABC):
             raise NotImplementedError(f"Unstructured grid {x.name} {y.name}")
         else:
             return None
+
+    def reduced_gaussian_grid(self, variable: Any) -> Optional[XarrayGrid]:
+        """Determines the grid of a variable whose points a reduced Gaussian grid mapping numbers.
+
+        A CF reduced Gaussian grid (Appendix F, "Reduced Gaussian") describes its
+        points with a ``reduced_gaussian`` grid mapping and a
+        ``reduced_gaussian_index`` coordinate instead of the latitude/longitude
+        coordinates :meth:`grid` derives a grid from. The mapping and the table of
+        points per latitude it names are read off the dataset, the point index
+        among the coordinates of the variable itself, and only a grid
+        :func:`~.grid_spec.cf_reduced_gaussian_grid_spec` recognises, i.e. a global
+        octahedral or classical one, yields a grid: anything else yields ``None``,
+        like a dataset which does not describe such a grid.
+
+        Parameters
+        ----------
+        variable : Any
+            The variable to determine the grid from.
+
+        Returns
+        -------
+        Optional[XarrayGrid]
+            The :class:`~.grid.ReducedGaussianGrid` the variable's points sit on,
+            or ``None`` when the variable is not on a recognised reduced Gaussian
+            grid.
+        """
+        mapping = self._grid_mapping(variable)
+        if not isinstance(mapping, dict) or mapping.get("grid_mapping_name") != "reduced_gaussian":
+            return None
+
+        found = self._reduced_gaussian_index(variable)
+        if found is None:
+            return None
+        name, dim = found
+
+        # the mapping and the dimension the points are numbered by say all there is
+        # to the grid, so two variables on one grid only check their index once
+        key = (self._mapping_key(variable), name, dim)
+        if key in self._reduced_gaussian_cache:
+            return self._reduced_gaussian_cache[key]
+
+        grid: Optional[ReducedGaussianGrid] = None
+        pl = self._points_per_latitude(mapping)
+        if pl is not None:
+            counts, accumulated = pl
+
+            # a few files spell the meridian their first point sits on as
+            # longitude_of_first_point rather than the CF name
+            # longitude_of_first_meridian: whichever a file uses, eckit builds an
+            # O<n> grid from the Greenwich meridian, so it must be that one
+            if "longitude_of_first_meridian" not in mapping and "longitude_of_first_point" in mapping:
+                mapping = dict(mapping, longitude_of_first_meridian=mapping["longitude_of_first_point"])
+
+            spec = cf_reduced_gaussian_grid_spec(
+                mapping,
+                counts,
+                n_points=int(variable.sizes[dim]),
+                index_values=self.ds[name].values,
+                accumulated=accumulated,
+            )
+            if spec is not None:
+                grid = ReducedGaussianGrid(spec, (dim,))
+            else:
+                LOG.debug("The points numbered by '%s' do not describe a global reduced Gaussian grid", name)
+
+        self._reduced_gaussian_cache[key] = grid
+        return grid
+
+    def _reduced_gaussian_index(self, variable: Any) -> Optional[Tuple[Hashable, Hashable]]:
+        """The coordinate numbering the points of a reduced Gaussian variable, and the dimension it sits on.
+
+        A CF reduced Gaussian grid numbers its points west to east and north to
+        south with a ``reduced_gaussian_index`` (Appendix F, "Reduced Gaussian"):
+        the 1D coordinate of the variable carrying that standard name, on a
+        dimension the variable is indexed by. It is looked for among the
+        coordinates the variable is associated with rather than among the
+        dataset's variables: a variable of the dataset which happens to hold the
+        same standard name says nothing about how the points of this one are
+        numbered, and neither do two of them, with no way to tell which one the
+        data follows.
+
+        Parameters
+        ----------
+        variable : Any
+            The variable to look the index coordinate up for.
+
+        Returns
+        -------
+        Optional[Tuple[Hashable, Hashable]]
+            The name of the index coordinate and the name of its dimension, or
+            ``None`` when the variable is associated with no such coordinate, or
+            with more than one.
+        """
+        candidates = []
+
+        for name in variable.coords:
+            if name not in self.ds.variables:
+                continue
+
+            c = self.ds[name]
+            if c.ndim != 1:
+                continue
+
+            if str(c.attrs.get("standard_name", "")).strip().lower() != "reduced_gaussian_index":
+                continue
+
+            if c.dims[0] not in variable.dims:
+                continue
+
+            candidates.append((name, c.dims[0]))
+
+        if len(candidates) != 1:
+            if len(candidates) > 1:
+                names = [str(name) for name, _ in candidates]
+                LOG.debug(f"Variable '{variable.name}' is indexed by more than one reduced Gaussian index: {names}")
+            return None
+
+        return candidates[0]
+
+    def _points_per_latitude(self, mapping: Dict[str, Any]) -> Optional[Tuple[Any, bool]]:
+        """The longitude points per latitude a reduced Gaussian mapping names, and whether they are accumulated.
+
+        Either of the two CF attributes names the variable the mapping counts the
+        points of its lines with, along the dimension its ``latitude_dimension``
+        names, when the mapping carries one.
+
+        Parameters
+        ----------
+        mapping : Dict[str, Any]
+            The attributes of the grid mapping, as resolved by :meth:`_grid_mapping`.
+
+        Returns
+        -------
+        Optional[Tuple[Any, bool]]
+            The values of the table as a 1D array and whether they are the
+            accumulated points per latitude, or ``None`` when the mapping names no
+            usable table.
+        """
+        for attr, accumulated in _POINTS_PER_LATITUDE:
+            name = mapping.get(attr)
+            if not isinstance(name, str) or not name:
+                continue
+
+            if name not in self.ds.variables:
+                LOG.debug(f"Points per latitude variable '{name}' not found in dataset")
+                return None
+
+            pl = self.ds[name]
+            if pl.ndim != 1:
+                LOG.debug(f"Points per latitude variable '{name}' is not 1D")
+                return None
+
+            latitude = mapping.get("latitude_dimension")
+            if isinstance(latitude, str) and latitude and latitude not in pl.dims:
+                LOG.debug(f"Points per latitude variable '{name}' is not along '{latitude}'")
+                return None
+
+            return pl.values, accumulated
+
+        return None
 
     @abstractmethod
     def _is_point(self, c: xr.DataArray, attributes: CoordinateAttributes) -> PointCoordinate | None:
