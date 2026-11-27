@@ -59,10 +59,11 @@ requires_dask = pytest.mark.skipif(NO_DASK, reason="No dask available")
 
 # The output grids of test_regrid_xarray_from_sample: the requested out_grid, the
 # gridspec the result is expected to report (its items must include these) and the
-# expected sizes of the "step" and coordinate / "values" dimensions.
+# expected sizes of the "step" and coordinate / point dimensions (a plain reduced
+# Gaussian target is numbered by its CF "reduced_gaussian_index" dimension).
 REFS = [
     ({"grid": [10, 10]}, {"grid": [10, 10]}, {"step": 2, "latitude": 19, "longitude": 36}),
-    ({"grid": "N32"}, {"grid": "N32"}, {"step": 2, "values": 6114}),
+    ({"grid": "N32"}, {"grid": "N32"}, {"step": 2, "reduced_gaussian_index": 6114}),
     ({"grid": "H4", "order": "nested"}, {"grid": "H4", "order": "nested"}, {"step": 2, "values": 192}),
     ({"grid": "H4", "order": "ring"}, {"grid": "H4"}, {"step": 2, "values": 192}),
 ]
@@ -209,7 +210,7 @@ def test_regrid_xarray_from_ogg_to_subarea(out_grid, out_grid_ref, dims, area_re
 @pytest.mark.parametrize(
     "sample,out_grid,out_grid_ref,dims",
     [
-        ("H8_nested_t2.grib2", {"grid": "N32"}, {"grid": "N32"}, {"step": 2, "values": 6114}),
+        ("H8_nested_t2.grib2", {"grid": "N32"}, {"grid": "N32"}, {"step": 2, "reduced_gaussian_index": 6114}),
         (
             "test.grib",
             {"grid": [10, 10]},

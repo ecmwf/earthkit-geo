@@ -30,6 +30,117 @@ from ..utils import create_grid_object, scatter_projected_grid
 LOG = logging.getLogger(__name__)
 
 
+def _cf_indexed_message(names) -> str:
+    """The error message for data variables numbered by a reduced Gaussian index the data cannot place.
+
+    Parameters
+    ----------
+    names : List
+        The names of the variables which are indexed by a CF
+        ``reduced_gaussian_index`` coordinate whose grid mapping and points per
+        latitude the dataset does not hold (decision A7).
+
+    Returns
+    -------
+    str
+        A message naming the way out: the dataset which holds the tables, or the
+        explicit ``in_grid`` and ``in_dims``.
+    """
+    listed = ", ".join(f"'{name}'" for name in names)
+    return (
+        f"Variable {listed} is indexed by a CF reduced Gaussian point index, but the data does not hold "
+        "the grid mapping and the table of points per latitude which place the points it numbers. Pass "
+        "the dataset which holds them, or give an 'in_grid' and the point dimension in 'in_dims'."
+    )
+
+
+def _no_grid_message(ds, in_grid, in_dims) -> str:
+    """The error message for a regrid input which holds no regriddable variable.
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        The dataset the variables were looked for in (a DataArray input already
+        turned into one by :meth:`XarrayDataHandler.regrid`).
+    in_grid : Any
+        The user's ``in_grid``, or None when no grid was given.
+    in_dims : Any
+        The user's ``in_dims``, or None when no dimensions were given.
+
+    Returns
+    -------
+    str
+        A message naming the way out: the data which describes the grid, or the
+        explicit ``in_grid`` and ``in_dims``.
+    """
+    from earthkit.geo.grids.xarray.loader import reduced_gaussian_indexed
+
+    names = reduced_gaussian_indexed(ds)
+
+    if names and in_grid is None:
+        return _cf_indexed_message(names)
+
+    if in_grid is not None:
+        if in_dims is None:
+            return (
+                "The data does not describe its grid, and no 'in_dims' were given with the 'in_grid': the "
+                "values can only be regridded once the dimensions they number the grid points with are named."
+            )
+        return (
+            f"None of the data variables is regridded on the given 'in_grid': no variable is indexed by all "
+            f"of the given 'in_dims' {ensure_list(in_dims)}. Check the dimension names, or pass data which "
+            "describes its grid."
+        )
+
+    return (
+        "Could not determine the grid of the data: no variable of the input is described by latitude and "
+        "longitude coordinates or by a CF grid mapping earthkit-geo recognises. Pass data which describes "
+        "its grid (e.g. the dataset holding the coordinates or the CF mapping), or give an 'in_grid' and "
+        "its grid dimensions in 'in_dims'."
+    )
+
+
+def _check_user_in_dims(var, ek_grid, in_dims) -> None:
+    """Check the user-named grid dimensions of a variable whose data does not describe them.
+
+    Parameters
+    ----------
+    var : xr.DataArray
+        The variable to regrid.
+    ek_grid : Any
+        The eckit-geo grid the values number, given explicitly by the caller.
+    in_dims : List
+        The dimension names taken from the user's ``in_dims`` argument.
+
+    Raises
+    ------
+    ValueError
+        If one of ``in_dims`` does not index the variable, or the values laid
+        out along them do not fill the grid: index-only data of an explicitly
+        given grid is the user's responsibility, but a size which cannot match
+        the grid is a mistake worth naming (decision A8).
+    """
+    import numpy as np
+
+    missing = [str(d) for d in in_dims if d not in var.sizes]
+    if missing:
+        raise ValueError(
+            f"Variable '{var.name}' does not have the dimension(s) {missing} named by 'in_dims'; "
+            f"its dimensions are {list(var.dims)}."
+        )
+
+    shape = getattr(ek_grid, "shape", None)
+    if shape is not None:
+        n_grid = int(np.prod(shape))
+        n_values = int(np.prod([var.sizes[d] for d in in_dims]))
+        if n_values != n_grid:
+            raise ValueError(
+                f"Variable '{var.name}' holds {n_values} values along the dimensions {list(in_dims)} named "
+                f"by 'in_dims', but the given 'in_grid' has {n_grid} points: 'in_grid' and 'in_dims' do "
+                "not describe the same grid."
+            )
+
+
 class XarrayDataHandler(DataHandler):
     """Data handler that regrids ``xarray.Dataset``/``xarray.DataArray`` values."""
 
@@ -153,10 +264,26 @@ class XarrayDataHandler(DataHandler):
             of the returned one if the two classify it differently; a
             requested ``out_dims`` is never renamed.
 
+            A target which is a plain reduced Gaussian grid, global or with an
+            area, is encoded with the CF ``reduced_gaussian`` grid mapping: its
+            points are numbered by a ``reduced_gaussian_index`` dimension
+            coordinate holding their index on the global grid, in that increasing
+            order, and a Dataset carries the global latitude lines, the points
+            per latitude and the grid mapping alongside the regridded variables
+            (decisions D2 and D3). A DataArray holds none of those tables, so it
+            keeps the latitude and longitude of every point (decision D4). Any
+            other target, and a reduced Gaussian grid the encoding does not
+            cover, is written as it was: on a ``values`` dimension with
+            per-point coordinates. The ``grid_mapping`` attribute the input
+            carried is gone from the result either way (decision A6).
+
         Raises
         ------
         ValueError
-            If the input grid or input dimensions cannot be determined and are not provided.
+            If the input grid or input dimensions cannot be determined and are not provided, if a
+            variable of the input is numbered by a CF reduced Gaussian index which the data cannot
+            place and no ``in_grid`` is given, or if the CF encoding of a reduced Gaussian target
+            finds a name it needs taken by the regridded data (decision A9).
         """
         ds = values
         kwargs = kwargs.copy()
@@ -173,6 +300,7 @@ class XarrayDataHandler(DataHandler):
 
         import xarray as xr
 
+        from earthkit.geo.grids.xarray.loader import reduced_gaussian_indexed
         from earthkit.geo.grids.xarray.loader import variables as get_variables
         from earthkit.geo.grids.xarray.output import XarrayOutputGeographyBuilder
 
@@ -180,7 +308,25 @@ class XarrayDataHandler(DataHandler):
         if not input_is_dataset:
             ds = ds.to_dataset()
 
-        variables = get_variables(ds, user_ek_grid=in_grid)
+        variables = get_variables(ds, user_ek_grid=in_grid, user_in_dims=in_dims_arg)
+
+        if not variables:
+            raise ValueError(_no_grid_message(ds, in_grid, in_dims_arg))
+
+        if in_grid is None:
+            # a variable numbered by a CF reduced Gaussian index whose mapping the
+            # dataset cannot resolve is not lost among the variables which did:
+            # it sits on the points of a grid nobody described, and the result
+            # would silently leave it out (decision A7). One with usable per-point
+            # latitudes and longitudes was regridded through them, so it is in the
+            # variables found; only those which are in none of them are named. A
+            # variable the dataset declares auxiliary is never named: the loader
+            # skips it as data whatever tables the dataset holds. An explicitly
+            # given 'in_grid' takes the data as it stands (decision A8).
+            regridded = {v.name for v in variables}
+            unresolved = [name for name in reduced_gaussian_indexed(ds) if name not in regridded]
+            if unresolved:
+                raise ValueError(_cf_indexed_message(unresolved))
 
         for v in variables:
             if v.ek_grid is None:
@@ -191,16 +337,14 @@ class XarrayDataHandler(DataHandler):
                     )
                 else:
                     raise ValueError("Could not determine grid from 'in_grid' argument.")
-            if not v.geo_dims:
-                if in_dims_arg is None:
-                    raise ValueError(
-                        f"Could not determine grid dimensions for variable {v.name} from dataset. Please provide "
-                        "an 'in_dims' argument."
-                    )
-                else:
-                    raise ValueError(
-                        f"Dimensions for variable {v.name} from dataset do not match the provided 'in_dims' argument."
-                    )
+            if not v.geo_dims and in_dims_arg is None:
+                # without detected grid dimensions the variable can only be regridded
+                # through the ones the caller named; a variable with neither is no
+                # geographical variable at all, and the loader did not return it
+                raise ValueError(
+                    f"Could not determine grid dimensions for variable {v.name} from dataset. Please provide "
+                    "an 'in_dims' argument."
+                )
 
         # the output geography builder which can provide the output grid and the output coordinates
         out_geo = XarrayOutputGeographyBuilder(out_grid)
@@ -226,6 +370,11 @@ class XarrayDataHandler(DataHandler):
             )
             if res_out_grid is None:
                 res_out_grid = res_out_grid_v
+
+        # a CF grid mapping names a variable of the dataset which describes it, and
+        # the regridded result is not that dataset: the attribute of the input would
+        # point at nothing, whatever grid the values are now on (decision A6)
+        self.drop_grid_mapping(ds_out)
 
         # for a DataArray input will return a single DataArray instead of a Dataset
         if not input_is_dataset:
@@ -261,11 +410,52 @@ class XarrayDataHandler(DataHandler):
                         "provide an 'out_dims' argument."
                     )
                 ds_out = ds_out.rename(dict(zip(out_dims, final_dims)))
+        else:
+            final_dims = out_dims
 
-        ds_out = self.add_geo_coords(ds_out, out_geo.coords())
+        # A plain reduced Gaussian target is written as a CF reduced Gaussian grid,
+        # which also says how its values are ordered; anything else, and a reduced
+        # Gaussian grid the encoding does not cover (decision A10), keeps the
+        # per-point coordinates of the geography (decisions D3 and D4).
+        if out_geo.cf_reduced_gaussian is not None and len(final_dims) == 1 and final_dims[0] in ds_out.dims:
+            ds_out = out_geo.add_cf_reduced_gaussian(ds_out, final_dims[0], as_dataset=input_is_dataset)
+        else:
+            ds_out = self.add_geo_coords(ds_out, out_geo.coords())
+
         ds_out = self.update_attributes(ds_out, out_grid)
 
         return ds_out
+
+    @staticmethod
+    def drop_grid_mapping(ds):
+        """Remove the CF ``grid_mapping`` attribute of the regridded variables.
+
+        The attribute names the variable of the input dataset which carries the
+        attributes of the grid the values came from. The result is on another grid
+        and holds no such variable, so the reference would dangle; a Dataset on a
+        grid with a CF encoding gets the mapping of its target back from
+        :meth:`~earthkit.geo.grids.xarray.output.XarrayOutputGeographyBuilder.add_cf_reduced_gaussian`
+        (decision A6).
+
+        Parameters
+        ----------
+        ds : xr.Dataset or xr.DataArray
+            The regridded data, modified in place.
+
+        Returns
+        -------
+        xr.Dataset or xr.DataArray
+            ``ds``.
+        """
+        import xarray as xr
+
+        if isinstance(ds, xr.Dataset):
+            for var in ds.data_vars.values():
+                var.attrs.pop("grid_mapping", None)
+        else:
+            ds.attrs.pop("grid_mapping", None)
+
+        return ds
 
     def _regrid_variable(self, backend, variable, out_grid, in_dims_arg, out_dims, **kwargs):
         """Regrid a single variable using ``xarray.apply_ufunc``.
@@ -363,6 +553,27 @@ class XarrayDataHandler(DataHandler):
             in_dims = in_dims_arg
 
         in_dims = ensure_list(in_dims)
+
+        if variable.geo_dims is None:
+            # the grid dimensions are only what the user named: they must index
+            # the variable and hold exactly as many values as the grid has
+            # points (index-only data, see the loader fallback and decision A8)
+            _check_user_in_dims(var, variable.ek_grid, in_dims)
+
+        # The points of a CF reduced Gaussian sub-area are held in the order of
+        # the file's index, which the detected eckit grid of its area may scan
+        # in another order: gather the values into the order of the grid the
+        # backend is given (decision A2). The loader only hands out a point
+        # order for a grid it detected itself, so values of an explicitly given
+        # grid are regridded as they stand (decision A8); the indexing stays
+        # lazy for a dask-backed variable.
+        if variable.point_order is not None:
+            if len(in_dims) != 1:
+                raise ValueError(
+                    f"Variable '{variable.name}' is reordered onto its grid along its single grid "
+                    f"dimension, but is regridded along {len(in_dims)} dimensions {in_dims}."
+                )
+            var = var.isel({in_dims[0]: variable.point_order})
 
         exclude_dims = set()
         if set(in_dims) == set(out_dims):
