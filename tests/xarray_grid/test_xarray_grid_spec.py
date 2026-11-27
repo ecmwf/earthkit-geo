@@ -22,6 +22,7 @@ from earthkit.geo.grids.xarray.grid import (
     UnstructuredProjectionGrid,
 )
 from earthkit.geo.grids.xarray.grid_spec import (
+    cf_reduced_gaussian_grid_spec,
     healpix_grid_spec_from_points,
     reduced_gg_grid_spec_from_points,
 )
@@ -928,6 +929,490 @@ def test_unstructured_grid_spec_reduced_gg_octahedral_vs_classical():
     lat_n, lon_n = reference_n.to_latlons()
     grid_n = _unstructured_grid(lat_n, lon_n, dims=("values",))
     assert grid_n.grid_spec == {"grid": "N32"}
+
+
+# the CF grid mapping of an octahedral reduced Gaussian grid, as the conventions
+# give it (Appendix F, "Reduced Gaussian") and as t2m_O1280.nc does
+CF_OCTAHEDRAL_MAPPING = {
+    "grid_mapping_name": "reduced_gaussian",
+    "grid_subtype": "octahedral",
+    "latitude_dimension": "lat",
+    "points_per_latitude": "pl",
+}
+CF_OCTAHEDRAL_MAPPING_ACCUMULATED = {
+    "grid_mapping_name": "reduced_gaussian",
+    "grid_subtype": "octahedral",
+    "latitude_dimension": "lat",
+    "accumulated_points_per_latitude": "apl",
+}
+# the same mapping for a classical ("normal") reduced Gaussian grid
+CF_NORMAL_MAPPING = dict(CF_OCTAHEDRAL_MAPPING, grid_subtype="normal")
+CF_NORMAL_MAPPING_ACCUMULATED = dict(CF_OCTAHEDRAL_MAPPING_ACCUMULATED, grid_subtype="normal")
+
+
+def _octahedral_pl(n, accumulated=False):
+    # the CF points per latitude of an O<n> grid: 20 points on the line closest to
+    # each pole, 4 more on every line towards the equator, the southern half of the
+    # table mirroring the northern one
+    north = 20 + 4 * np.arange(n, dtype=np.int64)
+    pl = np.concatenate((north, north[::-1]))
+    return np.cumsum(pl) if accumulated else pl
+
+
+def _row_sizes(lat):
+    # the number of points on each latitude line, in the order the points come
+    lat = np.round(np.asarray(lat, dtype=np.float64), 9)
+    changes = np.flatnonzero(np.diff(lat) != 0)
+    return np.diff(np.concatenate(([-1], changes, [len(lat) - 1])))
+
+
+def _normal_pl(n):
+    # the points per latitude of a classical reduced Gaussian grid, read off the grid
+    # eckit builds: palindromic like an octahedral table, but its rows do not grow by
+    # 4 points at a time
+    lat, _ = eckit_geo.Grid({"grid": f"N{n}"}).to_latlons()
+    return _row_sizes(lat)
+
+
+@pytest.mark.parametrize("n", [16, 80])
+@pytest.mark.parametrize("accumulated", [False, True])
+def test_cf_reduced_gaussian_grid_spec(n, accumulated):
+    pl = _octahedral_pl(n, accumulated=accumulated)
+    n_points = int(_octahedral_pl(n).sum())
+    mapping = CF_OCTAHEDRAL_MAPPING_ACCUMULATED if accumulated else CF_OCTAHEDRAL_MAPPING
+    index = np.arange(n_points, dtype=np.int32)
+
+    spec = cf_reduced_gaussian_grid_spec(mapping, pl, n_points, index, accumulated=accumulated)
+    assert spec == {"grid": f"O{n}"}
+
+    # the grid is named after the number of lines of one hemisphere, half the table
+    assert spec["grid"] == f"O{pl.size // 2}"
+
+    # the subtype is case-insensitive, and a netCDF attribute may come as bytes
+    for spelling in ("Octahedral", "  octahedral ", b"OCTAHEDRAL"):
+        attrs = dict(mapping, grid_subtype=spelling)
+        assert cf_reduced_gaussian_grid_spec(attrs, pl, n_points, index, accumulated=accumulated) == spec
+
+    # the point count is the size of the index dimension, which may be left to the index
+    assert cf_reduced_gaussian_grid_spec(mapping, pl, None, index, accumulated=accumulated) == spec
+
+    # an accumulated table is only read as one when the mapping says so
+    other = not accumulated
+    assert cf_reduced_gaussian_grid_spec(mapping, pl, n_points, index, accumulated=other) is None
+
+
+def test_cf_reduced_gaussian_grid_spec_reversed_latitude_table():
+    # a file whose latitude lines run from the South Pole describes the same grid:
+    # an octahedral table reads the same from either end, and it is the index, not
+    # the table, which says in which order the points come
+    pl = _octahedral_pl(16)
+    assert np.array_equal(pl, pl[::-1])
+
+    spec = cf_reduced_gaussian_grid_spec(CF_OCTAHEDRAL_MAPPING, pl[::-1], 1600, np.arange(1600))
+    assert spec == {"grid": "O16"}
+
+
+def test_cf_reduced_gaussian_grid_spec_accumulated_table():
+    counts = _octahedral_pl(16)
+    index = np.arange(1600)
+    accumulated = np.cumsum(counts)
+    # the accumulated table of a file whose latitudes run south to north is the same
+    # cumulative sum, the table of points per latitude being palindromic
+    assert np.array_equal(accumulated, np.cumsum(counts[::-1]))
+
+    spec = cf_reduced_gaussian_grid_spec(CF_OCTAHEDRAL_MAPPING_ACCUMULATED, accumulated, 1600, index, True)
+    assert spec == {"grid": "O16"}
+
+    # a table which is not the cumulative sum of the counts, but that of the counts
+    # plus an offset, is not one: read as a cumulative sum, its first line would hold
+    # 21 points, where an octahedral grid has 20
+    spec = cf_reduced_gaussian_grid_spec(CF_OCTAHEDRAL_MAPPING_ACCUMULATED, accumulated + 1, 1600, index, True)
+    assert spec is None
+
+
+def test_cf_reduced_gaussian_grid_spec_o1280():
+    # the grid of t2m_O1280.nc: 2560 latitude lines, 6599680 points, its pl running
+    # 20, 24, 28, ... mirrored in the southern hemisphere
+    pl = _octahedral_pl(1280)
+    n_points = int(pl.sum())
+    assert pl.size == 2560
+    assert n_points == 6599680
+
+    index = np.arange(n_points, dtype=np.int64)
+    assert cf_reduced_gaussian_grid_spec(CF_OCTAHEDRAL_MAPPING, pl, n_points, index) == {"grid": "O1280"}
+
+    accumulated = _octahedral_pl(1280, accumulated=True)
+    spec = cf_reduced_gaussian_grid_spec(CF_OCTAHEDRAL_MAPPING_ACCUMULATED, accumulated, n_points, index, True)
+    assert spec == {"grid": "O1280"}
+
+
+def test_cf_reduced_gaussian_grid_spec_is_an_eckit_grid():
+    # the gridspec the function builds is the one eckit builds the same grid from,
+    # whose points are the ones the CF metadata describes
+    for n in (16, 80):
+        pl = _octahedral_pl(n)
+        n_points = int(pl.sum())
+        spec = cf_reduced_gaussian_grid_spec(CF_OCTAHEDRAL_MAPPING, pl, n_points, np.arange(n_points))
+
+        eckit_grid = eckit_geo.Grid(spec)
+        assert eckit_grid.shape == (n_points,)
+
+        lat, lon = eckit_grid.to_latlons()
+        assert np.array_equal(_row_sizes(lat), pl)
+
+        # eckit starts every line at the Greenwich meridian, which is why a grid
+        # whose first meridian is elsewhere has no O<n> gridspec
+        assert np.allclose(np.asarray(lon)[:20], 18.0 * np.arange(20))
+
+
+def test_cf_reduced_gaussian_grid_spec_needs_a_known_subtype():
+    # a subtype which names neither of the two grids eckit can build from a table
+    # names no grid at all
+    octahedral = _octahedral_pl(16)
+    unnamed = dict(CF_OCTAHEDRAL_MAPPING, grid_subtype=None)
+    for attrs in (
+        unnamed,
+        {"grid_mapping_name": "reduced_gaussian"},
+        dict(CF_OCTAHEDRAL_MAPPING, grid_subtype="linear"),
+        dict(CF_OCTAHEDRAL_MAPPING, grid_subtype=42),
+    ):
+        for pl, n in ((octahedral, 1600), (_normal_pl(16), 1688)):
+            assert cf_reduced_gaussian_grid_spec(attrs, pl, n, np.arange(n)) is None
+
+    # the table of an octahedral grid is not the classical table of the same
+    # resolution, nor the classical one octahedral: each subtype is checked
+    # against its own tables
+    for attrs, pl, n in (
+        (CF_OCTAHEDRAL_MAPPING, _normal_pl(16), 1688),
+        (CF_OCTAHEDRAL_MAPPING, _normal_pl(80), 35718),
+        (CF_NORMAL_MAPPING, octahedral, 1600),
+        (CF_NORMAL_MAPPING, _octahedral_pl(80), 28480),
+    ):
+        assert cf_reduced_gaussian_grid_spec(attrs, pl, n, np.arange(n)) is None
+
+
+@pytest.mark.parametrize("n", [16, 80])
+@pytest.mark.parametrize("accumulated", [False, True])
+def test_cf_reduced_gaussian_grid_spec_normal(n, accumulated):
+    # a classical grid is detected when its table of points per latitude is exactly
+    # the one eckit builds the N<n> grid from
+    pl = _normal_pl(n)
+    n_points = int(pl.sum())
+    mapping = CF_NORMAL_MAPPING_ACCUMULATED if accumulated else CF_NORMAL_MAPPING
+    counts = np.cumsum(pl) if accumulated else pl
+    index = np.arange(n_points, dtype=np.int32)
+
+    spec = cf_reduced_gaussian_grid_spec(mapping, counts, n_points, index, accumulated=accumulated)
+    assert spec == {"grid": f"N{n}"}
+
+    # the grid is named after the number of lines of one hemisphere, half the table
+    assert spec["grid"] == f"N{pl.size // 2}"
+
+    # the subtype is case-insensitive, and a netCDF attribute may come as bytes
+    for spelling in ("Normal", "  NORMAL ", b"normal"):
+        attrs = dict(mapping, grid_subtype=spelling)
+        assert cf_reduced_gaussian_grid_spec(attrs, counts, n_points, index, accumulated=accumulated) == spec
+
+    # the point count is the size of the index dimension, which may be left to the index
+    assert cf_reduced_gaussian_grid_spec(mapping, counts, None, index, accumulated=accumulated) == spec
+
+    # an accumulated table is only read as one when the mapping says so
+    other = not accumulated
+    assert cf_reduced_gaussian_grid_spec(mapping, counts, n_points, index, accumulated=other) is None
+
+    if not accumulated:
+        # a classical table reads the same from either end, like an octahedral one
+        assert cf_reduced_gaussian_grid_spec(mapping, pl[::-1].copy(), n_points, index) == spec
+
+        # a whole number of points per line, given as floats, is still the same table
+        assert cf_reduced_gaussian_grid_spec(mapping, pl.astype(np.float64), n_points, index) == spec
+
+
+def test_cf_reduced_gaussian_grid_spec_normal_n1280():
+    # the largest classical resolution: its table holds 2560 lines and adds up to
+    # 8505906 points, and reading that table off the eckit grid, once, takes about
+    # half a second
+    pl = _normal_pl(1280)
+    n_points = int(pl.sum())
+    assert pl.size == 2560
+    assert n_points == 8505906
+
+    index = np.arange(n_points, dtype=np.int64)
+    assert cf_reduced_gaussian_grid_spec(CF_NORMAL_MAPPING, pl, n_points, index) == {"grid": "N1280"}
+
+    accumulated = np.cumsum(pl)
+    spec = cf_reduced_gaussian_grid_spec(CF_NORMAL_MAPPING_ACCUMULATED, accumulated, n_points, index, True)
+    assert spec == {"grid": "N1280"}
+
+
+def test_cf_reduced_gaussian_grid_spec_normal_is_an_eckit_grid():
+    # the gridspec built for a classical table is the one eckit builds the same
+    # grid from, whose points are the ones the CF metadata describes
+    for n in (16, 80):
+        pl = _normal_pl(n)
+        n_points = int(pl.sum())
+        spec = cf_reduced_gaussian_grid_spec(CF_NORMAL_MAPPING, pl, n_points, np.arange(n_points))
+
+        eckit_grid = eckit_geo.Grid(spec)
+        assert eckit_grid.shape == (n_points,)
+
+        lat, lon = eckit_grid.to_latlons()
+        assert np.array_equal(_row_sizes(lat), pl)
+
+        # as for the octahedral grid, every line starts at the Greenwich meridian
+        first_row = int(pl[0])
+        assert np.allclose(np.asarray(lon)[:first_row], 360.0 / first_row * np.arange(first_row))
+
+
+def test_cf_reduced_gaussian_grid_spec_normal_rejects():
+    # a table shaped like a Gaussian one, mirrored and adding up to the points of
+    # the grid, which is nevertheless the table of no classical resolution, names
+    # no grid: it is not detected rather than guessed at
+    pl = _normal_pl(16)
+    n_points = int(pl.sum())
+    index = np.arange(n_points)
+
+    # one line with a point more, its mirror with it too: the table still mirrors
+    # itself, and adds up to the point count of the grid it now claims
+    changed = pl.copy()
+    changed[1] += 1
+    changed[-2] += 1
+    assert np.array_equal(changed, changed[::-1])
+    assert int(changed.sum()) == n_points + 2
+    assert cf_reduced_gaussian_grid_spec(CF_NORMAL_MAPPING, changed, n_points + 2, np.arange(n_points + 2)) is None
+
+    # the two first lines swapped, and with them the last two: a table of the very
+    # same counts, in an order no grid has them
+    swapped = pl.copy()
+    swapped[[0, 1]] = swapped[[1, 0]]
+    swapped[[-2, -1]] = swapped[[-1, -2]]
+    assert np.array_equal(swapped, swapped[::-1])
+    assert int(swapped.sum()) == n_points
+    assert cf_reduced_gaussian_grid_spec(CF_NORMAL_MAPPING, swapped, n_points, index) is None
+
+    # a table of 34 lines names N17, which is no classical resolution: eckit builds
+    # no grid of that name, and the table is checked against nothing
+    longer = np.concatenate(([24], pl, [24]))
+    assert int(longer.sum()) == n_points + 48
+    assert cf_reduced_gaussian_grid_spec(CF_NORMAL_MAPPING, longer, n_points + 48, np.arange(n_points + 48)) is None
+
+    # a table which does not mirror itself
+    unmirrored = pl.copy()
+    unmirrored[1] += 3
+    unmirrored[2] -= 3
+    assert cf_reduced_gaussian_grid_spec(CF_NORMAL_MAPPING, unmirrored, n_points, index) is None
+
+    # a table which adds up to another number of points than the grid has
+    assert cf_reduced_gaussian_grid_spec(CF_NORMAL_MAPPING, pl, n_points + 8, np.arange(n_points + 8)) is None
+    assert cf_reduced_gaussian_grid_spec(CF_NORMAL_MAPPING, pl, n_points, index[:-1]) is None
+
+    # an index which does not number the points of a global grid
+    for values in (
+        index[::-1].copy(),  # reversed: the points come south to north
+        index + 1,  # offset: a regional grid keeps the numbers of the global grid
+        np.arange(0, 2 * n_points, 2),  # gapped: every other point of the global grid
+    ):
+        assert cf_reduced_gaussian_grid_spec(CF_NORMAL_MAPPING, pl, n_points, values) is None
+
+    # eckit starts an N<n> grid at Greenwich, as it does an O<n> one
+    attrs = dict(CF_NORMAL_MAPPING, longitude_of_first_meridian=2.5)
+    assert cf_reduced_gaussian_grid_spec(attrs, pl, n_points, index) is None
+
+
+@pytest.mark.parametrize("grid_mapping_name", [None, "healpix", "reduced_gaussian_grid"])
+def test_cf_reduced_gaussian_grid_spec_needs_the_cf_mapping(grid_mapping_name):
+    attrs = dict(CF_OCTAHEDRAL_MAPPING)
+    if grid_mapping_name is None:
+        del attrs["grid_mapping_name"]
+    else:
+        attrs["grid_mapping_name"] = grid_mapping_name
+
+    assert cf_reduced_gaussian_grid_spec(attrs, _octahedral_pl(16), 1600, np.arange(1600)) is None
+
+    # not a mapping at all
+    assert cf_reduced_gaussian_grid_spec(None, _octahedral_pl(16), 1600, np.arange(1600)) is None
+    assert cf_reduced_gaussian_grid_spec("reduced_gaussian", _octahedral_pl(16), 1600, np.arange(1600)) is None
+
+
+@pytest.mark.parametrize("meridian", [10.0, -0.5, np.float32(180.0), "not a number", np.array([0.0, 10.0])])
+def test_cf_reduced_gaussian_grid_spec_rejects_first_meridian(meridian):
+    # eckit starts an O<n> grid at Greenwich, so a grid whose first line starts
+    # elsewhere cannot be described by the gridspec
+    attrs = dict(CF_OCTAHEDRAL_MAPPING, longitude_of_first_meridian=meridian)
+    assert cf_reduced_gaussian_grid_spec(attrs, _octahedral_pl(16), 1600, np.arange(1600)) is None
+
+    # absent, None, or 0, is the Greenwich meridian eckit builds
+    for value in (None, 0, 0.0, np.float64(0.0), "0.0"):
+        attrs = dict(CF_OCTAHEDRAL_MAPPING, longitude_of_first_meridian=value)
+        assert cf_reduced_gaussian_grid_spec(attrs, _octahedral_pl(16), 1600, np.arange(1600)) == {"grid": "O16"}
+
+
+def test_cf_reduced_gaussian_grid_spec_rejects_index():
+    pl = _octahedral_pl(16)
+    index = np.arange(1600)
+
+    # west to east, north to south, from 0 to the last point: an index which does not
+    # number the points that way is not a global grid's index
+    for values in (
+        index[::-1].copy(),  # reversed: the points come south to north
+        index + 1,  # offset: a regional grid keeps the numbers of the global grid
+        np.arange(0, 3200, 2),  # gapped: every other point of the global grid
+        np.zeros(1600, dtype=np.int64),  # no numbering at all
+        index[:-1],  # one point short of the count the table adds up to
+        np.full(1600, np.nan),  # a point no index has a number for
+        None,  # no index to check the order of the points against
+    ):
+        assert cf_reduced_gaussian_grid_spec(CF_OCTAHEDRAL_MAPPING, pl, 1600, values) is None
+
+    # a non-integer index does not number the points either
+    assert cf_reduced_gaussian_grid_spec(CF_OCTAHEDRAL_MAPPING, pl, 1600, index + 0.5) is None
+
+
+def test_cf_reduced_gaussian_grid_spec_rejects_points_per_latitude():
+    pl = _octahedral_pl(16)
+
+    # a table whose rows do not hold 20, 24, ... points, mirrored in the south
+    for values in (
+        np.r_[pl[:3], pl[3] + 4, pl[4:]],  # one line with too many points
+        20 + 4 * (np.arange(32) // 2),  # every line twice: a table which is not mirrored
+        np.full(32, 20),  # the same number of points on every line
+        pl[:31],  # an odd number of lines, which is no table of two hemispheres
+        np.array([], dtype=np.int64),  # no lines at all
+        pl.astype(np.float64).reshape(2, 16),  # not a 1D table
+        np.array(["20"] * 32),  # a table of strings, not of counts
+        np.full(32, 2**64 - 1, dtype=np.uint64),  # counts no number of points adds up to
+        [20, [24] * 31],  # not an array at all
+        None,  # the mapping names a variable the dataset does not have
+    ):
+        assert cf_reduced_gaussian_grid_spec(CF_OCTAHEDRAL_MAPPING, values, 1600, np.arange(1600)) is None
+
+    # a whole number of points per line, given as floats, is still the same table
+    spec = cf_reduced_gaussian_grid_spec(CF_OCTAHEDRAL_MAPPING, pl.astype(np.float64), 1600, np.arange(1600))
+    assert spec == {"grid": "O16"}
+
+
+def test_cf_reduced_gaussian_grid_spec_rejects_point_count():
+    pl = _octahedral_pl(16)
+
+    # the table adds up to fewer points than the grid has
+    assert cf_reduced_gaussian_grid_spec(CF_OCTAHEDRAL_MAPPING, pl, 1604, np.arange(1604)) is None
+
+    # and more points than it has: the table of an O80 grid, which sums up to 28480,
+    # against an index over 1600 points
+    assert cf_reduced_gaussian_grid_spec(CF_OCTAHEDRAL_MAPPING, _octahedral_pl(80), 1600, np.arange(1600)) is None
+
+    # the count and the index disagree on how many points the grid has
+    assert cf_reduced_gaussian_grid_spec(CF_OCTAHEDRAL_MAPPING, pl, 1600, np.arange(1601)) is None
+
+    # a count which is not a number of points
+    assert cf_reduced_gaussian_grid_spec(CF_OCTAHEDRAL_MAPPING, pl, 1600.5, np.arange(1600)) is None
+    assert cf_reduced_gaussian_grid_spec(CF_OCTAHEDRAL_MAPPING, pl, -1600, np.arange(1600)) is None
+    assert cf_reduced_gaussian_grid_spec(CF_OCTAHEDRAL_MAPPING, pl, 10**20, np.arange(1600)) is None
+
+
+def _spy_classical_pl(monkeypatch):
+    """Record the calls :func:`cf_reduced_gaussian_grid_spec` makes on the eckit reference table.
+
+    The spy delegates to the real :func:`_classical_pl`, so an input which does
+    reach it still gets its table and the detection itself is unchanged, and
+    ``monkeypatch`` takes the spy away once the test is done. Recording the calls
+    is more robust than counting cache misses: a lookup served from the cache is
+    still a lookup, while what these tests ask is whether the function was called
+    at all.
+
+    Returns
+    -------
+    list
+        The list of ``rows`` the spy saw, filled in as the calls are made.
+    """
+    from earthkit.geo.grids.xarray import grid_spec
+
+    calls = []
+    reference = grid_spec._classical_pl
+
+    def spy(rows):
+        calls.append(rows)
+        return reference(rows)
+
+    monkeypatch.setattr(grid_spec, "_classical_pl", spy)
+    return calls
+
+
+def test_cf_reduced_gaussian_grid_spec_normal_rejects_before_the_eckit_table(monkeypatch):
+    # a classical grid is only checked against the eckit table once the cheap
+    # checks have found the candidate to be shaped like a grid at all: building
+    # the table means generating every point of the N<n> grid, and a table which
+    # does not mirror itself, or does not hold the points of the grid it claims,
+    # or an index which does not number those points, is no grid whoever's table
+    # it might be, and must not cost a grid build
+    pl = _normal_pl(16)
+    n_points = int(pl.sum())
+    index = np.arange(n_points)
+
+    unmirrored = pl.copy()
+    unmirrored[1] += 3
+    unmirrored[2] -= 3
+
+    off_greenwich = dict(CF_NORMAL_MAPPING, longitude_of_first_meridian=2.5)
+    gapped = np.arange(0, 2 * n_points, 2)
+
+    # each case fails one cheap check, on an input which is otherwise the very
+    # table, count and index of the N16 grid
+    cases = [
+        ("a first meridian which is not Greenwich", off_greenwich, pl, n_points, index),
+        ("a table which does not mirror itself", CF_NORMAL_MAPPING, unmirrored, n_points, index),
+        ("a table with an odd number of lines", CF_NORMAL_MAPPING, pl[:-1], n_points, index),
+        ("a table the dataset does not hold", CF_NORMAL_MAPPING, None, n_points, index),
+        ("a number of points which is not one", CF_NORMAL_MAPPING, pl, n_points + 0.5, index),
+        # the table of an O16 grid, on the point count of the N16 grid it claims
+        ("a table short of the points of its grid", CF_NORMAL_MAPPING, _octahedral_pl(16), n_points, index),
+        ("an index with one point too few", CF_NORMAL_MAPPING, pl, n_points, index[:-1]),
+        ("no index at all", CF_NORMAL_MAPPING, pl, n_points, None),
+        ("an index which does not number whole points", CF_NORMAL_MAPPING, pl, n_points, index + 0.5),
+        ("an index numbered from 1", CF_NORMAL_MAPPING, pl, n_points, index + 1),
+        ("an index numbered from the last point", CF_NORMAL_MAPPING, pl, n_points, index[::-1].copy()),
+        ("an index numbering every other point", CF_NORMAL_MAPPING, pl, n_points, gapped),
+    ]
+
+    calls = _spy_classical_pl(monkeypatch)
+
+    for label, attrs, values, n, numbered in cases:
+        assert cf_reduced_gaussian_grid_spec(attrs, values, n, numbered) is None
+        assert calls == [], f"'{label}' was rejected only after building the eckit table"
+
+    # the positive control, without which the assertions above could pass on a
+    # spy nobody calls: the one input here for which the cheap checks are all it
+    # has to say is a valid classical grid, and that one does reach the table,
+    # once, and is detected
+    assert cf_reduced_gaussian_grid_spec(CF_NORMAL_MAPPING, pl, n_points, index) == {"grid": "N16"}
+    assert calls == [16]
+
+    # an octahedral table which holds its own 1600 points is the one candidate no
+    # cheap check can dismiss: it mirrors, and it counts. Only the eckit table can
+    # say it is no N16's, so that is what rejects it, at the cost of the lookup
+    assert cf_reduced_gaussian_grid_spec(CF_NORMAL_MAPPING, _octahedral_pl(16), 1600, np.arange(1600)) is None
+    assert calls == [16, 16]
+
+
+def test_cf_reduced_gaussian_grid_spec_normal_caches_the_eckit_table():
+    # the table of N<n> is read off the eckit grid once per resolution and kept:
+    # detecting the same classical grid again costs no second grid build, which
+    # for the larger resolutions is the expensive part of checking a file
+    from earthkit.geo.grids.xarray import grid_spec
+
+    pl = _normal_pl(16)
+    n_points = int(pl.sum())
+    index = np.arange(n_points)
+
+    # cleared here, so the counts below are this test's own whatever ran before it
+    grid_spec._classical_pl.cache_clear()
+
+    for _ in range(3):
+        assert cf_reduced_gaussian_grid_spec(CF_NORMAL_MAPPING, pl, n_points, index) == {"grid": "N16"}
+
+    info = grid_spec._classical_pl.cache_info()
+    assert info.misses == 1, "the reference table of N16 was built more than once"
+    assert info.hits == 2
 
 
 # the CF grid mapping attributes of a rotated latitude/longitude grid whose

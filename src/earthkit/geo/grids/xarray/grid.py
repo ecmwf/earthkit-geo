@@ -15,7 +15,9 @@ Given the :class:`~.coordinates.Coordinate` objects identified by
 ``(x, y)`` point arrays describing a variable's geographical grid, covering
 meshed (structured) and unstructured layouts, plain x/y grids, and
 projected (e.g. CRS-based) x/y grids. :class:`XarrayGrid` is the top-level
-wrapper combining an optional lat/lon grid with an optional x/y grid.
+wrapper combining an optional lat/lon grid with an optional x/y grid, and
+:class:`ReducedGaussianGrid` the grid of a CF reduced Gaussian variable whose
+points are described by a grid mapping rather than by coordinates.
 """
 
 import logging
@@ -933,3 +935,62 @@ class UnstructuredProjectionGrid(ProjectionGrid):
         :attr:`latlons`, as it does for every grid without a spec.
         """
         return None
+
+
+class ReducedGaussianGrid(XarrayGrid):
+    """Grid class for a CF reduced Gaussian grid described by a grid mapping.
+
+    A reduced Gaussian grid written with the CF conventions (Appendix F,
+    "Reduced Gaussian") holds no per-point latitudes and longitudes: its points
+    are numbered by a ``reduced_gaussian_index`` dimension, and the grid they sit
+    on is described by the mapping's table of points per latitude. The gridspec
+    of a global grid so described, octahedral ``O<n>`` or classical ``N<n>``, is
+    all eckit-geo needs to place the points, so :attr:`latlons` come from the
+    grid built out of it rather than from the dataset.
+    """
+
+    def __init__(self, spec: Dict[str, Any], grid_dims: Any) -> None:
+        """Initialize the ReducedGaussianGrid class.
+
+        Parameters
+        ----------
+        spec : Dict[str, Any]
+            The gridspec of the grid, e.g. ``{"grid": "O1280"}`` or
+            ``{"grid": "N80"}`` (see
+            :func:`~.grid_spec.cf_reduced_gaussian_grid_spec`).
+        grid_dims : Any
+            The names of the dimension the points are indexed by, in the order
+            the variable indexes it.
+        """
+        super().__init__(latlon_grid=None, xy_grid=None)
+        self.grid_dims = tuple(grid_dims)
+        self._spec = dict(spec)
+
+    @property
+    def variable_dims(self) -> Tuple[str, ...]:
+        """Tuple[str, ...]: The dimension the variable's points are indexed by."""
+        return self.grid_dims
+
+    @property
+    def grid_spec(self) -> Dict[str, Any]:
+        """Dict[str, Any]: The gridspec the grid mapping describes."""
+        return self._spec
+
+    @property
+    def grid_type(self) -> str:
+        """str: Always ``"reduced_gg"``: the eckit-geo grid type of a reduced Gaussian grid."""
+        return "reduced_gg"
+
+    @thread_safe_cached_property
+    def latlons(self) -> Tuple[Any, Any]:
+        """Tuple[Any, Any]: The flat ``(lat, lon)`` points, from the eckit-geo grid of :attr:`grid_spec`.
+
+        The dataset does not hold the points of a reduced Gaussian grid it only
+        numbers, so they are read off the grid built from the gridspec, in the
+        order that grid iterates them: west to east and north to south, which is
+        the order of the ``reduced_gaussian_index`` the data is indexed by.
+        """
+        from eckit.geo import Grid as EckitGrid
+
+        lat, lon = EckitGrid(self._spec).to_latlons()
+        return np.asarray(lat, dtype=np.float64).flatten(), np.asarray(lon, dtype=np.float64).flatten()

@@ -15,6 +15,7 @@ See :ref:`gridspec <grid-spec>` for the gridspec format.
 
 import warnings
 from fractions import Fraction
+from functools import lru_cache
 from typing import Any, Optional
 
 import numpy as np
@@ -2433,3 +2434,244 @@ def reduced_gg_grid_spec_from_points(lats: Any, lons: Any) -> Optional[dict]:
         return {"grid": grid_name}
 
     return None
+
+
+def _scalar_number(value: Any) -> Optional[float]:
+    """``value``, a single finite number, as a Python float, or ``None`` if it is not one.
+
+    A netCDF attribute is read as a numpy scalar, which :func:`float` handles. A vector
+    attribute, a string or a missing value is not the single number a grid parameter
+    should be, and yields ``None`` rather than an exception.
+    """
+    try:
+        number = np.asarray(value, dtype=np.float64)
+    except (TypeError, ValueError):
+        return None
+
+    if number.ndim != 0 or not bool(np.isfinite(number)):
+        return None
+
+    return float(number)
+
+
+def _whole_number(value: Any) -> Optional[int]:
+    """``value``, a single finite number, as a Python int when it is a whole one, or ``None``."""
+    number = _scalar_number(value)
+    if number is None or number != float(int(number)):
+        return None
+    return int(number)
+
+
+def _integer_row(values: Any) -> Optional[np.ndarray]:
+    """``values`` as a 1D array of whole numbers in int64, or ``None`` if it is not one.
+
+    Only numpy walks the values: the array a point index is held in has as many
+    entries as the grid has points, over 6.5 million for an O1280, which no
+    Python loop over its values should be asked to step through.
+    """
+    try:
+        array = np.asarray(values)
+    except Exception:
+        return None
+
+    if array.ndim != 1 or array.size == 0 or np.issubdtype(array.dtype, np.bool_):
+        return None
+
+    if np.issubdtype(array.dtype, np.integer):
+        low, high = int(array.min()), int(array.max())
+    elif np.issubdtype(array.dtype, np.floating):
+        # a coordinate which packing or a float dtype turned into floats is still
+        # usable as long as every value is a whole number
+        if not bool(np.all(np.isfinite(array))) or not bool(np.all(array == np.floor(array))):
+            return None
+        low, high = int(array.min()), int(array.max())
+    else:
+        return None
+
+    if low < np.iinfo(np.int64).min or high > np.iinfo(np.int64).max:
+        return None
+
+    return array.astype(np.int64, copy=False)
+
+
+# an octahedral reduced Gaussian grid has 20 points on the latitude line closest to each
+# pole, and 4 more on every line towards the equator, its southern half mirroring the
+# northern one, so the table of points per latitude says which grid it is
+_OCTAHEDRAL_FIRST_ROW = 20
+_OCTAHEDRAL_ROW_STEP = 4
+
+
+@lru_cache(maxsize=None)
+def _classical_pl(rows: int) -> Optional[tuple]:
+    """The points per latitude of the classical reduced Gaussian grid ``N<rows>``.
+
+    A classical grid does not follow a rule a table can be checked against; the
+    one eckit builds ``N<rows>`` from is read off the grid itself, whose points
+    come west to east and north to south, each latitude line holding its points
+    together. eckit only knows the classical resolutions of the ECMWF tables, so
+    a ``rows`` that is not one of them raises: the result is then ``None``, as
+    for a grid that cannot be built. Building the grid means generating all its
+    points, which for the larger resolutions takes about a second, so the table
+    is cached per resolution, and only asked for once a candidate table has the
+    point count of the grid it claims.
+    """
+    try:
+        from eckit.geo import Grid as EckitGrid
+
+        lat, _ = EckitGrid({"grid": f"N{rows}"}).to_latlons()
+    except Exception:
+        return None
+
+    lat = np.asarray(lat, dtype=np.float64)
+    ends = np.flatnonzero(np.diff(lat) != 0) + 1
+    return tuple(int(size) for size in np.diff(np.concatenate(([0], ends, [lat.size]))))
+
+
+def cf_reduced_gaussian_grid_spec(
+    attrs: Any,
+    pl: Any,
+    n_points: Optional[int] = None,
+    index_values: Any = None,
+    accumulated: bool = False,
+) -> Optional[dict]:
+    """Build the gridspec of a reduced Gaussian grid from its CF grid mapping.
+
+    The CF conventions describe a reduced Gaussian grid (Appendix F, "Reduced
+    Gaussian") with a ``reduced_gaussian`` grid mapping whose parameters give the
+    number of longitude points on every latitude line, and a
+    ``reduced_gaussian_index`` coordinate numbering the points west to east and
+    north to south, from 0 to the last point of the grid. A grid so described is
+    named by its subtype: an "octahedral" one is the eckit grid ``O<n>``, a
+    "normal", classical one the eckit grid ``N<n>``, ``n`` the number of latitude
+    lines of one hemisphere, which is all the gridspec needs to carry::
+
+        {"grid": "O<n>"}
+        {"grid": "N<n>"}
+
+    An ``O<n>`` grid has a rule for its rows, 20 on the line closest to each pole
+    and 4 more on every line towards the equator, so any table following it is
+    such a grid. A classical grid has no rule to follow: it is only recognised
+    when its table is exactly the one eckit builds ``N<n>`` from, a table which
+    merely looks Gaussian belongs to no grid eckit can name, and is not detected.
+    A classical grid whose points are in the file can still be found from them,
+    as :func:`reduced_gg_grid_spec_from_points` does.
+
+    Parameters
+    ----------
+    attrs : Any
+        The CF grid mapping attributes of the variable, e.g. the attributes of its
+        ``grid_mapping`` variable. Only a ``reduced_gaussian`` mapping with an
+        "octahedral" or a "normal" ``grid_subtype`` is a candidate for a gridspec.
+    pl : Any
+        The number of longitude points on each latitude line, along the dimension the
+        ``latitude_dimension`` attribute names, as a 1D array. Pass the
+        ``accumulated_points_per_latitude`` array the same way, with ``accumulated``
+        set.
+    n_points : Optional[int]
+        The size of the dimension the points are indexed by, i.e. the number of points
+        of the grid. Defaults to the size of ``index_values``.
+    index_values : Any
+        The ``reduced_gaussian_index`` of every point, as a 1D array.
+    accumulated : bool
+        Whether ``pl`` holds the accumulated points per latitude, the cumulative sum
+        of the points per latitude, rather than those points per latitude themselves.
+
+    Returns
+    -------
+    dict or None
+        The gridspec as a dict, or ``None`` if the metadata does not describe a global
+        reduced Gaussian grid, octahedral or classical.
+
+    Notes
+    -----
+    A gridspec is only returned when every parameter is one the grid named by it
+    carries: the table of points per latitude has an even number of lines and its
+    southern half mirrors the northern one, following the rule of an ``O<n>`` grid
+    or being exactly the table of the ``N<n>`` grid of the same number of lines,
+    and summing up to ``n_points``; ``longitude_of_first_meridian`` is absent or 0,
+    as eckit starts both grids at the Greenwich meridian; and the index is exactly
+    0 to ``n_points`` - 1, which the index of a regional or land-only subset is
+    not, as it keeps the numbers the points have on the global grid. Anything else
+    yields ``None``, never an exception for data which turns out to be unusable,
+    and never a gridspec which does not describe the points the file holds.
+
+    The direction the table of points per latitude runs in is not checked, and does
+    not matter: a Gaussian table reads the same from either end, and it is the
+    index, not the table, which says in which order the points come.
+    """
+    if not isinstance(attrs, dict):
+        return None
+
+    if attrs.get("grid_mapping_name") != "reduced_gaussian":
+        return None
+
+    subtype = attrs.get("grid_subtype")
+    if isinstance(subtype, bytes):
+        subtype = subtype.decode("utf-8", errors="replace")
+    if not isinstance(subtype, str):
+        return None
+    subtype = subtype.strip().lower()
+    if subtype not in ("octahedral", "normal"):
+        return None
+
+    # an attribute the caller holds as None is an attribute the dataset does not carry,
+    # whose CF default is the Greenwich meridian eckit builds
+    meridian = attrs.get("longitude_of_first_meridian", 0.0)
+    meridian = _scalar_number(0.0 if meridian is None else meridian)
+    if meridian is None or not np.isclose(meridian, 0.0, rtol=0.0, atol=1e-9):
+        return None
+
+    counts = _integer_row(pl)
+    if counts is None or counts.size % 2:
+        return None
+
+    if accumulated:
+        # the accumulated points per latitude is the cumulative sum of the points per
+        # latitude, along the latitude dimension, whichever end of it it starts at
+        counts = np.diff(np.concatenate(([0], counts)))
+
+    rows = counts.size // 2
+    if subtype == "octahedral":
+        north = _OCTAHEDRAL_FIRST_ROW + _OCTAHEDRAL_ROW_STEP * np.arange(rows, dtype=np.int64)
+        mirrored = np.array_equal(counts, np.concatenate((north, north[::-1])))
+    else:
+        # a classical table mirrors itself like an octahedral one, but its rows follow
+        # no rule: which grid it belongs to, if any, is only known against the tables
+        # eckit has, which are read off its grids once the count says it is worth it
+        mirrored = bool(np.array_equal(counts, counts[::-1]))
+
+    if not mirrored:
+        return None
+
+    index = _integer_row(index_values)
+    if index is None:
+        return None
+
+    if n_points is None:
+        n_points = int(index.size)
+    else:
+        n_points = _whole_number(n_points)
+        if n_points is None:
+            return None
+
+    # the point count is checked before the index is built, so that a count which is not
+    # one cannot send numpy looking for an array of points no file has; it is also checked
+    # before any eckit grid is built, a table which does not even hold the points of the
+    # grid it claims is no grid, and should not cost a grid build
+    if n_points < 1 or index.size != n_points or int(counts.sum(dtype=np.int64)) != n_points:
+        return None
+
+    if not np.array_equal(index, np.arange(n_points, dtype=np.int64)):
+        return None
+
+    if subtype == "octahedral":
+        return {"grid": f"O{rows}"}
+
+    # the classical table of N<rows> says whether this is that grid: a table which is
+    # well shaped and well counted but belongs to no resolution eckit knows describes
+    # no grid a name can carry, and is left undetected
+    reference = _classical_pl(rows)
+    if reference is None or not np.array_equal(counts, reference):
+        return None
+
+    return {"grid": f"N{rows}"}
