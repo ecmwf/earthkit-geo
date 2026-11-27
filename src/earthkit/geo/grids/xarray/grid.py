@@ -16,8 +16,11 @@ Given the :class:`~.coordinates.Coordinate` objects identified by
 meshed (structured) and unstructured layouts, plain x/y grids, and
 projected (e.g. CRS-based) x/y grids. :class:`XarrayGrid` is the top-level
 wrapper combining an optional lat/lon grid with an optional x/y grid, and
-:class:`ReducedGaussianGrid` the grid of a CF reduced Gaussian variable whose
-points are described by a grid mapping rather than by coordinates.
+:class:`ReducedGaussianGrid` and :class:`SelectiveReducedGaussianGrid` the
+grids of a CF reduced Gaussian variable whose points are described by a grid
+mapping rather than by coordinates: a global grid or a rectangular sub-area
+for the former, any other sub-area, held as unstructured points, for the
+latter.
 """
 
 import logging
@@ -292,6 +295,18 @@ class XarrayGrid:
             return self.xy_grid.grid_spec
         else:
             return None
+
+    @property
+    def point_order(self):
+        """None: a grid read off a variable's own coordinates holds its points in the data's order.
+
+        Every grid class carries the property so that a caller can ask any
+        grid how its points stand against the order of the data; only the
+        grid of a CF reduced Gaussian sub-area, whose points an eckit grid
+        builds in an order of its own, has a permutation to answer with (see
+        :attr:`ReducedGaussianGrid.point_order`).
+        """
+        return None
 
 
 class Grid(ABC):
@@ -938,33 +953,49 @@ class UnstructuredProjectionGrid(ProjectionGrid):
 
 
 class ReducedGaussianGrid(XarrayGrid):
-    """Grid class for a CF reduced Gaussian grid described by a grid mapping.
+    """Grid class for a CF reduced Gaussian grid, global or a sub-area of it.
 
     A reduced Gaussian grid written with the CF conventions (Appendix F,
     "Reduced Gaussian") holds no per-point latitudes and longitudes: its points
     are numbered by a ``reduced_gaussian_index`` dimension, and the grid they sit
     on is described by the mapping's table of points per latitude. The gridspec
-    of a global grid so described, octahedral ``O<n>`` or classical ``N<n>``, is
-    all eckit-geo needs to place the points, so :attr:`latlons` come from the
-    grid built out of it rather than from the dataset.
+    of the grid so described is all eckit-geo needs to place the points, so
+    :attr:`latlons` come from the grid built out of it rather than from the
+    dataset: ``{"grid": "O<n>"}`` or ``{"grid": "N<n>"}`` for a global grid, the
+    same with an ``area`` for a sub-area whose points are those of an area of it.
+
+    An eckit grid with an ``area`` runs each of its latitude lines from the west
+    edge of the area, which for an area crossing the Greenwich meridian is not
+    the increasing index order the CF file holds its points, and its data, in.
+    The grid then carries the permutation between the two as
+    :attr:`point_order`; a subset no area describes is not this class' to hold,
+    it has no gridspec to build the points from (see
+    :class:`SelectiveReducedGaussianGrid`).
     """
 
-    def __init__(self, spec: Dict[str, Any], grid_dims: Any) -> None:
+    def __init__(self, spec: Dict[str, Any], grid_dims: Any, point_order: Any = None) -> None:
         """Initialize the ReducedGaussianGrid class.
 
         Parameters
         ----------
         spec : Dict[str, Any]
-            The gridspec of the grid, e.g. ``{"grid": "O1280"}`` or
-            ``{"grid": "N80"}`` (see
-            :func:`~.grid_spec.cf_reduced_gaussian_grid_spec`).
+            The gridspec of the grid, e.g. ``{"grid": "O1280"}``,
+            ``{"grid": "N80"}`` or ``{"grid": "O32", "area": [60, -10, 30, 40]}``
+            (see :func:`~.reduced_gaussian.cf_reduced_gaussian_subset`).
         grid_dims : Any
             The names of the dimension the points are indexed by, in the order
             the variable indexes it.
+        point_order : Any, optional
+            The permutation which takes the points from the order the file
+            holds them in to the order of the eckit grid built from ``spec``,
+            as :func:`~.reduced_gaussian.cf_reduced_gaussian_subset` returns it
+            (see :attr:`point_order`). ``None``, the default, when the two
+            orders are the same.
         """
         super().__init__(latlon_grid=None, xy_grid=None)
         self.grid_dims = tuple(grid_dims)
         self._spec = dict(spec)
+        self._point_order = None if point_order is None else np.asarray(point_order, dtype=np.int64).reshape(-1)
 
     @property
     def variable_dims(self) -> Tuple[str, ...]:
@@ -981,16 +1012,93 @@ class ReducedGaussianGrid(XarrayGrid):
         """str: Always ``"reduced_gg"``: the eckit-geo grid type of a reduced Gaussian grid."""
         return "reduced_gg"
 
+    @property
+    def point_order(self) -> Optional[np.ndarray]:
+        """Optional[np.ndarray]: The permutation from the file's point order to the eckit one.
+
+        ``values_in_file_order[point_order]`` are the values in the order of
+        the eckit grid built from :attr:`grid_spec`. ``None``, as for every
+        other grid, when that order is the file's own: always for a global
+        grid, and for any area not crossing the Greenwich meridian.
+        """
+        return self._point_order
+
     @thread_safe_cached_property
     def latlons(self) -> Tuple[Any, Any]:
-        """Tuple[Any, Any]: The flat ``(lat, lon)`` points, from the eckit-geo grid of :attr:`grid_spec`.
+        """Tuple[Any, Any]: The flat ``(lat, lon)`` points, in the order of the file's index.
 
         The dataset does not hold the points of a reduced Gaussian grid it only
-        numbers, so they are read off the grid built from the gridspec, in the
-        order that grid iterates them: west to east and north to south, which is
-        the order of the ``reduced_gaussian_index`` the data is indexed by.
+        numbers, so they are read off the eckit grid built from the gridspec.
+        That grid iterates its points in its own order, which an area crossing
+        the Greenwich meridian does not run in: :attr:`point_order` says where
+        in the file each of the grid's points sits, and the file's points are
+        the grid's ones gathered the other way round.
         """
         from eckit.geo import Grid as EckitGrid
 
         lat, lon = EckitGrid(self._spec).to_latlons()
-        return np.asarray(lat, dtype=np.float64).flatten(), np.asarray(lon, dtype=np.float64).flatten()
+        lat = np.asarray(lat, dtype=np.float64).flatten()
+        lon = np.asarray(lon, dtype=np.float64).flatten()
+
+        if self._point_order is not None:
+            # the eckit values are the file's ones gathered by point_order, so
+            # the file's are the eckit ones gathered by its inverse
+            inverse = np.argsort(self._point_order)
+            lat, lon = lat[inverse], lon[inverse]
+
+        return lat, lon
+
+
+class SelectiveReducedGaussianGrid(XarrayGrid):
+    """Grid class for the points of a selective sub-area of a CF reduced Gaussian grid.
+
+    The ``reduced_gaussian_index`` of a CF file numbers any subset of the
+    global grid, and a subset which is neither the whole grid nor the points of
+    one of its areas — a latitude line missing between two held ones, a line
+    holding two disjoint longitude runs — has no gridspec to carry: an eckit
+    reduced Gaussian grid with an area holds every point between the area's
+    bounds, and would place points the file does not have. The latitudes and
+    longitudes of the subset's points, computed from the global grid and the
+    index (see :func:`~.reduced_gaussian.cf_reduced_gaussian_subset`), are kept
+    as the unstructured scatter of them they are, in the order of the file's
+    index; :attr:`grid_spec` is ``None``, so the loader builds the eckit grid
+    out of the points themselves.
+    """
+
+    def __init__(self, lats: Any, lons: Any, grid_dims: Any) -> None:
+        """Initialize the SelectiveReducedGaussianGrid class.
+
+        Parameters
+        ----------
+        lats : Any
+            The latitude of every point, in the order of the file's index.
+        lons : Any
+            The longitude of every point, in the same order.
+        grid_dims : Any
+            The names of the dimension the points are indexed by, in the order
+            the variable indexes it.
+        """
+        super().__init__(latlon_grid=None, xy_grid=None)
+        self.grid_dims = tuple(grid_dims)
+        self._lats = np.asarray(lats, dtype=np.float64).reshape(-1)
+        self._lons = np.asarray(lons, dtype=np.float64).reshape(-1)
+
+    @property
+    def variable_dims(self) -> Tuple[str, ...]:
+        """Tuple[str, ...]: The dimension the variable's points are indexed by."""
+        return self.grid_dims
+
+    @thread_safe_cached_property
+    def latlons(self) -> Tuple[Any, Any]:
+        """Tuple[Any, Any]: The flat ``(lat, lon)`` points, as the file numbers them."""
+        return self._lats, self._lons
+
+    @property
+    def grid_type(self) -> str:
+        """str: Always ``"unstructured"``: the points are a scatter over the globe."""
+        return "unstructured"
+
+    @property
+    def grid_spec(self) -> None:
+        """None: a selective subset is the point set of no eckit grid's spec."""
+        return None

@@ -19,9 +19,10 @@ regridding.
 
 import itertools
 import logging
-from typing import Any
+from typing import Hashable, List
 
 from earthkit.geo.grids._regrid.data.utils import create_grid_object, create_unstructured_grid_object
+from earthkit.geo.utils import ensure_list
 
 from .patch import patch_dataset
 
@@ -53,6 +54,93 @@ class Variable:
 
         self.ek_grid = None
         """The corresponding eckit-geo grid used for regridding (Optional[eckit.geo.Grid])."""
+
+        self.point_order = None
+        """The permutation taking the values to the point order of :attr:`ek_grid` (Optional[np.ndarray]).
+
+        Set only for a variable on a CF reduced Gaussian sub-area whose grid was
+        detected from the dataset itself, and whose points eckit iterates in
+        another order than the file holds them: ``values[point_order]`` are the
+        values in the order of the eckit grid (see
+        :attr:`~.grid.ReducedGaussianGrid.point_order`). ``None``, the default,
+        whenever the values already sit in the grid's order — which is always
+        the case when the grid was not detected but given explicitly, by the
+        user's ``in_grid`` or by an earthkit-data accessor: an explicitly given
+        grid takes the data exactly as it stands (decision A8).
+        """
+
+
+def auxiliary_names(ds) -> set:
+    """The names of a dataset's variables which another variable declares as auxiliary.
+
+    The ``coordinates``, ``bounds``, ``climatology`` and ``grid_mapping`` attributes
+    name, whitespace-separated, the variables which describe the referring one:
+    its auxiliary coordinates, its cell bounds, the variable its climatology
+    lives in, the mapping which locates its points. Those describe data, they
+    are not data of their own: the loader never regrids a variable it finds
+    under one of these names (see :func:`variables`), whichever dimensions
+    happen to index it.
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        The dataset to inspect.
+
+    Returns
+    -------
+    Set[Hashable]
+        Every name referenced by one of the four attributes, in any order.
+    """
+    names = set()
+
+    for variable in itertools.chain(ds.coords.values(), ds.data_vars.values()):
+        for attr_name in ("coordinates", "bounds", "climatology", "grid_mapping"):
+            attr_val = getattr(variable, attr_name, "")
+            if isinstance(attr_val, str):
+                names.update(attr_val.split())
+
+    return names
+
+
+def reduced_gaussian_indexed(ds) -> List[Hashable]:
+    """The names of a dataset's data variables indexed by a CF reduced Gaussian point index.
+
+    A variable is named when one of its 1D coordinates carries the CF
+    ``reduced_gaussian_index`` standard name and indexes one of its dimensions,
+    whichever ``grid_mapping`` the variable declares and whether or not the
+    dataset holds the mapping and points-per-latitude tables that would place
+    the numbered points. Variables another variable declares auxiliary (see
+    :func:`auxiliary_names`) are not named: the loader skips them as data on
+    purpose, so the clear error which reports a field the grid tables cannot
+    place is not their business, tables or none.
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        The dataset to inspect.
+
+    Returns
+    -------
+    List[Hashable]
+        The names of the data variables so indexed, in dataset order.
+    """
+    skip = auxiliary_names(ds)
+    names = []
+
+    for name in ds.data_vars:
+        if name in skip:
+            continue
+        variable = ds[name]
+        for coord in variable.coords:
+            c = variable.coords[coord]
+            if c.ndim != 1 or c.dims[0] not in variable.dims:
+                continue
+            if str(c.attrs.get("standard_name", "")).strip().lower() != "reduced_gaussian_index":
+                continue
+            names.append(name)
+            break
+
+    return names
 
 
 def grid_from_earthkit(ds):
@@ -192,15 +280,19 @@ def adjust_variable_dim_order(variable_dims, coordinates, swap_xy=False):
     return variable_dims
 
 
-def variables(ds, user_ek_grid=None):
+def variables(ds, user_ek_grid=None, user_in_dims=None):
     """Find the geographical data variables in a dataset and their grid.
 
     Skips coordinate/auxiliary variables (referenced via ``coordinates``,
     ``bounds``, ``climatology`` or ``grid_mapping`` attributes) and data
-    variables with fewer than two grid coordinates. A variable with fewer
-    than two grid coordinates is only kept when the dataset describes its
-    points with a CF reduced Gaussian grid mapping instead of with lat/lon
-    coordinates (see :meth:`~.guesser.CoordinateGuesser.reduced_gaussian_grid`).
+    variables with fewer than two grid coordinates. A variable is only kept
+    without two grid coordinates when the dataset describes its points with a
+    CF reduced Gaussian grid mapping instead of lat/lon coordinates, or when
+    an input grid is given explicitly together with the dimensions the values
+    are laid out along (see ``user_in_dims``); a variable which carries both
+    the mapping and auxiliary coordinates is located by the mapping, which
+    says more about the grid than auxiliary coordinates of its own (see
+    :meth:`~.guesser.CoordinateGuesser.reduced_gaussian_grid`).
     For each remaining variable, guesses its coordinates and grid via
     :class:`~.guesser.DefaultCoordinateGuesser` and resolves the
     corresponding eckit-geo grid.
@@ -212,12 +304,21 @@ def variables(ds, user_ek_grid=None):
     user_ek_grid : Any, optional
         A user-provided grid spec or ``eckit.geo.Grid`` used as the input
         grid for every variable instead of guessing it from the dataset.
+    user_in_dims : List[str], optional
+        The user-provided grid dimension names (the ``in_dims`` of a regrid
+        call). A variable which is neither located by the mapping of a CF
+        reduced Gaussian grid nor by two grid coordinates is kept as
+        index-only data when a grid is given and all of these dimensions
+        index it: its values then number the points of the given grid in the
+        order the named dimensions hold them, and are regridded without any
+        reordering (decision A8). The sizes of the dimensions are not
+        checked here.
 
     Returns
     -------
     List[Variable]
         The geographical variables found, each with its ``ek_grid``,
-        ``xr_grid`` and ``geo_dims`` populated.
+        ``xr_grid``, ``geo_dims`` and ``point_order`` populated.
     """
     patch = {"latlon": None}
     ds = patch_dataset(ds, patch)
@@ -237,31 +338,14 @@ def variables(ds, user_ek_grid=None):
         ek_grid = grid_from_earthkit(ds)
     swap_xy = _scans_x_fastest(ek_grid)
 
-    skip = set()
+    # the dimensions a user has named as the grid dimensions of the data
+    # (the "in_dims" of a regrid call), which index-only data of an explicitly
+    # given grid can be laid out along (see the fallback in the loop below)
+    explicit_in_dims = ensure_list(user_in_dims) if user_in_dims is not None else []
 
-    def _skip_attr(v: Any, attr_name: str) -> None:
-        """Add the whitespace-separated names in ``v``'s ``attr_name`` attribute to ``skip``.
-
-        Parameters
-        ----------
-        v : Any
-            The xarray variable to inspect.
-        attr_name : str
-            The name of the attribute to read (e.g. ``"coordinates"``,
-            ``"bounds"``).
-        """
-        attr_val: str = getattr(v, attr_name, "")
-        if isinstance(attr_val, str):
-            v = attr_val.split()
-            if v:
-                skip.update(v)
-
-    for name in itertools.chain(ds.coords, ds.data_vars):
-        variable = ds[name]
-        _skip_attr(variable, "coordinates")
-        _skip_attr(variable, "bounds")
-        _skip_attr(variable, "climatology")
-        _skip_attr(variable, "grid_mapping")
+    # the variables the dataset declares as auxiliary: they describe other data,
+    # and are never regridded as data of their own (see :func:`auxiliary_names`)
+    skip = auxiliary_names(ds)
 
     result = []
 
@@ -283,15 +367,29 @@ def variables(ds, user_ek_grid=None):
 
         grid_coords: int = sum(1 for c in coordinates if c.is_grid)
 
-        if grid_coords < 2:
-            # the points of a CF reduced Gaussian grid are numbered by a grid
-            # mapping rather than described by lat/lon coordinates, so they are
-            # recognised from the mapping; anything else is skipped, as it was
-            xr_grid = guess.reduced_gaussian_grid(variable)
-            if xr_grid is None:
+        # the points of a CF reduced Gaussian grid are numbered by a grid mapping
+        # rather than described by lat/lon coordinates, and a variable which
+        # carries both is located by the mapping: it is the stronger statement
+        # about the grid the data sits on. Only when the mapping describes no
+        # grid does the variable fall back to the coordinates, and one with
+        # fewer than two of them is then kept only as index-only data of an
+        # explicitly given grid, and skipped as it was before otherwise
+        xr_grid = guess.reduced_gaussian_grid(variable)
+        if xr_grid is None:
+            if grid_coords < 2:
+                if ek_grid is not None and explicit_in_dims and all(d in variable.dims for d in explicit_in_dims):
+                    # the data numbers the points of a grid it does not describe:
+                    # regriddable when the caller gives that grid with "in_grid"
+                    # and names its dimensions with "in_dims" (decision A8). The
+                    # grid dimensions are the user's, so the regridder reads them
+                    # off "in_dims" and checks the sizes; the values are taken as
+                    # they stand, with no reordering.
+                    v = Variable(variable)
+                    v.ek_grid = ek_grid
+                    result.append(v)
+                    continue
                 LOG.debug("Skipping %s (not 2D): %s", variable, [(c, c.is_grid, c.is_dim) for c in coordinates])
                 continue
-        else:
             xr_grid = guess.grid(coordinates, variable)
 
         variable_dims = xr_grid.variable_dims
@@ -335,6 +433,11 @@ def variables(ds, user_ek_grid=None):
         v.ek_grid = variable_ek_grid
         v.xr_grid = xr_grid
         v.geo_dims = variable_dims
+        # only a grid detected from the dataset's own mapping knows the order
+        # the file holds its points in; an explicitly given grid takes the
+        # data as it stands (decision A8)
+        if ek_grid is None:
+            v.point_order = xr_grid.point_order
 
         result.append(v)
 

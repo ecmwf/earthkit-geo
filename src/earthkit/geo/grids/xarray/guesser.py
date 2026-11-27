@@ -53,12 +53,13 @@ from .grid import (
     MeshedXYGrid,
     MeshProjectionGrid,
     ReducedGaussianGrid,
+    SelectiveReducedGaussianGrid,
     UnstructuredGrid,
     UnstructuredProjectionGrid,
     UnstructuredXYGrid,
     XarrayGrid,
 )
-from .grid_spec import cf_reduced_gaussian_grid_spec
+from .reduced_gaussian import SELECTIVE, cf_reduced_gaussian_grid_name, cf_reduced_gaussian_subset
 
 # CoordinateAttributes = namedtuple("CoordinateAttributes", ["axis", "name", "long_name", "standard_name", "units"])
 
@@ -101,7 +102,7 @@ class CoordinateGuesser(ABC):
         # the grids of the variables whose points a reduced Gaussian grid mapping
         # numbers, keyed the same way; a mapping is read and its point index
         # checked once, whatever number of variables sit on it
-        self._reduced_gaussian_cache: Dict[Hashable, Optional[ReducedGaussianGrid]] = {}
+        self._reduced_gaussian_cache: Dict[Hashable, Optional[XarrayGrid]] = {}
 
     def guess(self, c: xr.DataArray, coord: Hashable) -> Coordinate:
         """Guesses the type of a coordinate.
@@ -559,10 +560,17 @@ class CoordinateGuesser(ABC):
         ``reduced_gaussian_index`` coordinate instead of the latitude/longitude
         coordinates :meth:`grid` derives a grid from. The mapping and the table of
         points per latitude it names are read off the dataset, the point index
-        among the coordinates of the variable itself, and only a grid
-        :func:`~.grid_spec.cf_reduced_gaussian_grid_spec` recognises, i.e. a global
-        octahedral or classical one, yields a grid: anything else yields ``None``,
-        like a dataset which does not describe such a grid.
+        among the coordinates of the variable itself; the two together locate the
+        variable's points on the *global* grid the mapping describes. The whole
+        index yields the :class:`~.grid.ReducedGaussianGrid` of that grid, the
+        indices of a rectangular sub-area the same grid with an ``area`` in its
+        spec — and with a :attr:`~.grid.ReducedGaussianGrid.point_order`
+        permutation when eckit iterates the area in another order than the file —
+        and any other valid subset the unstructured points of a
+        :class:`~.grid.SelectiveReducedGaussianGrid`. Metadata an eckit grid
+        cannot be built from — an unusable mapping or table, a point index which
+        is no subset of the named grid — yields ``None``, like a dataset which
+        does not describe such a grid at all.
 
         Parameters
         ----------
@@ -572,9 +580,8 @@ class CoordinateGuesser(ABC):
         Returns
         -------
         Optional[XarrayGrid]
-            The :class:`~.grid.ReducedGaussianGrid` the variable's points sit on,
-            or ``None`` when the variable is not on a recognised reduced Gaussian
-            grid.
+            The grid the variable's points sit on, or ``None`` when the variable
+            is not on a recognised reduced Gaussian grid.
         """
         mapping = self._grid_mapping(variable)
         if not isinstance(mapping, dict) or mapping.get("grid_mapping_name") != "reduced_gaussian":
@@ -586,12 +593,15 @@ class CoordinateGuesser(ABC):
         name, dim = found
 
         # the mapping and the dimension the points are numbered by say all there is
-        # to the grid, so two variables on one grid only check their index once
+        # to the grid, so two variables on one grid only check their index once:
+        # a coordinate of one name holds one array of index values in one dataset,
+        # and two variables indexing different point sets do it through
+        # differently named coordinates, which the key tells apart
         key = (self._mapping_key(variable), name, dim)
         if key in self._reduced_gaussian_cache:
             return self._reduced_gaussian_cache[key]
 
-        grid: Optional[ReducedGaussianGrid] = None
+        grid: Optional[XarrayGrid] = None
         pl = self._points_per_latitude(mapping)
         if pl is not None:
             counts, accumulated = pl
@@ -603,17 +613,20 @@ class CoordinateGuesser(ABC):
             if "longitude_of_first_meridian" not in mapping and "longitude_of_first_point" in mapping:
                 mapping = dict(mapping, longitude_of_first_meridian=mapping["longitude_of_first_point"])
 
-            spec = cf_reduced_gaussian_grid_spec(
-                mapping,
-                counts,
-                n_points=int(variable.sizes[dim]),
-                index_values=self.ds[name].values,
-                accumulated=accumulated,
-            )
-            if spec is not None:
-                grid = ReducedGaussianGrid(spec, (dim,))
+            named = cf_reduced_gaussian_grid_name(mapping, counts, accumulated=accumulated)
+            if named is None:
+                LOG.debug("The mapping of '%s' describes no global reduced Gaussian grid", variable.name)
             else:
-                LOG.debug("The points numbered by '%s' do not describe a global reduced Gaussian grid", name)
+                subset = cf_reduced_gaussian_subset(named[0], self.ds[name].values)
+                if subset is None:
+                    LOG.debug("The points numbered by '%s' are no subset of the grid '%s'", name, named[0])
+                elif subset.kind == SELECTIVE:
+                    grid = SelectiveReducedGaussianGrid(subset.lats, subset.lons, (dim,))
+                else:
+                    # GLOBAL or RECTANGULAR: the subset's spec places its points,
+                    # and its order says whether eckit iterates them the way the
+                    # file holds them
+                    grid = ReducedGaussianGrid(subset.spec, (dim,), point_order=subset.order)
 
         self._reduced_gaussian_cache[key] = grid
         return grid

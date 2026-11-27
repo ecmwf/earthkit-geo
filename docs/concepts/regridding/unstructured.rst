@@ -75,9 +75,10 @@ attribute (set, for example, when the data was produced from GRIB via earthkit-d
 when the dataset carries one. Failing that, it is inferred from the coordinates and CF metadata the
 variable has: a regular or rotated latitude/longitude grid, a regular ``x``/``y`` grid in the plane of
 a projection, a HEALPix or a reduced Gaussian grid is recognised when the variable's own coordinates
-describe it (see :ref:`grid-types` and :ref:`grid-projected`). A global reduced Gaussian grid
-described only by a CF ``reduced_gaussian`` grid mapping and a ``reduced_gaussian_index`` coordinate,
-without per-point latitude/longitude coordinates, is recognised too.
+describe it (see :ref:`grid-types` and :ref:`grid-projected`). A reduced Gaussian grid described only by
+a CF ``reduced_gaussian`` grid mapping and a ``reduced_gaussian_index`` coordinate, without per-point
+latitude/longitude coordinates, is recognised too, sub-area and all: a subset of the grid which no area
+describes falls back to the unstructured grid of its points.
 
 - If no gridspec is available this way but the gridspec is nonetheless known by other means, it can be
   passed explicitly via the ``in_grid`` keyword argument to :func:`regrid`.

@@ -545,6 +545,157 @@ def test_xarray_grid_reduced_gaussian_normal_netcdf(n, points_num):
         assert np.array_equal(lon, ek_lon)
 
 
+# the twelve CF reduced Gaussian sub-area files of the download server, cut by
+# tools/test-data/make_cf_reduced_gaussian_files.py from the real t2m_O1280 sample
+# and from the fixed global t2m_O32 and t2m_N80 files: the file, the global grid it
+# cuts, the case it holds, the number of points it keeps, and the [north, west,
+# south, east] area those points sit in -- None for the selective subset, which is
+# a scatter of points no area of the grid describes
+T2M_SUBAREA_FILES = [
+    pytest.param("t2m_O1280_area_east.nc", "O1280", "east", 10184, [50.0, 10.0, 40.0, 20.0], id="O1280-area-east"),
+    pytest.param("t2m_O1280_area_cross0.nc", "O1280", "cross0", 9058, [55.0, -5.0, 45.0, 5.0], id="O1280-area-cross0"),
+    pytest.param("t2m_O1280_band.nc", "O1280", "band", 10344, [45.0, 0.0, 44.7, 360.0], id="O1280-band"),
+    pytest.param("t2m_O1280_selective.nc", "O1280", "selective", 3101, None, id="O1280-selective"),
+    pytest.param("t2m_O32_area_east.nc", "O32", "east", 75, [60.0, 10.0, 30.0, 40.0], id="O32-area-east"),
+    pytest.param("t2m_O32_area_cross0.nc", "O32", "cross0", 123, [60.0, -10.0, 30.0, 40.0], id="O32-area-cross0"),
+    pytest.param("t2m_O32_band.nc", "O32", "band", 728, [40.0, 0.0, 20.0, 360.0], id="O32-band"),
+    pytest.param("t2m_O32_selective.nc", "O32", "selective", 852, None, id="O32-selective"),
+    pytest.param("t2m_N80_area_east.nc", "N80", "east", 571, [60.0, 10.0, 30.0, 40.0], id="N80-area-east"),
+    pytest.param("t2m_N80_area_cross0.nc", "N80", "cross0", 947, [60.0, -10.0, 30.0, 40.0], id="N80-area-cross0"),
+    pytest.param("t2m_N80_band.nc", "N80", "band", 5424, [40.0, 0.0, 20.0, 360.0], id="N80-band"),
+    pytest.param("t2m_N80_selective.nc", "N80", "selective", 5155, None, id="N80-selective"),
+]
+
+# the tolerance of the checks against the area a cut was made with: its points are
+# the exact ones of the global grid, so only their float representation can differ
+SUBAREA_TOL = 1e-6
+
+
+def _assert_in_area(lat, lon, area, tol=SUBAREA_TOL):
+    """Check flat points against the [north, west, south, east] area they were cut with.
+
+    Their latitudes are bounded by those of the area. Their longitudes are counted
+    from its western edge, modulo 360, so an area which crosses the Greenwich
+    meridian -- and whose points the file numbers from that meridian round the
+    globe -- holds the ones east of it and the ones west of it alike.
+    """
+    north, west, south, east = area
+    lat, lon = np.asarray(lat, dtype=np.float64), np.asarray(lon, dtype=np.float64)
+
+    assert lat.min() >= south - tol and lat.max() <= north + tol, (float(lat.min()), float(lat.max()))
+    offset = (lon - west) % 360.0
+    assert float(offset.max()) <= east - west + tol, (float(offset.max()), east - west)
+
+
+@pytest.mark.long_test
+@pytest.mark.download
+@pytest.mark.timeout(90)
+@pytest.mark.parametrize("filename,grid,kind,points,area", T2M_SUBAREA_FILES)
+def test_xarray_grid_reduced_gaussian_subarea_files(filename, grid, kind, points, area):
+    # a cut of a CF reduced Gaussian file keeps the global mapping and table of its
+    # source and holds a strictly increasing subset of the global index: the reader
+    # finds the area of the grid those points are, or, for a subset no area describes,
+    # the unstructured scatter of points the file holds
+    path = get_test_data(filename, subfolder="xr")
+
+    with xr.open_dataset(path) as ds:
+        variables = get_variables(ds)
+        values = ds["air_temperature"].values
+
+        assert [v.name for v in variables] == ["air_temperature"]
+        (v,) = variables
+
+        assert v.xr_grid.variable_dims == ("reduced_gaussian_index",)
+        assert v.geo_dims == ("reduced_gaussian_index",)
+        assert v.ek_grid.shape == (points,)
+        assert values.shape == (1, 1, points)
+
+        # the file holds the temperatures of its source, within the range the
+        # generator checked them against, and not the zeros some test files used to
+        assert np.all(np.isfinite(values))
+        assert float(values.min()) >= 200.0 and float(values.max()) <= 330.0
+
+        lat, lon = v.xr_grid.latlons
+        spec = v.xr_grid.grid_spec
+        order = v.xr_grid.point_order
+
+        if kind == "selective":
+            # the points are a scatter, and the grid is built from them
+            assert spec is None
+            assert v.xr_grid.grid_type == "unstructured"
+            assert v.ek_grid.type == "unstructured_ll"
+            assert order is None
+
+            # the file's points are the global grid's points its CF index names:
+            # the same latitudes, and the same longitudes modulo 360
+            index = np.asarray(ds["reduced_gaussian_index"].values, dtype=np.int64)
+            assert index.size == points
+            assert np.array_equal(index, np.unique(index))
+            _assert_points_at_index(grid, index, lat, lon)
+        else:
+            assert v.xr_grid.grid_type == "reduced_gg"
+            assert v.ek_grid.type == "reduced_gg"
+            assert set(spec) == {"grid", "area"}
+            assert spec["grid"] == grid
+
+            north, west, south, east = spec["area"]
+            assert south <= north
+            # the area the detection names is the one the points were cut with, its
+            # latitudes the outermost lines the file holds, and a band of full lines
+            # the whole longitude circle from 0 to 360
+            if kind == "band":
+                assert west == pytest.approx(0.0, abs=SUBAREA_TOL)
+                assert east == pytest.approx(360.0, abs=SUBAREA_TOL)
+            else:
+                assert west % 360.0 == pytest.approx(area[1] % 360.0, abs=SUBAREA_TOL)
+                assert east % 360.0 == pytest.approx(area[3] % 360.0, abs=SUBAREA_TOL)
+            assert south >= area[2] - SUBAREA_TOL and north <= area[0] + SUBAREA_TOL
+
+            # an area crossing the Greenwich meridian is not the order eckit iterates
+            # its points in, which the grid carries as a permutation; the others are
+            if kind == "cross0":
+                assert order is not None
+                assert not np.array_equal(order, np.arange(order.size))
+            else:
+                assert order is None
+
+            _assert_in_area(lat, lon, area)
+
+            # the eckit grid of the spec holds the file's points, and its own point p
+            # sits at position order[p] of the file
+            ek_lat, ek_lon = _eckit_points(v.ek_grid)
+            index = np.arange(points) if order is None else np.asarray(order)
+            assert np.array_equal(np.asarray(lat)[index], ek_lat)
+            assert np.array_equal(np.asarray(lon)[index], ek_lon)
+
+
+@pytest.mark.long_test
+@pytest.mark.download
+@pytest.mark.timeout(90)
+@pytest.mark.parametrize("grid,points", [("O32", 5248), ("N16", 1688), ("N80", 35718)])
+def test_xarray_grid_reduced_gaussian_t2m_global_values(grid, points):
+    # the three small global files of the server used to hold all-zero values: the
+    # fixed ones hold the temperature of the t2m_O1280 sample regridded onto their
+    # grid, which they are still detected as, mapping and table unchanged
+    path = get_test_data(f"t2m_{grid}.nc", subfolder="xr")
+
+    with xr.open_dataset(path) as ds:
+        variables = get_variables(ds)
+        values = ds["air_temperature"].values
+
+        assert [v.name for v in variables] == ["air_temperature"]
+        (v,) = variables
+
+        assert v.xr_grid.grid_spec == {"grid": grid}
+        assert v.ek_grid.type == "reduced_gg"
+        assert v.ek_grid.shape == (points,)
+        assert values.shape == (1, 1, points)
+
+        assert np.all(np.isfinite(values))
+        assert int(np.count_nonzero(values)) == values.size  # no point left at zero
+        assert float(values.min()) >= 200.0 and float(values.max()) <= 330.0
+
+
 # a Lambert azimuthal equal-area projection on GRS80, with the false easting and
 # northing of the efas sample, described the way CF files describe a projection
 LAEA_PROJ4 = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
@@ -1216,6 +1367,58 @@ def test_xarray_grid_explicit_grid_from_accessor(monkeypatch):
     assert variable.ek_grid is unstructured
 
 
+def _cf_area_index(name: str, area) -> np.ndarray:
+    """The global CF indices, increasing, of the points of an eckit area grid.
+
+    Parameters
+    ----------
+    name : str
+        The name of the global grid, e.g. ``"O32"``.
+    area : Any
+        The ``[north, west, south, east]`` area of it.
+
+    Returns
+    -------
+    np.ndarray
+        The index of every point of the grid ``{"grid": name, "area": area}``,
+        sorted into the increasing order a CF file must hold them in.
+    """
+    from eckit.geo import Grid
+
+    from earthkit.geo.grids.xarray.reduced_gaussian import cf_reduced_gaussian_encoding
+
+    encoding = cf_reduced_gaussian_encoding(Grid({"grid": name, "area": area}))
+    assert encoding is not None, (name, area)
+
+    indices = np.asarray(encoding.indices, dtype=np.int64)
+    if encoding.order is None:
+        return indices
+    return indices[np.asarray(encoding.order)]
+
+
+def _global_grid_points(name: str) -> tuple:
+    """The flat ``(lat, lon)`` points of the global grid ``name``, in its index order.
+
+    A reduced Gaussian grid built without an area iterates exactly the points
+    the CF global index numbers, west to east and north to south, so its point
+    ``i`` is the one the index ``i`` names.
+    """
+    from eckit.geo import Grid
+
+    lat, lon = Grid({"grid": name}).to_latlons()
+    return np.asarray(lat, dtype=np.float64).reshape(-1), np.asarray(lon, dtype=np.float64).reshape(-1)
+
+
+def _selective_index(name: str = "O32") -> np.ndarray:
+    """The increasing global indices of a subset of ``name`` no area describes.
+
+    Two patches far apart: the latitude lines between them hold no point of the
+    file, and no area which keeps the lines of the one keeps the lines of the
+    other without the rows in between, so the subset is a selective one.
+    """
+    return np.union1d(_cf_area_index(name, [80, -170, 75, -130]), _cf_area_index(name, [-75, 10, -80, 50]))
+
+
 def _reduced_gaussian_dataset(n: int, **changes) -> xr.Dataset:
     """A small synthetic dataset on a CF reduced Gaussian grid, ``O<n>`` or ``N<n>``.
 
@@ -1242,12 +1445,22 @@ def _reduced_gaussian_dataset(n: int, **changes) -> xr.Dataset:
           named by ``accumulated_points_per_latitude``, instead of the counts.
         - ``index_offset``: number the points from that value instead of 0, as a
           subset of the global grid does.
+        - ``index_values``: number the points with these global indices instead
+          of the canonical numbering; the data variable then holds one value per
+          index, whichever part of the grid the file covers.
         - ``index_reversed``: number them from the last point to the first.
+        - ``with_points``: hold the latitude and longitude of every point as 1D
+          auxiliary coordinates of the data variable along the point dimension,
+          as CF allows next to the mapping and the index.
+        - ``points_offset``: add that value to every auxiliary longitude (only
+          meaningful with ``with_points``).
         - ``extra_index``: the name of an unrelated data variable which holds the
           canonical numbering this variable's points do not, named as a reduced
           Gaussian index; it comes first among the dataset's variables.
         - ``second_index``: the name of a second coordinate of the data variable on
           its point dimension, named as a reduced Gaussian index.
+        - ``second_variable``: the name of a copy of the data variable, adding a
+          second variable on the same grid to the dataset.
         - ``pl_offset``: add that value to every line's point count.
         - ``pl_swap``: swap the first two lines of the table, and with them the
           last two: a table which still mirrors itself and adds up to the points
@@ -1306,9 +1519,14 @@ def _reduced_gaussian_dataset(n: int, **changes) -> xr.Dataset:
     if "longitude_of_first_point" in changes:
         mapping["longitude_of_first_point"] = changes["longitude_of_first_point"]
 
-    index = np.arange(points, dtype=np.int32) + changes.get("index_offset", 0)
+    index_values = changes.get("index_values")
+    if index_values is None:
+        index = np.arange(points, dtype=np.int32) + changes.get("index_offset", 0)
+    else:
+        index = np.asarray(index_values, dtype=np.int64)
     if changes.get("index_reversed"):
         index = index[::-1]
+    points = int(index.size)
 
     index_attrs = {"standard_name": "reduced_gaussian_index", "units": "1"}
 
@@ -1338,6 +1556,23 @@ def _reduced_gaussian_dataset(n: int, **changes) -> xr.Dataset:
         # follows cannot be told
         coords[changes["second_index"]] = ("reduced_gaussian_index", np.arange(points, dtype=np.int32), index_attrs)
 
+    if changes.get("with_points"):
+        # CF lets a reduced Gaussian file hold the latitude and longitude of
+        # every point as 1D auxiliary coordinates, alongside the index and the
+        # mapping which place them just as well
+        grid_name = f"N{n}" if changes.get("classical") else f"O{n}"
+        point_lat, point_lon = _global_grid_points(grid_name)
+        coords["latitude"] = (
+            "reduced_gaussian_index",
+            point_lat[index],
+            {"standard_name": "latitude", "units": "degrees_north"},
+        )
+        coords["longitude"] = (
+            "reduced_gaussian_index",
+            point_lon[index] + changes.get("points_offset", 0.0),
+            {"standard_name": "longitude", "units": "degrees_east"},
+        )
+
     ds = xr.Dataset(data_vars, coords=coords)
     ds["reduced_gaussian"] = xr.DataArray(0, attrs=mapping)
 
@@ -1348,6 +1583,11 @@ def _reduced_gaussian_dataset(n: int, **changes) -> xr.Dataset:
         del ds["reduced_gaussian"]
     if changes.get("no_attr"):
         del ds["air_temperature"].attrs["grid_mapping"]
+
+    if changes.get("second_variable"):
+        # another data variable of the dataset on the same grid, indexed by the
+        # same coordinate: a copy with the final attributes of the first
+        ds[changes["second_variable"]] = ds["air_temperature"]
 
     return ds
 
@@ -1513,6 +1753,251 @@ def test_xarray_grid_reduced_gaussian_index_ambiguous():
     assert sorted(named) == ["other_index", "reduced_gaussian_index"]
 
     assert get_variables(ds) == []
+
+
+# the areas of a global grid a CF index can hold: ones eckit iterates in the
+# increasing index order the file holds its points in, and ones crossing the
+# Greenwich meridian or wrapping round the globe, which it does not
+SUBAREA_IDENTITY = [("O32", [60, 10, 30, 40]), ("N32", [60, 10, 30, 40])]
+SUBAREA_ORDERED = [("O32", [60, -10, 30, 40]), ("N32", [60, -10, 30, 40]), ("O32", [60, 80, 30, 438])]
+
+
+def _subarea_dataset(name: str, area, **changes) -> xr.Dataset:
+    """A CF dataset on ``name`` holding exactly the points of one of its areas."""
+    index = _cf_area_index(name, area)
+    return _reduced_gaussian_dataset(int(name[1:]), classical=name[0] == "N", index_values=index, **changes)
+
+
+def _eckit_points(grid) -> tuple:
+    """The flat ``(lat, lon)`` points of an eckit grid, in its own order."""
+    lat, lon = grid.to_latlons()
+    return np.asarray(lat, dtype=np.float64).reshape(-1), np.asarray(lon, dtype=np.float64).reshape(-1)
+
+
+def _assert_points_at_index(name: str, index: np.ndarray, lat, lon):
+    """Check flat point arrays against the global grid's points an increasing index names."""
+    global_lat, global_lon = _global_grid_points(name)
+    assert np.allclose(lat, global_lat[index], atol=1e-9)
+    dlon = np.abs((np.asarray(lon) - global_lon[index] + 180.0) % 360.0 - 180.0)
+    assert np.allclose(dlon, 0.0, atol=1e-6)
+
+
+@pytest.mark.parametrize("name,area", SUBAREA_IDENTITY)
+def test_xarray_grid_reduced_gaussian_subarea_rectangular(name, area):
+    # a CF index holding the points of an area of the global grid is detected as
+    # that grid with that area, and eckit builds the file's points from the spec
+    from earthkit.geo.grids.xarray import ReducedGaussianGrid
+
+    index = _cf_area_index(name, area)
+    ds = _reduced_gaussian_dataset(int(name[1:]), classical=name[0] == "N", index_values=index)
+
+    # a proper subset of the global grid
+    assert index.size < int(ds["pl"].values.sum(dtype=np.int64))
+
+    (v,) = get_variables(ds)
+    assert v.name == "air_temperature"
+
+    assert isinstance(v.xr_grid, ReducedGaussianGrid)
+    assert v.xr_grid.grid_type == "reduced_gg"
+    assert set(v.xr_grid.grid_spec) == {"grid", "area"}
+    assert v.xr_grid.grid_spec["grid"] == name
+    assert v.xr_grid.variable_dims == ("reduced_gaussian_index",)
+    assert v.geo_dims == ("reduced_gaussian_index",)
+
+    # this area eckit iterates the way the file holds it: no permutation
+    assert v.xr_grid.point_order is None
+
+    assert v.ek_grid.type == "reduced_gg"
+    assert v.ek_grid.shape == (index.size,)
+
+    # the grid's latlons are the eckit grid's own, the file's points being its
+    # first ones, and the global grid's points the index names
+    lat, lon = v.xr_grid.latlons
+    ek_lat, ek_lon = _eckit_points(v.ek_grid)
+    assert np.array_equal(lat, ek_lat)
+    assert np.array_equal(lon, ek_lon)
+
+    _assert_points_at_index(name, index, lat, lon)
+
+
+@pytest.mark.parametrize("name,area", SUBAREA_ORDERED)
+def test_xarray_grid_reduced_gaussian_subarea_ordered(name, area):
+    # an area crossing the Greenwich meridian, or wrapping round the globe: the
+    # eckit grid of the spec runs each of its lines from the west edge of the
+    # area, another order than the file's, and the grid carries the permutation
+    # between the two
+    from earthkit.geo.grids.xarray import ReducedGaussianGrid
+
+    index = _cf_area_index(name, area)
+    ds = _reduced_gaussian_dataset(int(name[1:]), classical=name[0] == "N", index_values=index)
+
+    (v,) = get_variables(ds)
+
+    assert isinstance(v.xr_grid, ReducedGaussianGrid)
+    assert v.xr_grid.grid_spec["grid"] == name
+    assert v.xr_grid.variable_dims == ("reduced_gaussian_index",)
+    assert v.geo_dims == ("reduced_gaussian_index",)
+
+    assert v.ek_grid.type == "reduced_gg"
+    assert v.ek_grid.shape == (index.size,)
+
+    order = v.xr_grid.point_order
+    assert order is not None
+    assert not np.array_equal(order, np.arange(order.size))
+    assert np.array_equal(np.sort(order), np.arange(order.size))
+
+    # the eckit grid's point p sits at position order[p] of the file
+    lat, lon = v.xr_grid.latlons
+    ek_lat, ek_lon = _eckit_points(v.ek_grid)
+    assert np.array_equal(ek_lat, lat[order])
+    assert np.array_equal(ek_lon, lon[order])
+
+    # and the file holds the global grid's points the index names, in its order
+    _assert_points_at_index(name, index, lat, lon)
+
+
+def test_xarray_grid_reduced_gaussian_subarea_two_variables():
+    # two variables indexed by one coordinate describe one grid: each is
+    # returned, both sit on the very same grid object, and a variable which
+    # looks its points up through another coordinate of another name, i.e. of
+    # other contents, is never served this one from the cache
+    name, area = "O32", [60, -10, 30, 40]
+    ds = _subarea_dataset(name, area, second_variable="geopotential")
+
+    variables = get_variables(ds)
+    assert [v.name for v in variables] == ["air_temperature", "geopotential"]
+
+    air_temperature, geopotential = variables
+    assert air_temperature.xr_grid is geopotential.xr_grid
+    assert air_temperature.geo_dims == geopotential.geo_dims == ("reduced_gaussian_index",)
+    assert air_temperature.xr_grid.grid_spec == geopotential.xr_grid.grid_spec
+    assert geopotential.ek_grid.type == "reduced_gg"
+    assert geopotential.ek_grid.shape == air_temperature.ek_grid.shape
+
+
+def test_xarray_grid_reduced_gaussian_subarea_selective():
+    # a subset no area of the grid describes: the points keep the global grid's
+    # latitudes and longitudes their indices name them with, and the loader
+    # builds an unstructured eckit grid out of them
+    from earthkit.geo.grids.xarray.grid import SelectiveReducedGaussianGrid
+
+    index = _selective_index()
+    ds = _reduced_gaussian_dataset(32, index_values=index)
+
+    assert index.size < int(ds["pl"].values.sum(dtype=np.int64))
+
+    (v,) = get_variables(ds)
+
+    assert isinstance(v.xr_grid, SelectiveReducedGaussianGrid)
+    assert v.xr_grid.grid_spec is None
+    assert v.xr_grid.grid_type == "unstructured"
+    assert v.xr_grid.point_order is None
+    assert v.xr_grid.variable_dims == ("reduced_gaussian_index",)
+    assert v.geo_dims == ("reduced_gaussian_index",)
+
+    assert v.ek_grid.type == "unstructured_ll"
+    assert v.ek_grid.shape == (index.size,)
+
+    lat, lon = v.xr_grid.latlons
+    _assert_points_at_index("O32", index, lat, lon)
+
+    ek_lat, ek_lon = _eckit_points(v.ek_grid)
+    assert np.allclose(lat, ek_lat)
+    assert np.allclose(lon, ek_lon)
+
+
+def _assert_same_grid(ds_without_points, ds_with_points):
+    """Check that per-point coordinates added to a dataset change nothing detected."""
+    # the coordinates make the variable one with two grid coordinates: read
+    # without the mapping it would go through the lat/lon path now
+    assert "latitude" in ds_with_points["air_temperature"].coords
+    assert "longitude" in ds_with_points["air_temperature"].coords
+
+    (plain,) = get_variables(ds_without_points)
+    (points,) = get_variables(ds_with_points)
+
+    assert type(points.xr_grid) is type(plain.xr_grid)
+    assert points.xr_grid.grid_spec == plain.xr_grid.grid_spec
+    assert points.geo_dims == plain.geo_dims
+    assert points.ek_grid.type == plain.ek_grid.type
+    assert points.ek_grid.shape == plain.ek_grid.shape
+
+    order, plain_order = points.xr_grid.point_order, plain.xr_grid.point_order
+    assert (order is None) == (plain_order is None)
+    if order is not None:
+        assert np.array_equal(order, plain_order)
+
+    lat, lon = points.xr_grid.latlons
+    plain_lat, plain_lon = plain.xr_grid.latlons
+    assert np.array_equal(lat, plain_lat)
+    assert np.array_equal(lon, plain_lon)
+
+
+def test_xarray_grid_reduced_gaussian_with_points():
+    # a global grid which also holds its points as auxiliary coordinates is
+    # still detected from the mapping: the grid, the points and the eckit grid
+    # are the ones the mapping and the index describe (decision A5)
+    _assert_same_grid(_reduced_gaussian_dataset(16), _reduced_gaussian_dataset(16, with_points=True))
+
+
+@pytest.mark.parametrize("name,area", SUBAREA_IDENTITY + SUBAREA_ORDERED)
+def test_xarray_grid_reduced_gaussian_subarea_with_points(name, area):
+    # the same for a sub-area: the auxiliary coordinates, or the absence of
+    # them, make no difference to the area spec and the point order
+    _assert_same_grid(
+        _subarea_dataset(name, area),
+        _subarea_dataset(name, area, with_points=True),
+    )
+
+
+def test_xarray_grid_reduced_gaussian_subarea_selective_with_points():
+    _assert_same_grid(
+        _reduced_gaussian_dataset(32, index_values=_selective_index()),
+        _reduced_gaussian_dataset(32, index_values=_selective_index(), with_points=True),
+    )
+
+
+@pytest.mark.parametrize("name,area", SUBAREA_IDENTITY + SUBAREA_ORDERED)
+def test_xarray_grid_reduced_gaussian_subarea_points_do_not_count(name, area):
+    # the auxiliary coordinates are not what the grid is built from: shifted a
+    # tenth of a degree away from the points the mapping names, the detection
+    # does not notice — the mapping wins (decision A5)
+    _assert_same_grid(
+        _subarea_dataset(name, area),
+        _subarea_dataset(name, area, with_points=True, points_offset=0.1),
+    )
+
+
+@pytest.mark.parametrize("change", ["bad_index", "bad_table", "bad_meridian"])
+def test_xarray_grid_reduced_gaussian_subarea_invalid_with_points_falls_back(change):
+    # a subset the metadata cannot resolve to no reduced Gaussian grid is not
+    # detected through it: with per-point coordinates the variable goes on
+    # through the lat/lon path, as the unstructured scatter of points it holds,
+    # and without them it is skipped, as it was before any of this
+    from earthkit.geo.grids.xarray import ReducedGaussianGrid
+    from earthkit.geo.grids.xarray.grid import SelectiveReducedGaussianGrid
+
+    name, area = "O32", [60, 10, 30, 40]
+    index = _cf_area_index(name, area)
+
+    changes = {}
+    if change == "bad_index":
+        index = index.copy()
+        index[40], index[41] = index[41], index[40]  # not strictly increasing
+    elif change == "bad_table":
+        changes = {"pl_offset": 4}  # the table of no grid
+    else:
+        changes = {"longitude_of_first_point": 3.0}  # not the Greenwich meridian
+
+    ds = _reduced_gaussian_dataset(32, index_values=index, with_points=True, **changes)
+    (v,) = get_variables(ds)
+
+    assert not isinstance(v.xr_grid, (ReducedGaussianGrid, SelectiveReducedGaussianGrid))
+    assert v.geo_dims == ("reduced_gaussian_index",)
+    assert v.ek_grid.type == "unstructured_ll"
+    assert v.ek_grid.shape == (index.size,)
+
+    assert get_variables(_reduced_gaussian_dataset(32, index_values=index, **changes)) == []
 
 
 @pytest.mark.download

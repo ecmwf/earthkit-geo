@@ -2527,6 +2527,75 @@ def _classical_pl(rows: int) -> Optional[tuple]:
     return tuple(int(size) for size in np.diff(np.concatenate(([0], ends, [lat.size]))))
 
 
+def _cf_reduced_gaussian_table(
+    attrs: Any,
+    pl: Any,
+    accumulated: bool = False,
+) -> Optional[tuple]:
+    """Check a CF reduced Gaussian grid mapping and its global points-per-latitude table.
+
+    These are the checks that a mapping and a table can answer on their own, before
+    any of the file's points are looked at: the mapping is a ``reduced_gaussian`` one
+    naming an "octahedral" or "normal" grid whose first meridian is Greenwich, and
+    the table is a 1D even number of mirrored lines of whole counts, following the
+    octahedral rule when it claims to. The classical table of an ``N<n>`` grid
+    follows no rule to check against, so it is only the mirroring that is settled
+    here; the comparison against the table eckit builds ``N<n>`` from (a lookup that
+    means generating that grid) is left to the caller, once the cheaper point counts
+    and index checks have narrowed the candidates.
+
+    Returns
+    -------
+    tuple or None
+        ``(subtype, counts)``, the normalised grid subtype and the points per
+        latitude (``pl`` un-accumulated when ``accumulated``), or ``None`` if the
+        metadata does not describe the global table of a reduced Gaussian grid.
+    """
+    if not isinstance(attrs, dict):
+        return None
+
+    if attrs.get("grid_mapping_name") != "reduced_gaussian":
+        return None
+
+    subtype = attrs.get("grid_subtype")
+    if isinstance(subtype, bytes):
+        subtype = subtype.decode("utf-8", errors="replace")
+    if not isinstance(subtype, str):
+        return None
+    subtype = subtype.strip().lower()
+    if subtype not in ("octahedral", "normal"):
+        return None
+
+    # an attribute the caller holds as None is an attribute the dataset does not carry,
+    # whose CF default is the Greenwich meridian eckit builds
+    meridian = attrs.get("longitude_of_first_meridian", 0.0)
+    meridian = _scalar_number(0.0 if meridian is None else meridian)
+    if meridian is None or not np.isclose(meridian, 0.0, rtol=0.0, atol=1e-9):
+        return None
+
+    counts = _integer_row(pl)
+    if counts is None or counts.size % 2:
+        return None
+
+    if accumulated:
+        # the accumulated points per latitude is the cumulative sum of the points per
+        # latitude, along the latitude dimension, whichever end of it it starts at
+        counts = np.diff(np.concatenate(([0], counts)))
+
+    rows = counts.size // 2
+    if subtype == "octahedral":
+        north = _OCTAHEDRAL_FIRST_ROW + _OCTAHEDRAL_ROW_STEP * np.arange(rows, dtype=np.int64)
+        if not np.array_equal(counts, np.concatenate((north, north[::-1]))):
+            return None
+    elif not bool(np.array_equal(counts, counts[::-1])):
+        # a classical table mirrors itself like an octahedral one, but its rows follow
+        # no rule: which grid it belongs to, if any, is only known against the tables
+        # eckit has, which the caller looks up once the cheap checks are exhausted
+        return None
+
+    return subtype, counts
+
+
 def cf_reduced_gaussian_grid_spec(
     attrs: Any,
     pl: Any,
@@ -2599,49 +2668,11 @@ def cf_reduced_gaussian_grid_spec(
     not matter: a Gaussian table reads the same from either end, and it is the
     index, not the table, which says in which order the points come.
     """
-    if not isinstance(attrs, dict):
+    table = _cf_reduced_gaussian_table(attrs, pl, accumulated)
+    if table is None:
         return None
-
-    if attrs.get("grid_mapping_name") != "reduced_gaussian":
-        return None
-
-    subtype = attrs.get("grid_subtype")
-    if isinstance(subtype, bytes):
-        subtype = subtype.decode("utf-8", errors="replace")
-    if not isinstance(subtype, str):
-        return None
-    subtype = subtype.strip().lower()
-    if subtype not in ("octahedral", "normal"):
-        return None
-
-    # an attribute the caller holds as None is an attribute the dataset does not carry,
-    # whose CF default is the Greenwich meridian eckit builds
-    meridian = attrs.get("longitude_of_first_meridian", 0.0)
-    meridian = _scalar_number(0.0 if meridian is None else meridian)
-    if meridian is None or not np.isclose(meridian, 0.0, rtol=0.0, atol=1e-9):
-        return None
-
-    counts = _integer_row(pl)
-    if counts is None or counts.size % 2:
-        return None
-
-    if accumulated:
-        # the accumulated points per latitude is the cumulative sum of the points per
-        # latitude, along the latitude dimension, whichever end of it it starts at
-        counts = np.diff(np.concatenate(([0], counts)))
-
+    subtype, counts = table
     rows = counts.size // 2
-    if subtype == "octahedral":
-        north = _OCTAHEDRAL_FIRST_ROW + _OCTAHEDRAL_ROW_STEP * np.arange(rows, dtype=np.int64)
-        mirrored = np.array_equal(counts, np.concatenate((north, north[::-1])))
-    else:
-        # a classical table mirrors itself like an octahedral one, but its rows follow
-        # no rule: which grid it belongs to, if any, is only known against the tables
-        # eckit has, which are read off its grids once the count says it is worth it
-        mirrored = bool(np.array_equal(counts, counts[::-1]))
-
-    if not mirrored:
-        return None
 
     index = _integer_row(index_values)
     if index is None:
