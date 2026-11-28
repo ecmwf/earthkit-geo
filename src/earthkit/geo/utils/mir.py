@@ -90,23 +90,26 @@ def _yaml_from_dict(d):
 
     return yaml.dump(d, default_flow_style=True).strip()
 
+def _get_lat_lon_hash(lat, lon):
+    import hashlib
+    import json
+    key = {
+        "latitudes": np.asarray(lat).ravel().tolist(),
+        "longitudes": np.asarray(lon).ravel().tolist(),
+    }
+    return hashlib.sha256(json.dumps(key, sort_keys=True).encode("utf-8")).hexdigest()
 
 def _griddef_from_latlon(lat, lon, dir=None):
-    import hashlib
 
-    version = 1
-    coord = str(version) + str(lat) + str(lon)
-    hash = hashlib.md5(coord.encode()).hexdigest()
-
-    name = Path(hash + ".griddef")
+    hash = _get_lat_lon_hash(lat, lon)
+    filename = Path(hash + ".griddef")
     if dir:
-        name = dir / name
+        filename = dir / filename
 
-    if not name.exists():
-        mir_write_latlon_to_griddef(name, lat, lon)
+    if not filename.exists():
+        mir_write_latlon_to_griddef(filename, lat, lon)
 
-    return str(name)
-
+    return str(filename)
 
 def mir_make_matrix(
     in_grid: Optional[Dict] = None,
@@ -120,11 +123,19 @@ def mir_make_matrix(
 ):
     import mir
 
-    ext = Path(output).suffix if output is not None else None
-    if output is not None and ext not in (".mat", ".npz"):
-        raise ValueError("mir_make_matrix: output must have extension .mat or .npz")
-
     job = mir.Job()
+
+    return_matrix = False
+    if output is None:
+        import tempfile
+        temp_dir = tempfile.TemporaryDirectory()
+        output = temp_dir + "/tmp-interpolation-matrix.mat"
+        return_matrix = True
+    mat = Path(output)
+    ext = mat.suffix
+
+    if ext not in (".mat", ".npz"):
+        raise ValueError("mir_make_matrix: output must have extension .mat or .npz")
 
     if in_grid is not None and in_lat is None and in_lon is None:
         input = mir.GridSpecInput(_yaml_from_dict(in_grid))
@@ -140,7 +151,6 @@ def mir_make_matrix(
     else:
         raise ValueError("mir_make_matrix: output grid or lats/lons must be provided.")
 
-    mat = Path(output)
     if ext == ".mat":
         job.set("interpolation-matrix", str(mat))
     elif ext == ".npz":
@@ -149,21 +159,23 @@ def mir_make_matrix(
 
     for key, val in kwargs.items():
         job.set(key, val)
-
     try:
         job.execute(input, mir.EmptyOutput())
     except Exception as e:
         raise RuntimeError(f"mir_make_matrix: error: {e}.") from e
 
-    if ext and not mat.exists():
+    if not mat.exists():
         raise FileNotFoundError(f"mir_make_matrix: matrix file '{mat}' not found.")
 
     if ext == ".npz":
         mir_cached_matrix_to_file(str(mat), output)
         mat.unlink()
         assert Path(output).exists()
-    elif not ext:
-        return mir_cached_matrix_to_array(mat)
+
+    if return_matrix:
+        matrix = mir_cached_matrix_to_array(mat)
+        temp_dir.cleanup()
+        return matrix
 
 
 if __name__ == "__main__":
